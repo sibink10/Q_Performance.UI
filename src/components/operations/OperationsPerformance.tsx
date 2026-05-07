@@ -39,7 +39,7 @@ const PhaseChip = ({ status }) => {
       label={status || 'Pending'}
       color={colorMap[status] || 'default'}
       size="small"
-      variant="outlined"
+      variant="filled"
       sx={{ fontSize: 11, height: 22 }}
     />
   );

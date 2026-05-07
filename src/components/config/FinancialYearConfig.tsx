@@ -1,12 +1,31 @@
 // @ts-nocheck
 import { useState } from 'react';
-import { Alert, Box, Chip, Grid, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Grid,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import AppButton from '../common/AppButton';
-import { AppCard, PageHeader } from '../common';
+import { AppCard, EmptyState, PageHeader } from '../common';
 import performanceService from '../../services/performanceService';
 import useFinancialYears from '../../hooks/useFinancialYears';
 import { getApiErrorMessage } from '../../utils/helpers';
@@ -18,6 +37,13 @@ const FinancialYearConfig = () => {
   const [financialYearForm, setFinancialYearForm] = useState(defaultFy);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const canCreate =
+    Boolean(financialYearForm.name?.trim()) &&
+    Boolean(financialYearForm.startDate) &&
+    Boolean(financialYearForm.endDate);
 
   const saveFinancialYear = async () => {
     try {
@@ -32,13 +58,27 @@ const FinancialYearConfig = () => {
 
   const deleteFinancialYear = async (id) => {
     try {
+      setIsDeleting(true);
       await performanceService.deleteFinancialYear(id);
       await reloadFinancialYears();
       setMessage('Financial year deleted');
     } catch (e) {
       const msg = getApiErrorMessage(e);
       setError(msg.includes('in use') ? 'Financial year is in use and cannot be deleted.' : msg);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const openDeleteConfirm = (id) => setDeleteConfirmId(id);
+  const closeDeleteConfirm = () => {
+    if (!isDeleting) setDeleteConfirmId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    await deleteFinancialYear(deleteConfirmId);
+    setDeleteConfirmId(null);
   };
 
   return (
@@ -53,10 +93,58 @@ const FinancialYearConfig = () => {
 
         <AppCard sx={{ p: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={3}><TextField size="small" fullWidth label="Name" value={financialYearForm.name} onChange={(e) => setFinancialYearForm((p) => ({ ...p, name: e.target.value }))} /></Grid>
-            <Grid item xs={12} md={3}><DatePicker label="Start date" value={financialYearForm.startDate ? dayjs(financialYearForm.startDate) : null} onChange={(v) => setFinancialYearForm((p) => ({ ...p, startDate: v?.toISOString() }))} slotProps={{ textField: { size: 'small', fullWidth: true } }} /></Grid>
-            <Grid item xs={12} md={3}><DatePicker label="End date" value={financialYearForm.endDate ? dayjs(financialYearForm.endDate) : null} onChange={(v) => setFinancialYearForm((p) => ({ ...p, endDate: v?.toISOString() }))} slotProps={{ textField: { size: 'small', fullWidth: true } }} /></Grid>
-            <Grid item xs={12} md={3}><Stack direction="row" spacing={1}><AppButton onClick={saveFinancialYear}>Create</AppButton></Stack></Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Name"
+                value={financialYearForm.name}
+                onChange={(e) => setFinancialYearForm((p) => ({ ...p, name: e.target.value }))}
+                sx={{
+                }}
+                inputProps={{ style: { fontSize: 13 } }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Start date"
+                value={financialYearForm.startDate ? dayjs(financialYearForm.startDate) : null}
+                onChange={(v) => setFinancialYearForm((p) => ({ ...p, startDate: v?.toISOString() }))}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                    sx: {
+                      '& input': { fontSize: 13 },
+                    },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="End date"
+                value={financialYearForm.endDate ? dayjs(financialYearForm.endDate) : null}
+                onChange={(v) => setFinancialYearForm((p) => ({ ...p, endDate: v?.toISOString() }))}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                    sx: {
+                     
+                      '& input': { fontSize: 13 },
+                    },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Stack direction="row" spacing={1}>
+                <AppButton onClick={saveFinancialYear} disabled={!canCreate}>
+                  Create
+                </AppButton>
+              </Stack>
+            </Grid>
           </Grid>
           <TableContainer sx={{ mt: 2 }}>
             <Table size="small">
@@ -67,18 +155,42 @@ const FinancialYearConfig = () => {
                     <TableCell>{row.name}</TableCell>
                     <TableCell>{row.startDate ? dayjs(row.startDate).format('MMM D, YYYY') : '—'} - {row.endDate ? dayjs(row.endDate).format('MMM D, YYYY') : '—'}</TableCell>
                     <TableCell><Chip size="small" label={row.isActive ? 'Active' : 'Inactive'} color={row.isActive ? 'success' : 'default'} /></TableCell>
-                    <TableCell align="right"><AppButton variant="outlined" color="error" size="small" onClick={() => deleteFinancialYear(row.id)} disabled={row.isActive}>Delete</AppButton></TableCell>
+                    <TableCell align="right">
+                      <AppButton
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={() => openDeleteConfirm(row.id)}
+                      >
+                        Delete
+                      </AppButton>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
           {!financialYears.length && (
-            <Typography color="text.secondary" sx={{ mt: 2 }}>
-              No financial years available yet.
-            </Typography>
+            <EmptyState variant="box" message="No financial years available yet." minHeight={220} sx={{ mt: 1 }} />
           )}
         </AppCard>
+
+        <Dialog open={Boolean(deleteConfirmId)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
+          <DialogTitle>Delete financial year?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              This will permanently delete the selected financial year. This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <AppButton variant="outlined" onClick={closeDeleteConfirm} disabled={isDeleting}>
+              Cancel
+            </AppButton>
+            <AppButton color="error" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting…' : 'Delete'}
+            </AppButton>
+          </DialogActions>
+        </Dialog>
       </Box>
     </LocalizationProvider>
   );

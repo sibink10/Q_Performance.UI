@@ -16,14 +16,12 @@ import {
   saveFocusArea,
   updateFocusArea,
   fetchReviewForms,
-  fetchReviewFormById,
   saveReviewForm,
   updateReviewForm,
   deleteReviewForm,
   publishReviewFormAssignments,
   fetchPerformanceDashboard,
   assignReviewForm,
-  fetchAssignmentById,
   fetchMyReviews,
   fetchMyPublishedReviews,
   saveEvaluation,
@@ -60,6 +58,12 @@ const initialState = {
     submitted: [],
   },
   myReviewsLoading: false,
+  /** GET /performance/my-reviews/published — isolated from `myReviews` so lists do not overwrite each other */
+  myPublishedReviews: {
+    pending: [],
+    submitted: [],
+  },
+  myPublishedReviewsLoading: false,
   myResults: [],
   /** GET /performance/my-results/:assignmentId */
   myResultDetail: null,
@@ -222,20 +226,6 @@ const performanceSlice = createSlice({
       .addCase(fetchReviewForms.rejected, handleRejected);
 
     builder
-      .addCase(fetchReviewFormById.pending, handlePending)
-      .addCase(fetchReviewFormById.fulfilled, (state) => {
-        state.isLoading = false;
-      })
-      .addCase(fetchReviewFormById.rejected, handleRejected);
-
-    builder
-      .addCase(fetchAssignmentById.pending, handlePending)
-      .addCase(fetchAssignmentById.fulfilled, (state) => {
-        state.isLoading = false;
-      })
-      .addCase(fetchAssignmentById.rejected, handleRejected);
-
-    builder
       .addCase(saveReviewForm.pending, handleSavePending)
       .addCase(saveReviewForm.rejected, handleRejected);
 
@@ -308,7 +298,7 @@ const performanceSlice = createSlice({
       .addCase(fetchMyReviews.pending, (state) => {
         state.myReviewsLoading = true;
         state.error = null;
-        state.myReviews = { pending: [], submitted: [] };
+        // Keep existing lists to prevent UI flicker while refreshing (e.g. financial year change).
       })
       .addCase(fetchMyReviews.fulfilled, (state, { payload }) => {
         state.myReviewsLoading = false;
@@ -320,16 +310,16 @@ const performanceSlice = createSlice({
       });
     builder
       .addCase(fetchMyPublishedReviews.pending, (state) => {
-        state.myReviewsLoading = true;
+        state.myPublishedReviewsLoading = true;
         state.error = null;
-        state.myReviews = { pending: [], submitted: [] };
+        // Keep existing lists to prevent UI flicker while refreshing.
       })
       .addCase(fetchMyPublishedReviews.fulfilled, (state, { payload }) => {
-        state.myReviewsLoading = false;
-        state.myReviews = payload;
+        state.myPublishedReviewsLoading = false;
+        state.myPublishedReviews = payload;
       })
       .addCase(fetchMyPublishedReviews.rejected, (state, action) => {
-        state.myReviewsLoading = false;
+        state.myPublishedReviewsLoading = false;
         state.error = action.payload || 'Something went wrong';
       });
 
@@ -455,6 +445,8 @@ export const selectDashboardEmployees = (state) => state.performance.dashboard.e
 export const selectDashboardFilters = (state) => state.performance.dashboard.filters;
 export const selectMyReviews = (state) => state.performance.myReviews;
 export const selectMyReviewsLoading = (state) => state.performance.myReviewsLoading;
+export const selectMyPublishedReviews = (state) => state.performance.myPublishedReviews;
+export const selectMyPublishedReviewsLoading = (state) => state.performance.myPublishedReviewsLoading;
 export const selectMyResults = (state) => state.performance.myResults;
 export const selectMyResultDetail = (state) => state.performance.myResultDetail;
 export const selectMyResultDetailLoading = (state) => state.performance.myResultDetailLoading;

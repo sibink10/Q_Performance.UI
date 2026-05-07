@@ -22,7 +22,7 @@ import {
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useNavigate } from 'react-router-dom';
 import AppButton from '../common/AppButton';
-import { AppCard, AppLoader, PageHeader } from '../common';
+import { AppCard, AppLoader, EmptyState, PageHeader } from '../common';
 import { getAssignmentsPaged } from '../../services/assignReviewFormService';
 import performanceService from '../../services/performanceService';
 import { formatDate, getApiErrorMessage, toArrayFromPayload } from '../../utils/helpers';
@@ -248,9 +248,7 @@ const AssignedReviewFormsList = () => {
                 {rows.length === 0 && !loading ? (
                   <TableRow>
                     <TableCell colSpan={8}>
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        No assignments match the current filters.
-                      </Typography>
+                      <EmptyState variant="noContent" message="No assignments match the current filters." minHeight={220} />
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -15,7 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import usePerformance from '../../../hooks/usePerformance';
 import AppButton from '../../common/AppButton';
-import { AppCard, AppLoader, ConfirmDialog, PageHeader } from '../../common/index';
+import { AppCard, AppLoader, ConfirmDialog, EmptyState, PageHeader } from '../../common/index';
 import {
   getReviewFormQuestionCount,
   getReviewFormSectionCount,
@@ -148,8 +148,8 @@ const ReviewFormsList = () => {
             <TableBody>
               {filteredForms.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                    No review forms available. Click "Add Review Form" to create one.
+                  <TableCell colSpan={7} align="center" sx={{ py: 2 }}>
+                    <EmptyState variant="folder" message='No review forms available. Click "Add Review Form" to create one.' minHeight={240} />
                   </TableCell>
                 </TableRow>
               ) : (

@@ -15,7 +15,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import usePerformance from '../../hooks/usePerformance';
 import AppButton from '../../components/common/AppButton';
-import { AppCard, AppModal, AppLoader, PageHeader } from '../../components/common/index';
+import { AppCard, AppModal, AppLoader, EmptyState, PageHeader } from '../../components/common/index';
 import { FOCUS_AREA_SUGGESTIONS } from '../../utils/constants';
 
 const DEFAULT_FORM = { name: '', description: '', status: 'Active' };
@@ -150,8 +150,8 @@ const FocusAreas = () => {
             <TableBody>
               {focusAreas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                    No focus areas defined. Click "Add Focus Area" to get started.
+                  <TableCell colSpan={5} align="center" sx={{ py: 2 }}>
+                    <EmptyState variant="folder" message='No focus areas defined. Click "Add Focus Area" to get started.' minHeight={240} />
                   </TableCell>
                 </TableRow>
               ) : (

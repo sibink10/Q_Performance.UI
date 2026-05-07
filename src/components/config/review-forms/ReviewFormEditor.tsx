@@ -15,6 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import usePerformance from '../../../hooks/usePerformance';
+import usePerformanceApi from '../../../hooks/usePerformanceApi';
 import AppButton from '../../common/AppButton';
 import { AppCard, AppLoader, ConfirmDialog, PageHeader } from '../../common/index';
 import { WEIGHTAGE_OPTIONS } from '../../../utils/constants';
@@ -35,8 +36,9 @@ const ReviewFormEditor = () => {
   const navigate = useNavigate();
   const {
     activeFocusAreas, focusAreasPagination, isSaving, isLoading, error, successMessage,
-    loadFocusAreas, loadReviewFormById, createReviewForm, editReviewForm, clearSuccess,
+    loadFocusAreas, createReviewForm, editReviewForm, clearSuccess,
   } = usePerformance();
+  const { getReviewFormById } = usePerformanceApi();
 
   const isEditMode = !!formId && formId !== 'new';
   const [form, setForm] = useState({
@@ -84,9 +86,11 @@ const ReviewFormEditor = () => {
         return;
       }
       setHydrating(true);
-      const result = await loadReviewFormById(formId);
-      if (result?.meta?.requestStatus === 'fulfilled') {
-        setForm(result.payload);
+      try {
+        const data = await getReviewFormById(formId);
+        setForm(data);
+      } catch {
+        // UI uses `error` from Redux for mutations; load errors can be reflected via existing alert.
       }
       setHydrating(false);
     };

@@ -43,7 +43,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import usePerformance from '../../hooks/usePerformance';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
-import { AppLoader, StatusChip } from '../../components/common';
+import { AppLoader, EmptyState, StatusChip } from '../../components/common';
 import AppCard from '../../components/common/AppCard';
 import TableDotStatus from '../../components/common/TableDotStatus';
 import { mainLayoutStickySubheaderBandSx } from '../../components/common/PageHeader';
@@ -95,8 +95,8 @@ const ReviewCard = ({ review, onStart }) => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'box-shadow 0.2s, border-color 0.2s',
-        '&:hover': { boxShadow: 3, borderColor: 'primary.light' },
+        transition: 'border-color 0.2s, background-color 0.2s',
+        '&:hover': { borderColor: 'primary.light', bgcolor: 'grey.50' },
       }}
     >
       <CardContent sx={{ flex: 1 }}>
@@ -173,14 +173,16 @@ const EmployeePerformance = () => {
     reviewForms,
     error,
     loadMyReviews,
-    loadMyPublishedReviews,
     loadManagerTeam,
     loadReviewForms,
   } = usePerformance();
   const { financialYears, activeFinancialYear } = useFinancialYears();
   const { isAdmin } = useAuth();
 
-  const pageLoading = myReviewsLoading;
+  const hasMyReviews =
+    (Array.isArray(myReviews?.pending) && myReviews.pending.length > 0) ||
+    (Array.isArray(myReviews?.submitted) && myReviews.submitted.length > 0);
+  const pageLoading = myReviewsLoading && !hasMyReviews;
 
   const [tab, setTab] = useState(0);
   const [financialYearId, setFinancialYearId] = useState('');
@@ -215,7 +217,6 @@ const EmployeePerformance = () => {
   useEffect(() => {
     if (financialYearId) {
       loadMyReviews(financialYearId);
-      loadMyPublishedReviews(financialYearId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [financialYearId]);
@@ -285,8 +286,9 @@ const EmployeePerformance = () => {
               width: { xs: '100%', sm: 'max-content' },
               maxWidth: '100%',
               flexShrink: 0,
-              minHeight: 44,
-              '& .MuiTabs-flexContainer': { gap: 0.5 },
+              minHeight: 36,
+              '& .MuiTabs-indicator': { display: 'none' },
+              '& .MuiTabs-flexContainer': { gap: 0.75 },
             }}
           >
             {tabs.map((t, i) => (
@@ -303,6 +305,29 @@ const EmployeePerformance = () => {
                     )}
                   </Stack>
                 }
+                disableRipple
+                sx={{
+                  minHeight: 34,
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 999,
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'rgba(255,255,255,0.65)',
+                  backdropFilter: 'blur(10px)',
+                  '& .MuiChip-root': { ml: 0.25 },
+                  '&.Mui-selected': {
+                    color: 'primary.dark',
+                    borderColor: 'rgba(34,197,94,0.35)',
+                    bgcolor: 'rgba(34,197,94,0.12)',
+                    boxShadow: '0 10px 22px -18px rgba(34,197,94,0.55)',
+                  },
+                  '&:hover': { bgcolor: 'rgba(2,6,23,0.04)' },
+                }}
               />
             ))}
           </Tabs>
@@ -337,12 +362,13 @@ const EmployeePerformance = () => {
       {tab === 0 && (
         <Box>
           {(!myReviews.pending || myReviews.pending.length === 0) ? (
-            <AppCard sx={{ p: 6, textAlign: 'center' }}>
-              <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-              <Typography fontWeight={600}>All caught up!</Typography>
-              <Typography variant="body2" color="text.secondary">
-                No pending reviews for selected financial year
-              </Typography>
+            <AppCard sx={{ p: 0 }}>
+              <EmptyState
+                variant="empty"
+                title="All caught up!"
+                message="No pending reviews for selected financial year."
+                minHeight={260}
+              />
             </AppCard>
           ) : (
             <Grid container spacing={2.5}>
@@ -363,8 +389,8 @@ const EmployeePerformance = () => {
       {tab === 1 && (
         <Box>
           {(!myReviews.submitted || myReviews.submitted.length === 0) ? (
-            <AppCard sx={{ p: 6, textAlign: 'center' }}>
-              <Typography color="text.secondary">No submitted reviews for selected financial year</Typography>
+            <AppCard sx={{ p: 0 }}>
+              <EmptyState variant="noContent" message="No submitted reviews for selected financial year." minHeight={260} />
             </AppCard>
           ) : (
             <AppCard variant="table">
@@ -481,9 +507,7 @@ const EmployeePerformance = () => {
               </Box>
             )}
             {!managerTeamLoading && (!managerTeam || managerTeam.length === 0) && (
-              <Box sx={{ p: 6, textAlign: 'center' }}>
-                <Typography color="text.secondary">No managed reviews match the current filters.</Typography>
-              </Box>
+              <EmptyState variant="noContent" message="No managed reviews match the current filters." minHeight={260} />
             )}
             {managerTeam && managerTeam.length > 0 && (
               <>

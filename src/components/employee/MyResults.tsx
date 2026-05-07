@@ -17,7 +17,7 @@ import {
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend,
 } from 'recharts';
 import usePerformance from '../../hooks/usePerformance';
-import { AppCard, AppLoader, PageHeader } from '../../components/common/index.jsx';
+import { AppCard, AppLoader, EmptyState, PageHeader } from '../../components/common/index.jsx';
 import TableDotStatus from '../../components/common/TableDotStatus';
 import { modernTableSx } from '../../utils/floatingPanelSx';
 import { REVIEW_STATUSES } from '../../utils/constants';
@@ -326,8 +326,8 @@ const MyResults = () => {
   const navigate = useNavigate();
   const { assignmentId } = useParams();
   const {
-    myReviews,
-    myReviewsLoading,
+    myPublishedReviews,
+    myPublishedReviewsLoading,
     myResultDetail,
     myResultDetailLoading,
     error,
@@ -341,8 +341,8 @@ const MyResults = () => {
   const [financialYearId, setFinancialYearId] = useState('');
 
   const assignmentRows = useMemo(
-    () => [...(myReviews.pending || []), ...(myReviews.submitted || [])],
-    [myReviews.pending, myReviews.submitted]
+    () => [...(myPublishedReviews.pending || []), ...(myPublishedReviews.submitted || [])],
+    [myPublishedReviews.pending, myPublishedReviews.submitted]
   );
 
   useEffect(() => {
@@ -397,7 +397,7 @@ const MyResults = () => {
     );
   }
 
-  if (myReviewsLoading) return <AppLoader message="Loading your assignments..." />;
+  if (myPublishedReviewsLoading) return <AppLoader message="Loading your assignments..." />;
 
   return (
     <Box>
@@ -424,11 +424,7 @@ const MyResults = () => {
 
       <AppCard sx={{}} variant="table">
         {!assignmentRows.length ? (
-          <Box sx={{ p: 6, textAlign: 'center' }}>
-            <Typography color="text.secondary">
-              No review assignments found for this financial year.
-            </Typography>
-          </Box>
+          <EmptyState variant="noContent" message="No review assignments found for this financial year." minHeight={260} />
         ) : (
           <TableContainer>
             <Table sx={modernTableSx}>

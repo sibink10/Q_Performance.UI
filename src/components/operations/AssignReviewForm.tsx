@@ -369,7 +369,17 @@ const AssignReviewForm = () => {
             </Grid>
           </Grid>
 
-          <AppCard sx={{ p: 2, bgcolor: 'action.hover', boxShadow: 'none' }}>
+          <AppCard
+            sx={{
+              p: 2,
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: alpha('#01df96', 0.55),
+              borderLeftWidth: 4,
+              borderLeftColor: '#01df96',
+              bgcolor: alpha('#01df96', 0.06),
+            }}
+          >
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
               Evaluation windows (from Appraisal Config)
             </Typography>

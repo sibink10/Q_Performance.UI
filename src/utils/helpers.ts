@@ -251,6 +251,19 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
   let a = assignment;
   const rootSelfEvaluationStatus =
     a.selfEvaluationStatus ?? a.SelfEvaluationStatus ?? null;
+  const rootHrOverallRating =
+    a.hrOverallRating ??
+    a.hrOverallScore ??
+    a.HrOverallRating ??
+    a.HrOverallScore ??
+    null;
+  const rootHrComments =
+    a.hrComments ??
+    a.hrFeedback ??
+    a.hrRemark ??
+    a.HrComments ??
+    a.HrFeedback ??
+    '';
   /** Wrapper DTO fields may sit beside `assignment` / `reviewForm`, not inside assignment. */
   const rootAllReviewsSubmitted =
     assignment?.allReviewsSubmitted ?? assignment?.AllReviewsSubmitted ?? null;
@@ -273,6 +286,19 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
         siblingAssign.allReviewsSubmitted ??
         siblingAssign.AllReviewsSubmitted ??
         rootAllReviewsSubmitted,
+      hrOverallRating:
+        siblingAssign.hrOverallRating ??
+        siblingAssign.hrOverallScore ??
+        siblingAssign.HrOverallRating ??
+        siblingAssign.HrOverallScore ??
+        rootHrOverallRating,
+      hrComments:
+        siblingAssign.hrComments ??
+        siblingAssign.hrFeedback ??
+        siblingAssign.hrRemark ??
+        siblingAssign.HrComments ??
+        siblingAssign.HrFeedback ??
+        rootHrComments,
     };
   } else if (rootSelfEvaluationStatus != null && a.selfEvaluationStatus == null) {
     a = { ...a, selfEvaluationStatus: rootSelfEvaluationStatus };
@@ -357,6 +383,19 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
         '') ||
         ''
     ),
+    hrOverallRating:
+      a.hrOverallRating ??
+      a.hrOverallScore ??
+      a.HrOverallRating ??
+      a.HrOverallScore ??
+      rootHrOverallRating,
+    hrComments:
+      a.hrComments ??
+      a.hrFeedback ??
+      a.hrRemark ??
+      a.HrComments ??
+      a.HrFeedback ??
+      rootHrComments,
   };
 
   return mapReviewFormForSelfEvaluation(merged);

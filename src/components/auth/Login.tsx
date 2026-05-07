@@ -6,12 +6,14 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Alert, Stack } from '@mui/material';
 import MicrosoftIcon from '@mui/icons-material/Microsoft';
+import { alpha, useTheme } from '@mui/material/styles';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
 import AppCard from '../../components/common/AppCard';
 import productLogo from '../../assets/qubiqon_logo.jpg';
 
 const Login = () => {
+  const theme = useTheme();
   const { login, isLoading, error, isAuthenticated, clearError } = useAuth();
   const navigate = useNavigate();
 
@@ -27,35 +29,17 @@ const Login = () => {
         alignItems: 'center',
         justifyContent: 'center',
         p: { xs: 2, sm: 3 },
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          inset: 0,
-          background: `
-            radial-gradient(800px 400px at 15% 10%, rgba(99, 102, 241, 0.35) 0%, transparent 55%),
-            radial-gradient(700px 380px at 85% 15%, rgba(56, 189, 248, 0.28) 0%, transparent 50%),
-            radial-gradient(600px 360px at 50% 100%, rgba(79, 70, 229, 0.2) 0%, transparent 45%),
-            linear-gradient(165deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)
-          `,
-          zIndex: 0,
-        },
+        bgcolor: theme.palette.background.paper,
+        backgroundImage: 'none',
       }}
     >
       <AppCard
-        variant="glass"
+        variant="paper"
         sx={{
-          position: 'relative',
-          zIndex: 1,
           p: { xs: 3, sm: 4.5 },
           width: '100%',
           maxWidth: 440,
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'saturate(180%) blur(20px)',
-          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.35)',
-          boxShadow: '0 24px 80px rgba(15, 23, 42, 0.45), 0 0 0 1px rgba(255,255,255,0.06) inset',
+          boxShadow: 'none',
         }}
       >
         <Stack spacing={3} alignItems="center" textAlign="center">
@@ -65,11 +49,11 @@ const Login = () => {
               height: 56,
               borderRadius: 2.5,
               overflow: 'hidden',
-              background: '#fff',
+              background: alpha(theme.palette.primary.main, 0.12),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 12px 40px rgba(79, 70, 229, 0.45)',
+              boxShadow: `0 14px 34px -24px ${alpha(theme.palette.primary.main, 0.9)}`,
             }}
           >
             <Box component="img" src={productLogo} alt="Qubiqon logo" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />

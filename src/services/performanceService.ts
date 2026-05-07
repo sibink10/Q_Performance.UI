@@ -48,8 +48,8 @@ const performanceService = {
   getAssignments: (params = {}) => api.get('/performance/assignments', { params }),
   getAssignmentById: (id) => api.get(`/performance/assignments/${id}`),
   publishReviewFormAssignments: ({ reviewFormId, financialYearId }) =>
-    api.patch('/performance/assignments/publish', {}, {
-      params: { reviewFormId, ...(financialYearId ? { financialYearId } : {}) },
+    api.patch('/performance/assignments/review-form/publish', {}, {
+      params: { reviewFormId, financialYearId },
     }),
 
   // ── Operations: Timeline Management ───────────────────────────────────────

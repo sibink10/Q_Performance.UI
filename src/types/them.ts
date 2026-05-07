@@ -2,22 +2,22 @@ import { createTheme, alpha } from '@mui/material/styles';
 import { appPageCanvasBackgroundLayers } from '../utils/appPageCanvasBackground';
 import { APP_SURFACE_RADIUS_PX } from '../utils/appSurfaceSx';
 
-const gradientPrimary = 'linear-gradient(135deg, #4f46e5 0%, #6366f1 42%, #2563eb 100%)';
-const gradientPrimaryHover = 'linear-gradient(135deg, #6366f1 0%, #818cf8 45%, #3b82f6 100%)';
+const brandGreen = '#0f9d78';
+const brandGreenHover = '#0b8a69';
 
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#4f46e5',
-      light: '#818cf8',
-      dark: '#4338ca',
+      main: brandGreen,
+      light: '#34d399',
+      dark: '#087f5b',
     },
     secondary: {
       main: '#64748b',
     },
     success: {
-      main: '#059669',
+      main: '#16a34a',
     },
     warning: {
       main: '#d97706',
@@ -26,31 +26,36 @@ export const theme = createTheme({
       main: '#dc2626',
     },
     info: {
-      main: '#0284c7',
-      dark: '#0369a1',
+      main: '#0891b2',
+      dark: '#0e7490',
     },
     background: {
-      default: '#f1f5f9',
+      default: '#f6f7f9',
       paper: '#ffffff',
     },
     text: {
       primary: '#0f172a',
       secondary: '#64748b',
     },
-    divider: alpha('#0f172a', 0.08),
+    divider: '#e6eaef',
     grey: {
       50: '#f8fafc',
-      100: '#f1f5f9',
-      200: '#e2e8f0',
+      100: '#f4f6f8',
+      200: '#e6eaef',
       900: '#0f172a',
     },
   },
   typography: {
     fontFamily: '"Inter", "Segoe UI", "Roboto", sans-serif',
+    fontSize: 14,
     h5: { fontWeight: 800, fontSize: '1.35rem', letterSpacing: '-0.02em' },
     h6: { fontWeight: 650, fontSize: '1.08rem' },
     subtitle1: { fontWeight: 650, fontSize: '0.95rem' },
+    subtitle2: { fontWeight: 650, fontSize: '0.875rem' },
+    body1: { fontSize: '0.9375rem', lineHeight: 1.6 },
     body2: { fontSize: '0.875rem', lineHeight: 1.55 },
+    caption: { fontSize: '0.75rem', lineHeight: 1.45 },
+    overline: { fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.085em' },
   },
   shape: {
     /** Base radius; Cards/Papers use APP_SURFACE_RADIUS_PX for parity with AppCard. */
@@ -73,15 +78,15 @@ export const theme = createTheme({
           borderRadius: 10,
         },
         contained: {
-          boxShadow: `0 4px 14px ${alpha('#4f46e5', 0.28)}`,
+          boxShadow: `0 6px 18px ${alpha(brandGreen, 0.18)}`,
           '&:hover': {
-            boxShadow: `0 6px 20px ${alpha('#4f46e5', 0.38)}`,
+            boxShadow: `0 10px 26px ${alpha(brandGreen, 0.22)}`,
           },
         },
         containedPrimary: {
-          background: gradientPrimary,
+          background: brandGreen,
           '&:hover': {
-            background: gradientPrimaryHover,
+            background: brandGreenHover,
           },
         },
         outlined: {
@@ -89,8 +94,8 @@ export const theme = createTheme({
           borderColor: alpha('#0f172a', 0.12),
           '&:hover': {
             borderWidth: '1px',
-            borderColor: alpha('#4f46e5', 0.35),
-            backgroundColor: alpha('#4f46e5', 0.04),
+            borderColor: alpha(brandGreen, 0.35),
+            backgroundColor: alpha(brandGreen, 0.04),
           },
         },
       },
@@ -98,10 +103,7 @@ export const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: ({ theme }) => ({
-          boxShadow: `0 1px 3px ${alpha(theme.palette.common.black, 0.06)}, 0 10px 28px -12px ${alpha(
-            '#0f172a',
-            0.09,
-          )}`,
+          boxShadow: 'none',
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: `${APP_SURFACE_RADIUS_PX}px`,
@@ -118,7 +120,7 @@ export const theme = createTheme({
           borderRadius: `${APP_SURFACE_RADIUS_PX}px`,
         },
         elevation1: {
-          boxShadow: `0 1px 2px ${alpha('#0f172a', 0.05)}, 0 8px 24px -8px ${alpha('#0f172a', 0.12)}`,
+          boxShadow: 'none',
         },
       },
     },
@@ -131,7 +133,13 @@ export const theme = createTheme({
           const variant = ownerState.variant || 'filled';
           const paletteKey =
             typeof ownerState.color === 'string' ? ownerState.color : 'default';
-          const base = { fontWeight: 600 };
+          const base = {
+            fontWeight: 600,
+            borderRadius: 999,
+            height: 22,
+            fontSize: '0.75rem',
+            lineHeight: 1,
+          } as const;
 
           if (variant === 'outlined') {
             return {
@@ -168,6 +176,10 @@ export const theme = createTheme({
             color: theme.palette.text.primary,
           };
         },
+        label: {
+          paddingLeft: 10,
+          paddingRight: 10,
+        },
       },
     },
     MuiTableHead: {
@@ -193,9 +205,9 @@ export const theme = createTheme({
           minHeight: 44,
           padding: theme.spacing(0.5),
           borderRadius: 14,
-          backgroundColor: alpha(theme.palette.primary.main, 0.07),
+          backgroundColor: alpha(theme.palette.grey[900], 0.035),
           borderBottom: 'none',
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+          border: `1px solid ${alpha(theme.palette.grey[900], 0.08)}`,
         }),
         flexContainer: {
           gap: 4,
@@ -217,9 +229,12 @@ export const theme = createTheme({
           color: theme.palette.text.secondary,
           transition: 'color 0.2s, background-color 0.2s, box-shadow 0.2s',
           '&.Mui-selected': {
-            color: theme.palette.primary.main,
+            color: theme.palette.text.primary,
             backgroundColor: theme.palette.background.paper,
-            boxShadow: `0 2px 8px ${alpha('#0f172a', 0.08)}, 0 1px 2px ${alpha('#0f172a', 0.06)}`,
+            boxShadow: `0 1px 2px ${alpha('#0f172a', 0.06)}, 0 10px 22px -14px ${alpha(
+              '#0f172a',
+              0.18,
+            )}`,
           },
         }),
       },

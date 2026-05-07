@@ -19,10 +19,7 @@ export function appSurfacePaperSx(theme: Theme) {
     ...outline,
     backgroundColor: theme.palette.background.paper,
     backgroundImage: 'none',
-    boxShadow: `0 1px 3px ${alpha(theme.palette.common.black, 0.06)}, 0 10px 28px -12px ${alpha(
-      '#0f172a',
-      0.09,
-    )}`,
+    boxShadow: 'none',
   } as const;
 }
 
@@ -34,7 +31,7 @@ export function appSurfaceGlassSx(theme: Theme) {
     backgroundColor: alpha(theme.palette.background.paper, 0.94),
     backdropFilter: 'saturate(180%) blur(12px)',
     WebkitBackdropFilter: 'saturate(180%) blur(12px)',
-    boxShadow: `0 8px 36px ${alpha(theme.palette.common.black, 0.09)}`,
+    boxShadow: 'none',
   } as const;
 }
 
@@ -47,7 +44,7 @@ export function appSurfaceTableShellSx(theme: Theme) {
     ...outline,
     backgroundColor: theme.palette.background.paper,
     backgroundImage: 'none',
-    boxShadow: `0 8px 40px ${alpha(theme.palette.common.black, 0.07)}`,
+    boxShadow: 'none',
   } as const;
 }
 
@@ -63,7 +60,7 @@ export function floatingTableShellSx(theme: Theme) {
 
 export const modernTableHeadCellSx = {
   textTransform: 'uppercase',
-  fontSize: '0.6875rem',
+  fontSize: (theme: Theme) => theme.typography.overline.fontSize,
   fontWeight: 600,
   letterSpacing: '0.085em',
   color: 'text.secondary',

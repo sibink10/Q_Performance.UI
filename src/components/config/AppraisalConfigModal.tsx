@@ -57,6 +57,10 @@ const AppraisalConfigModal = ({
   onSave,
   clearError,
 }: Props) => {
+  const canSave =
+    Boolean(configForm?.financialYearId) &&
+    PHASE_FIELDS.every(([key]) => Boolean(configForm?.[key]));
+
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth scroll="paper">
       <DialogTitle>{title}</DialogTitle>
@@ -173,7 +177,7 @@ const AppraisalConfigModal = ({
         <AppButton variant="outlined" onClick={onClose} disabled={saving}>
           Cancel
         </AppButton>
-        <AppButton onClick={onSave} disabled={saving}>
+        <AppButton onClick={onSave} disabled={saving || !canSave}>
           {editId ? 'Save changes' : 'Create'}
         </AppButton>
       </DialogActions>

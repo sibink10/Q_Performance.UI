@@ -114,18 +114,6 @@ export const saveReviewForm = createAsyncThunk(
   }
 );
 
-export const fetchReviewFormById = createAsyncThunk(
-  'performance/fetchReviewFormById',
-  async (id, { rejectWithValue }) => {
-    try {
-      const res = await performanceService.getReviewFormById(id);
-      return toEntityFromPayload(res);
-    } catch (e) {
-      return rejectWithValue(getApiErrorMessage(e));
-    }
-  }
-);
-
 export const updateReviewForm = createAsyncThunk(
   'performance/updateReviewForm',
   async ({ id, data }, { rejectWithValue }) => {
@@ -182,18 +170,6 @@ export const assignReviewForm = createAsyncThunk(
   async (assignmentData, { rejectWithValue }) => {
     try {
       return await performanceService.assignReviewForm(assignmentData);
-    } catch (e) {
-      return rejectWithValue(getApiErrorMessage(e));
-    }
-  }
-);
-
-export const fetchAssignmentById = createAsyncThunk(
-  'performance/fetchAssignmentById',
-  async (id, { rejectWithValue }) => {
-    try {
-      const res = await performanceService.getAssignmentById(id);
-      return toEntityFromPayload(res);
     } catch (e) {
       return rejectWithValue(getApiErrorMessage(e));
     }

@@ -23,7 +23,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AppButton from '../common/AppButton';
-import { AppCard, PageHeader } from '../common';
+import { AppCard, EmptyState, PageHeader } from '../common';
 import performanceService from '../../services/performanceService';
 import useFinancialYears from '../../hooks/useFinancialYears';
 import { getApiErrorMessage, toArrayFromPayload } from '../../utils/helpers';
@@ -221,9 +221,12 @@ const AppraisalConfig = () => {
             </Table>
           </TableContainer>
           {!configs.length && (
-            <Typography color="text.secondary" sx={{ mt: 2 }}>
-              No appraisal configurations yet. Click Add to create one.
-            </Typography>
+            <EmptyState
+              variant="box"
+              message="No appraisal configurations yet. Click Add to create one."
+              minHeight={220}
+              sx={{ mt: 1 }}
+            />
           )}
         </AppCard>
 

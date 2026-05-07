@@ -32,6 +32,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckIcon from '@mui/icons-material/Check';
 import usePerformance from '../../hooks/usePerformance';
+import usePerformanceApi from '../../hooks/usePerformanceApi';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
 import { AppCard } from '../../components/common';
@@ -43,10 +44,8 @@ import {
   isAssignmentPhaseSubmitted,
   getApiErrorMessage,
 } from '../../utils/helpers';
-import performanceService from '../../services/performanceService';
 import { validateHrSubmitInput } from '../../utils/performanceSubmission';
 import {
-  fetchAssignmentById,
   saveEvaluation,
   submitEvaluation,
   submitManagerEvaluation,
@@ -83,6 +82,7 @@ const SelfEvaluationForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAdmin } = useAuth();
+  const { getAssignmentById, publishRatings, unpublishAssignmentResults } = usePerformanceApi();
 
   const modeManager = searchParams.get('mode') === 'manager';
   const modeHr = searchParams.get('mode') === 'hr';
@@ -137,19 +137,13 @@ const SelfEvaluationForm = () => {
       setPhaseConflict({ self: false, manager: false, hr: false });
       dispatch(clearPerformanceError());
       try {
-        const resultAction = await dispatch(fetchAssignmentById(reviewId));
         if (cancelled) return;
-        if (fetchAssignmentById.fulfilled.match(resultAction)) {
-          const mapped = mapAssignmentForSelfEvaluation(resultAction.payload);
-          if (mapped) {
-            setReview(mapped);
-          } else {
-            setLoadError('Invalid assignment or review form data.');
-          }
+        const assignment = await getAssignmentById(reviewId);
+        const mapped = mapAssignmentForSelfEvaluation(assignment);
+        if (mapped) {
+          setReview(mapped);
         } else {
-          const p = resultAction.payload;
-          const rej = typeof p === 'string' ? p : p?.message;
-          setLoadError(rej || 'Failed to load assignment.');
+          setLoadError('Invalid assignment or review form data.');
         }
       } catch (e) {
         if (!cancelled) {
@@ -228,14 +222,24 @@ const SelfEvaluationForm = () => {
 
   const showSaveDraft = !isManagerMode && !isHrMode && !selfFieldsReadOnly;
 
+  const hasHrOverall =
+    review?.hrOverallRating != null &&
+    review.hrOverallRating !== '' &&
+    Number.isFinite(Number(review.hrOverallRating));
+  const hasHrOverallComments =
+    review?.hrComments != null && String(review.hrComments).trim() !== '';
+  const showHrOverallSummary = (hasHrOverall || hasHrOverallComments) && (review.allReviewsSubmitted || hrResultsVisible || isHrMode);
+
   const reloadAssignment = useCallback(async () => {
     if (!reviewId) return;
-    const resultAction = await dispatch(fetchAssignmentById(reviewId));
-    if (fetchAssignmentById.fulfilled.match(resultAction)) {
-      const mapped = mapAssignmentForSelfEvaluation(resultAction.payload);
+    try {
+      const assignment = await getAssignmentById(reviewId);
+      const mapped = mapAssignmentForSelfEvaluation(assignment);
       if (mapped) setReview(mapped);
+    } catch {
+      // ignore refresh errors; page already has error UI
     }
-  }, [reviewId, dispatch]);
+  }, [reviewId, getAssignmentById]);
 
   const updateAnswer = (questionId, field, value) => {
     setAnswers((prev) => ({
@@ -322,7 +326,7 @@ const SelfEvaluationForm = () => {
     if (!reviewId || publishBusy) return;
     setPublishBusy(true);
     try {
-      await performanceService.publishRatings(reviewId);
+      await publishRatings(reviewId);
       setMutationToast({
         severity: 'success',
         message: 'Results are now visible to the employee.',
@@ -340,7 +344,7 @@ const SelfEvaluationForm = () => {
     setUnpublishConfirmOpen(false);
     setPublishBusy(true);
     try {
-      await performanceService.unpublishAssignmentResults(reviewId);
+      await unpublishAssignmentResults(reviewId);
       setMutationToast({
         severity: 'success',
         message: 'Results are no longer visible to the employee.',
@@ -477,10 +481,14 @@ const SelfEvaluationForm = () => {
     if (!isHrMode) {
       return renderNonEditablePhase(question.hrReview);
     }
-    if (!hrFieldsReadOnly) return renderNonEditablePhase(question.hrReview);
-    return renderNonEditablePhase(
-      question.hrReview ||
-        (qAns?.rating ? { rating: Number(qAns.rating), comment: String(qAns.comment || '') } : null)
+    const snap = question.hrReview;
+    // New API captures HR review at assignment-level (overall score/comments),
+    // so per-question HR snapshots are typically null.
+    if (snap) return <PhaseSnapshotDisplay label="" snapshot={snap} ratingScale={review.ratingScale} />;
+    return (
+      <Typography variant="caption" color="text.secondary">
+        Overall HR review is captured above.
+      </Typography>
     );
   };
 
@@ -664,6 +672,29 @@ const SelfEvaluationForm = () => {
         </AppCard>
       )}
 
+      {showHrOverallSummary && (!isHrMode || hrFieldsReadOnly) && (
+        <AppCard sx={{ p: 2.5, mb: 2 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            HR Overall
+          </Typography>
+          <Stack spacing={1}>
+            <Typography variant="body2">
+              Score:{' '}
+              <strong>
+                {hasHrOverall ? `${Number(review.hrOverallRating).toFixed(1)} / ${hrRatingScale}` : '—'}
+              </strong>
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ whiteSpace: 'pre-wrap' }}
+            >
+              {hasHrOverallComments ? String(review.hrComments).trim() : '—'}
+            </Typography>
+          </Stack>
+        </AppCard>
+      )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -689,13 +720,13 @@ const SelfEvaluationForm = () => {
         </Alert>
       )}
 
-      {managerFieldsReadOnly && isManagerMode && (
+      {managerFieldsReadOnly && isManagerMode && !error && (
         <Alert severity="info" sx={{ mb: 2 }}>
           This manager review was already submitted. Fields are read-only.
         </Alert>
       )}
 
-      {hrFieldsReadOnly && isHrMode && (
+      {hrFieldsReadOnly && isHrMode && !error && (
         <Alert severity="info" sx={{ mb: 2 }}>
           This HR review was already submitted. Fields are read-only.
         </Alert>
@@ -706,12 +737,12 @@ const SelfEvaluationForm = () => {
           This phase can no longer be edited (it may have been submitted from another session).
         </Alert>
       )}
-      {phaseConflict.manager && isManagerMode && (
+      {phaseConflict.manager && isManagerMode && !error && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           Manager review can no longer be edited.
         </Alert>
       )}
-      {phaseConflict.hr && isHrMode && (
+      {phaseConflict.hr && isHrMode && !error && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           HR review can no longer be edited.
         </Alert>
@@ -794,12 +825,14 @@ const SelfEvaluationForm = () => {
                           </Typography>
                           {renderManagerColumn(question, qAns)}
                         </Box>
-                        <Box sx={{ pt: 2, pb: 0 }}>
-                          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            HR
-                          </Typography>
-                          {renderHrColumn(question, qAns)}
-                        </Box>
+                        {!isHrMode && (
+                          <Box sx={{ pt: 2, pb: 0 }}>
+                            <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                              HR
+                            </Typography>
+                            {renderHrColumn(question, qAns)}
+                          </Box>
+                        )}
                       </Stack>
                     </Box>
                   );
