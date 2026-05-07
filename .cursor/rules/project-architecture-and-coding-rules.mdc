@@ -1,0 +1,61 @@
+---
+description: Enforce project architecture boundaries and scalable React code organization
+alwaysApply: true
+---
+
+# Project Architecture and Coding Rules
+
+## Pages
+- Keep `pages/` as entry points only.
+- Do not place business logic, API calls, or heavy processing in pages.
+- Pages should compose and render components.
+
+## Components
+- Keep UI and feature logic inside `components/`.
+- Components must be reusable, modular, and focused.
+- Split large monolithic components into smaller units.
+- Prefer this structure:
+  - `components/common/` for shared reusable components
+  - `components/common/icons/` for all icons
+  - `components/<feature>/` for feature-specific components
+
+## State Management (Redux Toolkit)
+- Keep Redux state in `app/state/`.
+- Use Redux Toolkit for all Redux state handling.
+- Create one slice per module in `app/state/slices/`.
+- Keep store configuration in `app/state/index.ts`.
+
+## Services (API Layer)
+- Place all API calls in `services/`.
+- Never call APIs directly from `components/` or `pages/`.
+- Keep services clean, reusable, and focused on data access.
+
+## Hooks
+- Place custom hooks in `hooks/`.
+- Extract reusable component logic into hooks.
+
+## Routing
+- Keep routing logic in `routes/`.
+
+## Layouts
+- Place layout components (header, sidebar, shell wrappers) in `layouts/`.
+
+## Context
+- Place global React contexts in `context/`.
+
+## Guards
+- Place route protection logic (auth guards, role guards) in `guards/`.
+
+## Utils
+- Keep helper functions, constants, and formatters in `utils/`.
+
+## Additional Best Practices
+- Prefer feature-based structure when it improves scalability and clarity.
+- Keep files small, readable, and easy to maintain.
+- Avoid duplication by reusing components, hooks, services, and utils.
+- Maintain consistent naming conventions across the codebase.
+- Write for growth: assume features will expand over time.
+- Keep clear separation of concerns:
+  - UI in components
+  - Logic in hooks and services
+  - State in Redux slices

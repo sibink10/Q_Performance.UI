@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build & Deploy (production)",
+      "type": "shell",
+      "command": "npm run build && npx @azure/static-web-apps-cli deploy ./dist --deployment-token 692d0e053edcd4b8ad48017dce0bb3834db08af20949ac82215f1fa98009d8ae07-1b3b8e9d-fc52-432f-9cd6-64498ad465e800010150398f1700 --env production",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}
+
