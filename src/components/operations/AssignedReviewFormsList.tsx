@@ -28,7 +28,7 @@ import performanceService from '../../services/performanceService';
 import { formatDate, getApiErrorMessage, toArrayFromPayload } from '../../utils/helpers';
 import useFinancialYears from '../../hooks/useFinancialYears';
 
-const emptyFyFilter = { label: 'All financial years', value: '' };
+const emptyFyFilter = { label: 'All review periods', value: '' };
 const emptyFormFilter = { id: '', name: 'All review forms' };
 
 /** Supports API envelope `{ success, data: { data, totalCount, page, pageSize } }` or a flat paged object. */
@@ -181,7 +181,7 @@ const AssignedReviewFormsList = () => {
     <Box>
       <PageHeader
         title="Assigned review forms"
-        subtitle="Summary by review form and financial year. Open the employee roster (eye icon) to submit HR reviews, then publish results to employees (visible in their Published reviews)."
+        subtitle="Summary by review form and review period. Open the employee roster (eye icon) to submit HR reviews, then publish results to employees (visible in their Published reviews)."
         actions={
           <AppButton variant="outlined" onClick={() => navigate('/operations/performance/assign')}>
             Back to assign
@@ -201,7 +201,7 @@ const AssignedReviewFormsList = () => {
             isOptionEqualToValue={(a, b) => a.value === b.value}
             filterSelectedOptions={false}
             renderInput={(params) => (
-              <TextField {...params} label="Financial year" placeholder="Search year…" />
+              <TextField {...params} label="Review period" placeholder="Search period…" />
             )}
           />
           <Autocomplete
@@ -235,7 +235,7 @@ const AssignedReviewFormsList = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Review form</TableCell>
-                  <TableCell>Financial year</TableCell>
+                  <TableCell>Review period</TableCell>
                   <TableCell align="right">Employees</TableCell>
                   <TableCell>Self evaluation</TableCell>
                   <TableCell>Manager evaluation</TableCell>

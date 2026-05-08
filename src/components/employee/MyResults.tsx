@@ -406,10 +406,10 @@ const MyResults = () => {
         subtitle="Your assignments for the year — open a submission to view published ratings when available"
         actions={
           <FormControl size="small" sx={{ minWidth: 168 }}>
-            <InputLabel>Financial Year</InputLabel>
+            <InputLabel>Review Period</InputLabel>
             <Select
               value={financialYearId}
-              label="Financial Year"
+              label="Review Period"
               onChange={(e) => setFinancialYearId(e.target.value)}
             >
               {financialYears.map((y) => (
@@ -424,7 +424,7 @@ const MyResults = () => {
 
       <AppCard sx={{}} variant="table">
         {!assignmentRows.length ? (
-          <EmptyState variant="noContent" message="No review assignments found for this financial year." minHeight={260} />
+          <EmptyState variant="noContent" message="No review assignments found for this review period." minHeight={260} />
         ) : (
           <TableContainer>
             <Table sx={modernTableSx}>

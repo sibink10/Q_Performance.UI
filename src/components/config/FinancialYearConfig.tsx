@@ -50,7 +50,7 @@ const FinancialYearConfig = () => {
       await performanceService.createFinancialYear(financialYearForm);
       setFinancialYearForm(defaultFy);
       await reloadFinancialYears();
-      setMessage('Financial year created');
+    setMessage('Review period created');
     } catch (e) {
       setError(getApiErrorMessage(e));
     }
@@ -61,10 +61,10 @@ const FinancialYearConfig = () => {
       setIsDeleting(true);
       await performanceService.deleteFinancialYear(id);
       await reloadFinancialYears();
-      setMessage('Financial year deleted');
+      setMessage('Review period deleted');
     } catch (e) {
       const msg = getApiErrorMessage(e);
-      setError(msg.includes('in use') ? 'Financial year is in use and cannot be deleted.' : msg);
+      setError(msg.includes('in use') ? 'Review period is in use and cannot be deleted.' : msg);
     } finally {
       setIsDeleting(false);
     }
@@ -84,7 +84,7 @@ const FinancialYearConfig = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box>
-        <PageHeader title="Financial Years" subtitle="Create and manage financial years used across appraisal workflows." />
+        <PageHeader title="Review Periods" subtitle="Create and manage review periods used across appraisal workflows." />
         {(error || message) && (
           <Alert severity={error ? 'error' : 'success'} sx={{ mb: 2 }} onClose={() => { setError(''); setMessage(''); }}>
             {error || message}
@@ -171,15 +171,15 @@ const FinancialYearConfig = () => {
             </Table>
           </TableContainer>
           {!financialYears.length && (
-            <EmptyState variant="box" message="No financial years available yet." minHeight={220} sx={{ mt: 1 }} />
+            <EmptyState variant="box" message="No review periods available yet." minHeight={220} sx={{ mt: 1 }} />
           )}
         </AppCard>
 
         <Dialog open={Boolean(deleteConfirmId)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
-          <DialogTitle>Delete financial year?</DialogTitle>
+          <DialogTitle>Delete review period?</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              This will permanently delete the selected financial year. This action cannot be undone.
+              This will permanently delete the selected review period. This action cannot be undone.
             </DialogContentText>
           </DialogContent>
           <DialogActions>

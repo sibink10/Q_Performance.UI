@@ -341,10 +341,10 @@ const EmployeePerformance = () => {
               ml: { sm: 'auto' },
             }}
           >
-            <InputLabel id="perf-fy-label">Financial Year</InputLabel>
+            <InputLabel id="perf-fy-label">Review Period</InputLabel>
             <Select
               labelId="perf-fy-label"
-              label="Financial Year"
+              label="Review Period"
               value={financialYearId}
               onChange={(e) => setFinancialYearId(e.target.value)}
             >
@@ -366,7 +366,7 @@ const EmployeePerformance = () => {
               <EmptyState
                 variant="empty"
                 title="All caught up!"
-                message="No pending reviews for selected financial year."
+                message="No pending reviews for selected review period."
                 minHeight={260}
               />
             </AppCard>
@@ -390,7 +390,7 @@ const EmployeePerformance = () => {
         <Box>
           {(!myReviews.submitted || myReviews.submitted.length === 0) ? (
             <AppCard sx={{ p: 0 }}>
-              <EmptyState variant="noContent" message="No submitted reviews for selected financial year." minHeight={260} />
+              <EmptyState variant="noContent" message="No submitted reviews for selected review period." minHeight={260} />
             </AppCard>
           ) : (
             <AppCard variant="table">

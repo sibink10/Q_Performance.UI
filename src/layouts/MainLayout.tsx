@@ -68,7 +68,7 @@ const ADMIN_NAV = [
     section: "Configuration",
     items: [
       {
-        label: "Financial Years",
+        label: "Review Periods",
         icon: <SettingsIcon />,
         path: "/config/performance/financial-years",
       },

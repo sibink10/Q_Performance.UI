@@ -274,7 +274,7 @@ const AssignedReviewFormEmployees = () => {
 
   const subtitle = useMemo(() => {
     if (!financialYearId || !reviewFormId) {
-      return 'Missing financial year or review form in the URL.';
+      return 'Missing review period or review form in the URL.';
     }
     if (reviewFormName) {
       return `${reviewFormName} · ${financialYear}`;

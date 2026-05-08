@@ -162,7 +162,7 @@ const AppraisalConfig = () => {
       <Box>
         <PageHeader
           title="Appraisal Config"
-          subtitle="Manage appraisal cycles, scales, and evaluation timelines by financial year."
+          subtitle="Manage appraisal cycles, scales, and evaluation timelines by review period."
           actions={<AppButton onClick={openAddModal}>Add</AppButton>}
         />
         {!modalOpen && (pageError || pageSuccess) && (
@@ -180,7 +180,7 @@ const AppraisalConfig = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Financial year</TableCell>
+                  <TableCell>Review period</TableCell>
                   <TableCell>Cycle</TableCell>
                   <TableCell>Scale</TableCell>
                   <TableCell align="right">Actions</TableCell>

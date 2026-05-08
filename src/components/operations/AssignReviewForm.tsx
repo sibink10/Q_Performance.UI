@@ -256,7 +256,7 @@ const AssignReviewForm = () => {
     setValidationError('');
 
     if (!formData.financialYearId || !formData.reviewFormId) {
-      setValidationError('Please select financial year and review form.');
+      setValidationError('Please select review period and review form.');
       return;
     }
 
@@ -285,7 +285,7 @@ const AssignReviewForm = () => {
     <Box>
       <PageHeader
         title="Assign Review Form"
-        subtitle="Choose financial year, select a review form, and assign it to users."
+        subtitle="Choose review period, select a review form, and assign it to users."
         actions={
           <Stack direction="row" spacing={1}>
             <AppButton
@@ -324,9 +324,9 @@ const AssignReviewForm = () => {
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth size="small">
-                <InputLabel>Financial Year</InputLabel>
+                <InputLabel>Review Period</InputLabel>
                 <Select
-                  label="Financial Year"
+                  label="Review Period"
                   value={formData.financialYearId}
                   onChange={(e) => {
                     setSelectedUsers([]);

@@ -97,10 +97,10 @@ const ReviewFormsList = () => {
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="review-forms-fy-label">Financial year</InputLabel>
+              <InputLabel id="review-forms-fy-label">Review period</InputLabel>
               <Select
                 labelId="review-forms-fy-label"
-                label="Financial year"
+                label="Review period"
                 value={financialYearId}
                 onChange={(e) => setFinancialYearId(e.target.value)}
               >
@@ -183,8 +183,8 @@ const ReviewFormsList = () => {
                         <Tooltip
                           title={
                             financialYearId
-                              ? 'Publish assignments for this form in the selected financial year'
-                              : 'Select a financial year to publish'
+                              ? 'Publish assignments for this form in the selected review period'
+                              : 'Select a review period to publish'
                           }
                         >
                           <span>
@@ -244,7 +244,7 @@ const ReviewFormsList = () => {
       <ConfirmDialog
         open={!!publishTarget}
         title="Publish Review Form"
-        message={`Publish assignments for "${publishTarget?.name || 'this review form'}" in selected financial year? This may create or update assignments for employees.`}
+        message={`Publish assignments for "${publishTarget?.name || 'this review form'}" in selected review period? This may create or update assignments for employees.`}
         confirmText="Publish"
         cancelText="Cancel"
         confirmColor="success"

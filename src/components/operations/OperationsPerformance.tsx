@@ -163,10 +163,10 @@ const OperationsPerformance = () => {
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={3}>
             <FormControl fullWidth size="small">
-              <InputLabel>Financial Year</InputLabel>
+              <InputLabel>Review Period</InputLabel>
               <Select
                 value={dashboardFilters.financialYearId}
-                label="Financial Year"
+                label="Review Period"
                 onChange={(e) => setFilter({ financialYearId: e.target.value })}
               >
                 {financialYears.map((y) => (
@@ -220,7 +220,7 @@ const OperationsPerformance = () => {
       ) : !dashboardFilters.financialYearId ? (
         <AppCard sx={{ p: 6, textAlign: 'center' }}>
           <FilterListIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-          <Typography color="text.secondary">Select a financial year to view performance data</Typography>
+          <Typography color="text.secondary">Select a review period to view performance data</Typography>
         </AppCard>
       ) : (
         <AppCard sx={{ overflow: 'hidden', p: 0 }}>

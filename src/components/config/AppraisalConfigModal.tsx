@@ -81,9 +81,9 @@ const AppraisalConfigModal = ({
 
           <Grid item xs={12} md={6}>
             <FormControl fullWidth size="small">
-              <InputLabel>Financial year</InputLabel>
+              <InputLabel>Review period</InputLabel>
               <Select
-                label="Financial year"
+                label="Review period"
                 value={configForm.financialYearId}
                 onChange={(e) => setConfigForm((p: any) => ({ ...p, financialYearId: e.target.value }))}
               >

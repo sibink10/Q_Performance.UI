@@ -32,7 +32,7 @@ export function getAppBarTitle(pathname: string, search: string): string {
     return 'Assigned employees';
   }
   if (path === '/config/performance/financial-years') {
-    return 'Financial years';
+    return 'Review periods';
   }
   if (path === '/config/performance/appraisal-config') {
     return 'Appraisal configuration';
