@@ -3,7 +3,8 @@
 // Assignment detail: progressive reveal via allReviewsSubmitted + per-question phase snapshots.
 // @ts-nocheck
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
@@ -23,7 +24,6 @@ import {
     DialogActions,
     Snackbar,
     IconButton,
-    Divider,
     Rating,
     FormHelperText,
   } from '@mui/material';
@@ -36,7 +36,7 @@ import usePerformanceApi from '../../hooks/usePerformanceApi';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
 import { AppCard } from '../../components/common';
-import { AppLoader, RatingInput, PageHeader } from '../../components/common/index.jsx';
+import { AppLoader, PageHeader } from '../../components/common/index.jsx';
 import {
   calculateCompletionPercentage,
   isFormComplete,
@@ -53,41 +53,10 @@ import {
   submitHrReview,
 } from '../../app/state/slices/performanceThunks';
 import { clearError as clearPerformanceError } from '../../app/state/slices/performanceSlice';
+import EvaluationQuestionCard from './self-evaluation/EvaluationQuestionCard';
 
 const SELF_EVAL_MIN_ANSWER_LEN = 50;
 const getTextLen = (value) => String(value || '').trim().length;
-
-/** Read-only snapshot (self / manager / HR). */
-const PhaseSnapshotDisplay = ({ label, snapshot, ratingScale }) => {
-  if (!snapshot) return null;
-  return (
-    <Box sx={{ pt: 0.5 }}>
-      {label ? (
-        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
-          {label}
-        </Typography>
-      ) : null}
-      <Typography variant="body2" sx={{ mb: 0.5 }}>
-        Rating:{' '}
-        <strong>
-          {snapshot.rating}/{ratingScale}
-        </strong>
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-        {snapshot.comment?.trim() ? snapshot.comment : '-'}
-      </Typography>
-    </Box>
-  );
-};
-
-const questionAltSx = (qIdx) => {
-  const isOdd = qIdx % 2 === 1;
-  return {
-    bgcolor: isOdd ? 'rgba(2, 136, 209, 0.06)' : 'rgba(46, 125, 50, 0.05)',
-    borderLeft: '4px solid',
-    borderLeftColor: isOdd ? 'info.light' : 'success.light',
-  };
-};
 
 const SelfEvaluationForm = () => {
   const { reviewId } = useParams();
@@ -118,6 +87,9 @@ const SelfEvaluationForm = () => {
 
   const [review, setReview] = useState(null);
   const [answers, setAnswers] = useState({});
+  /** Bumped when answers are reset from the server so question rows remount/sync draft text. */
+  const [answersHydrationKey, setAnswersHydrationKey] = useState(0);
+  const commentDraftGettersRef = useRef(new Map());
   const [expandedFocusAreaId, setExpandedFocusAreaId] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(() => !!reviewId);
@@ -188,6 +160,7 @@ const SelfEvaluationForm = () => {
   useEffect(() => {
     if (!review) return;
     setAnswers(pickInitialAnswers(review));
+    setAnswersHydrationKey((k) => k + 1);
     setExpandedFocusAreaId((prev) => {
       const firstId = review?.sections?.[0]?.focusAreaId;
       if (!firstId) return false;
@@ -210,6 +183,16 @@ const SelfEvaluationForm = () => {
   }, [review, pickInitialAnswers, modeManager, modeHr]);
 
   const allQuestions = review ? review.sections.flatMap((s) => s.questions) : [];
+  const questionHtmlById = useMemo(() => {
+    if (!review?.sections) return {};
+    const map = {};
+    for (const s of review.sections) {
+      for (const q of s.questions) {
+        map[q.id] = sanitizeRichTextHtml(normalizeQuestionTextToHtml(q?.text));
+      }
+    }
+    return map;
+  }, [review]);
   const hrRatingScale =
     Number.isFinite(Number(review?.ratingScale)) && Number(review?.ratingScale) > 0
       ? Number(review.ratingScale)
@@ -313,12 +296,37 @@ const weightageChipSx = {
     }
   }, [reviewId, getAssignmentById]);
 
-  const updateAnswer = (questionId, field, value) => {
+  const updateAnswer = useCallback((questionId, field, value) => {
     setAnswers((prev) => ({
       ...prev,
       [questionId]: { ...prev[questionId], [field]: value },
     }));
-  };
+  }, []);
+
+  const registerCommentDraftGetter = useCallback((questionId, getDraft) => {
+    commentDraftGettersRef.current.set(questionId, getDraft);
+    return () => {
+      commentDraftGettersRef.current.delete(questionId);
+    };
+  }, []);
+
+  const flushCommentDraftsToAnswers = useCallback(() => {
+    let merged = null;
+    flushSync(() => {
+      setAnswers((prev) => {
+        let next = null;
+        for (const [qid, getDraft] of commentDraftGettersRef.current) {
+          const s = String(getDraft() ?? '');
+          if (String(prev[qid]?.comment ?? '') === s) continue;
+          if (next === null) next = { ...prev };
+          next[qid] = { ...next[qid], comment: s };
+        }
+        merged = next ?? prev;
+        return merged;
+      });
+    });
+    return merged;
+  }, []);
 
   const saveManagerDraftNow = useCallback(
     async ({ silent = false } = {}) => {
@@ -327,12 +335,13 @@ const weightageChipSx = {
       const seq = ++managerDraftSaveSeqRef.current;
       if (!silent) clearError();
       setManagerDraftSaveStatus('saving');
+      const mergedAnswers = flushCommentDraftsToAnswers();
 
       try {
         await saveManagerEvaluationDraft({
           employeeId: effectiveEmployeeId,
           assignmentId: reviewId,
-          answers,
+          answers: mergedAnswers,
         });
         if (managerDraftSaveSeqRef.current === seq) setManagerDraftSaveStatus('saved');
       } catch (e) {
@@ -344,14 +353,15 @@ const weightageChipSx = {
         if (status === 409) setPhaseConflict((p) => ({ ...p, manager: true }));
       }
     },
-    [answers, clearError, effectiveEmployeeId, reviewId, saveManagerEvaluationDraft, showManagerSaveDraft]
+    [clearError, effectiveEmployeeId, flushCommentDraftsToAnswers, reviewId, saveManagerEvaluationDraft, showManagerSaveDraft]
   );
 
   const handleSaveDraft = async () => {
     if (!reviewId || isManagerMode || isHrMode) return;
     clearError();
+    const mergedAnswers = flushCommentDraftsToAnswers();
     try {
-      await dispatch(saveEvaluation({ reviewId, answers })).unwrap();
+      await dispatch(saveEvaluation({ reviewId, answers: mergedAnswers })).unwrap();
     } catch (e) {
       const status = e?.status;
       const msg = e?.message ?? 'Could not save draft.';
@@ -362,12 +372,22 @@ const weightageChipSx = {
 
   const handleSubmit = () => {
     if (isManagerMode && !effectiveEmployeeId) return;
+    const mergedAnswers = flushCommentDraftsToAnswers();
+    const canSubmitMerged = isHrMode
+      ? Object.keys(validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale)).length === 0
+      : isManagerMode
+        ? isFormComplete(mergedAnswers, allQuestions)
+        : allQuestions.every((q) => {
+            const a = mergedAnswers[q.id] || {};
+            return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
+          });
+
     if (isHrMode) {
       const nextErrors = validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale);
       setHrValidation(nextErrors);
       if (Object.keys(nextErrors).length > 0) return;
     }
-    if (!canSubmit) {
+    if (!canSubmitMerged) {
       if (isHrMode) {
         setMutationToast({
           severity: 'warning',
@@ -378,7 +398,7 @@ const weightageChipSx = {
 
       if (!isManagerMode && !isHrMode) setSelfSubmitValidationOn(true);
       const unansweredCount = allQuestions.filter((q) => {
-        const a = answers[q.id] || {};
+        const a = mergedAnswers[q.id] || {};
         if (isManagerMode) return !(a?.rating && String(a?.comment || '').trim());
         return !(a?.rating && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN);
       }).length;
@@ -405,6 +425,7 @@ const weightageChipSx = {
       return;
     }
     clearError();
+    const mergedAnswers = flushCommentDraftsToAnswers();
     try {
       if (isHrMode) {
         await dispatch(
@@ -426,11 +447,11 @@ const weightageChipSx = {
           submitManagerEvaluation({
             employeeId: effectiveEmployeeId,
             reviewId,
-            answers,
+            answers: mergedAnswers,
           })
         ).unwrap();
       } else {
-        await dispatch(submitEvaluation({ reviewId, answers })).unwrap();
+        await dispatch(submitEvaluation({ reviewId, answers: mergedAnswers })).unwrap();
       }
       if (!isHrMode) navigate('/performance');
     } catch (e) {
@@ -478,159 +499,6 @@ const weightageChipSx = {
     } finally {
       setPublishBusy(false);
     }
-  };
-
-  const renderRevealPlaceholder = () => (
-    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-      Reviews are hidden until they become available.
-    </Typography>
-  );
-
-  /**
-   * Read-only phase renderer with explicit reveal behavior.
-   * - If `allowReveal` is false, we show placeholder unless snapshot exists.
-   * - If `allowReveal` is true and snapshot is missing, show "-" (meaning not provided).
-   */
-  const renderNonEditablePhase = (snapshot, { allowReveal = false } = {}) => {
-    if (snapshot) return <PhaseSnapshotDisplay label="" snapshot={snapshot} ratingScale={review.ratingScale} />;
-    if (allowReveal) {
-      return (
-        <Typography variant="caption" color="text.secondary">
-          -
-        </Typography>
-      );
-    }
-    return renderRevealPlaceholder();
-  };
-
-  const renderSelfColumn = (question, qAns) => {
-    if (isManagerMode || isHrMode) {
-      const snap = question.selfReview;
-      // Manager/HR can see employee self review as soon as it's available.
-      return renderNonEditablePhase(snap, { allowReveal: true });
-    }
-
-    if (selfFieldsReadOnly) {
-      const snap =
-        question.selfReview ||
-        (qAns?.rating
-          ? { rating: Number(qAns.rating), comment: String(qAns.comment || '') }
-          : null);
-      if (snap?.rating || String(snap?.comment || '').trim()) {
-        return <PhaseSnapshotDisplay label="Your response" snapshot={snap} ratingScale={review.ratingScale} />;
-      }
-      return (
-        <Typography variant="caption" color="text.secondary">
-          No saved response.
-        </Typography>
-      );
-    }
-
-    return (
-      <>
-        <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
-          Your response
-        </Typography>
-        <Box sx={{ mb: 2 }}>
-          <RatingInput
-            label={`Rating (${review.ratingScale}-point scale)`}
-            value={qAns?.rating || 0}
-            onChange={(v) => updateAnswer(question.id, 'rating', v)}
-            scale={review.ratingScale}
-            readOnly={false}
-          />
-        </Box>
-        <TextField
-          label="Comments "
-          placeholder="Provide specific examples and justification for your rating..."
-          value={qAns?.comment || ''}
-          onChange={(e) => updateAnswer(question.id, 'comment', e.target.value)}
-          fullWidth
-          multiline
-          minRows={2}
-          size="small"
-          required
-          error={
-            !!(
-              selfSubmitValidationOn &&
-              qAns?.rating &&
-              getTextLen(qAns?.comment) < SELF_EVAL_MIN_ANSWER_LEN
-            )
-          }
-          helperText={
-            selfSubmitValidationOn &&
-            qAns?.rating &&
-            getTextLen(qAns?.comment) < SELF_EVAL_MIN_ANSWER_LEN
-              ? `Minimum ${SELF_EVAL_MIN_ANSWER_LEN} characters required (${getTextLen(qAns?.comment)}/${SELF_EVAL_MIN_ANSWER_LEN}).`
-              : ''
-          }
-        />
-      </>
-    );
-  };
-
-  const renderManagerColumn = (question, qAns) => {
-    if (!isManagerMode) {
-      // Employee can see manager review only after results are published.
-      // HR can always see manager review (even if not all phases submitted).
-      const allowReveal = isHrMode ? true : hrResultsVisible;
-      return renderNonEditablePhase(question.managerReview, { allowReveal });
-    }
-    if (!managerFieldsReadOnly) {
-      return (
-        <>
-          <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
-            Manager review
-          </Typography>
-          <Box sx={{ mb: 2 }}>
-            <RatingInput
-              label={`Rating (${review.ratingScale}-point scale)`}
-              value={qAns?.rating || 0}
-              onChange={(v) => updateAnswer(question.id, 'rating', v)}
-              scale={review.ratingScale}
-              readOnly={false}
-            />
-          </Box>
-          <TextField
-            label="Comments "
-            value={qAns?.comment || ''}
-            onChange={(e) => updateAnswer(question.id, 'comment', e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
-            size="small"
-            required
-            error={!!(qAns?.rating && !qAns?.comment?.trim())}
-            helperText={
-              qAns?.rating && !qAns?.comment?.trim() ? 'Comment is required before submission' : ''
-            }
-          />
-        </>
-      );
-    }
-    return renderNonEditablePhase(
-      question.managerReview ||
-        (qAns?.rating ? { rating: Number(qAns.rating), comment: String(qAns.comment || '') } : null)
-      , { allowReveal: true }
-    );
-  };
-
-  const renderHrColumn = (question, qAns) => {
-    if (!isHrMode) {
-      // Employee can see HR review only after results are published.
-      // Manager can always see HR review only when it's available (typically overall).
-      const allowReveal = isManagerMode ? true : hrResultsVisible;
-      return renderNonEditablePhase(question.hrReview, { allowReveal });
-    }
-    const snap = question.hrReview;
-    // New API captures HR review at assignment-level (overall score/comments),
-    // so per-question HR snapshots are typically null.
-    if (snap) return <PhaseSnapshotDisplay label="" snapshot={snap} ratingScale={review.ratingScale} />;
-    return (
-      <Typography variant="caption" color="text.secondary">
-        Overall HR review is captured above.
-      </Typography>
-    );
   };
 
   const submitDisabled =
@@ -974,94 +842,25 @@ const weightageChipSx = {
                 </Typography>
               )}
               <Stack spacing={3}>
-                {section.questions.map((question, qIdx) => {
-                  const qAns = answers[question.id] || {};
-                  const isAnswered = qAns.rating && qAns.comment?.trim();
-                  const questionWeight = formatWeightage(question.weightage);
-                  const questionHtml = sanitizeRichTextHtml(
-                    normalizeQuestionTextToHtml(question?.text)
-                  );
-
-                  return (
-                    <Box
-                      key={question.id}
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: isAnswered ? 'success.light' : 'divider',
-                        ...(isAnswered ? { bgcolor: 'success.50' } : questionAltSx(qIdx)),
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          justifyContent: 'space-between',
-                          gap: 2,
-                          mb: 2,
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
-                          <Chip
-                            label={`Q${qIdx + 1}`}
-                            size="small"
-                            color={isAnswered ? 'success' : 'default'}
-                            sx={{ flexShrink: 0, mt: 0.3 }}
-                          />
-                          <Box
-                            sx={{
-                              minWidth: 0,
-                              wordBreak: 'break-word',
-                              '& p': { m: 0 },
-                              '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
-                              '& li': { mt: 0.25 },
-                              '& strong': { fontWeight: 700 },
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              fontWeight={500}
-                              component="div"
-                              dangerouslySetInnerHTML={{ __html: questionHtml }}
-                            />
-                          </Box>
-                        </Box>
-                        {questionWeight != null && (
-                          <Chip
-                            label={`${questionWeight}`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ ...weightageChipSx, mt: 0.3 }}
-                          />
-                        )}
-                      </Box>
-
-                      <Stack spacing={0} divider={<Divider flexItem sx={{ borderColor: 'divider' }} />}>
-                        <Box sx={{ pt: 0, pb: 2 }}>
-                          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            Self
-                          </Typography>
-                          {renderSelfColumn(question, qAns)}
-                        </Box>
-                        <Box sx={{ py: 2 }}>
-                          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            Manager
-                          </Typography>
-                          {renderManagerColumn(question, qAns)}
-                        </Box>
-                        {!isHrMode && (
-                          <Box sx={{ pt: 2, pb: 0 }}>
-                            <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                              HR
-                            </Typography>
-                            {renderHrColumn(question, qAns)}
-                          </Box>
-                        )}
-                      </Stack>
-                    </Box>
-                  );
-                })}
+                {section.questions.map((question, qIdx) => (
+                  <EvaluationQuestionCard
+                    key={question.id}
+                    question={question}
+                    qAns={answers[question.id] || {}}
+                    questionHtml={questionHtmlById[question.id] ?? ''}
+                    qIdx={qIdx}
+                    ratingScale={review.ratingScale}
+                    isManagerMode={isManagerMode}
+                    isHrMode={isHrMode}
+                    selfFieldsReadOnly={selfFieldsReadOnly}
+                    managerFieldsReadOnly={managerFieldsReadOnly}
+                    hrResultsVisible={hrResultsVisible}
+                    selfSubmitValidationOn={selfSubmitValidationOn}
+                    hydrationKey={answersHydrationKey}
+                    registerCommentDraftGetter={registerCommentDraftGetter}
+                    onUpdateAnswer={updateAnswer}
+                  />
+                ))}
               </Stack>
             </AccordionDetails>
           </Accordion>

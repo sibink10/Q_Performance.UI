@@ -1,7 +1,110 @@
 // @ts-nocheck
 // Maps GET /performance/my-results list and GET /performance/my-results/:assignmentId payloads.
 
-import { toArrayFromPayload, toEntityFromPayload } from './helpers';
+import { toArrayFromPayload, toEntityFromPayload, normalizePhaseSnapshot } from './helpers';
+
+/** Per-question row for published results (aligned with assignment / review form question shape). */
+function mapFocusAreaQuestion(q, qIdx) {
+  if (!q || typeof q !== 'object') return null;
+  const id = String(q.id ?? q.questionId ?? `q-${qIdx}`);
+  const text = q.text ?? q.questionText ?? q.prompt ?? q.question ?? '';
+  const weightage = q.weightage ?? q.Weightage ?? null;
+
+  let selfReview = normalizePhaseSnapshot(q.selfReview ?? q.SelfReview);
+  if (!selfReview) {
+    const rawR =
+      q.answerRating ?? q.AnswerRating ?? q.selfRating ?? q.selfScore ?? q.employeeRating;
+    const rawC =
+      q.answerComment ??
+      q.AnswerComment ??
+      q.selfComment ??
+      q.employeeComment ??
+      '';
+    const hasR = rawR != null && rawR !== '' && !Number.isNaN(Number(rawR));
+    const hasC = String(rawC).trim() !== '';
+    if (hasR || hasC) {
+      selfReview = normalizePhaseSnapshot({ rating: rawR, comment: rawC });
+    }
+  }
+
+  let managerReview = normalizePhaseSnapshot(q.managerReview ?? q.ManagerReview);
+  if (!managerReview) {
+    const rawR = q.managerRating ?? q.managerScore;
+    const rawC = q.managerComment ?? q.feedback ?? q.comment ?? '';
+    const hasR = rawR != null && rawR !== '' && !Number.isNaN(Number(rawR));
+    const hasC = String(rawC).trim() !== '';
+    if (hasR || hasC) {
+      managerReview = normalizePhaseSnapshot({ rating: rawR, comment: rawC });
+    }
+  }
+
+  return {
+    id,
+    text: String(text ?? ''),
+    weightage,
+    selfReview,
+    managerReview,
+  };
+}
+
+function mergeSectionsIntoFocusAreas(focusAreas, sections) {
+  if (!Array.isArray(sections) || !sections.length || !Array.isArray(focusAreas)) return focusAreas;
+  const norm = (s) => String(s ?? '').trim().toLowerCase();
+  return focusAreas.map((fa) => {
+    if (Array.isArray(fa.questions) && fa.questions.length) return fa;
+    const byId = sections.find((s) => {
+      const sid = String(s.focusAreaId ?? s.id ?? '');
+      return sid && sid === fa.rowId;
+    });
+    if (byId && Array.isArray(byId.questions) && byId.questions.length) {
+      return {
+        ...fa,
+        weightage:
+          fa.weightage != null && fa.weightage !== '' ? fa.weightage : byId.weightage ?? byId.Weightage ?? null,
+        questions: byId.questions
+          .map((q, i) => mapFocusAreaQuestion(q, i))
+          .filter(Boolean),
+      };
+    }
+    const byName = sections.find(
+      (s) => norm(s.focusAreaName ?? s.name) === norm(fa.name)
+    );
+    if (byName && Array.isArray(byName.questions) && byName.questions.length) {
+      return {
+        ...fa,
+        weightage:
+          fa.weightage != null && fa.weightage !== '' ? fa.weightage : byName.weightage ?? byName.Weightage ?? null,
+        questions: byName.questions
+          .map((q, i) => mapFocusAreaQuestion(q, i))
+          .filter(Boolean),
+      };
+    }
+    return fa;
+  });
+}
+
+function focusAreasFromSectionsOnly(sections) {
+  return sections.map((s, idx) => {
+    const name = s.focusAreaName ?? s.name ?? `Focus area ${idx + 1}`;
+    const rowId = String(s.focusAreaId ?? s.id ?? `section-${idx}`);
+    const qs = (s.questions ?? [])
+      .map((q, i) => mapFocusAreaQuestion(q, i))
+      .filter(Boolean);
+    return {
+      rowId,
+      name: String(name),
+      selfScore: 0,
+      managerScore: 0,
+      hrScore: null,
+      finalScore: 0,
+      selfComment: '',
+      managerComment: '',
+      hrComment: '',
+      weightage: s.weightage ?? s.Weightage ?? null,
+      questions: qs,
+    };
+  });
+}
 
 /** Row shape for the My Results assignments table. */
 export function mapMyResultListItem(raw) {
@@ -109,6 +212,14 @@ function mapFocusAreaRow(fa) {
   const nFin = numOrNaN(finalScore);
   const safe = Number.isFinite;
 
+  const qSrc =
+    fa.questions ?? fa.evaluationQuestions ?? fa.EvaluationQuestions ?? fa.Items ?? [];
+  const questions = Array.isArray(qSrc)
+    ? qSrc.map((q, i) => mapFocusAreaQuestion(q, i)).filter(Boolean)
+    : [];
+
+  const weightage = fa.weightage ?? fa.Weightage ?? null;
+
   return {
     rowId: String(rowId),
     name: String(name),
@@ -120,6 +231,9 @@ function mapFocusAreaRow(fa) {
     selfComment: String(selfComment || ''),
     managerComment: String(managerComment || ''),
     hrComment: String(hrComment || ''),
+    weightage,
+    /** Per-question snapshots when API includes questions or sections are merged later. */
+    questions,
   };
 }
 
@@ -180,7 +294,13 @@ export function normalizeMyResultDetailPayload(raw) {
     (Array.isArray(e.scoresByFocusArea) && e.scoresByFocusArea) ||
     [];
 
-  const focusAreas = focusSource.map(mapFocusAreaRow).filter(Boolean);
+  let focusAreas = focusSource.map(mapFocusAreaRow).filter(Boolean);
+
+  const sectionsSrc = Array.isArray(e.sections) ? e.sections : [];
+  focusAreas = mergeSectionsIntoFocusAreas(focusAreas, sectionsSrc);
+  if (!focusAreas.length && sectionsSrc.length) {
+    focusAreas = focusAreasFromSectionsOnly(sectionsSrc);
+  }
 
   const avgFinalFocus =
     focusAreas.length > 0

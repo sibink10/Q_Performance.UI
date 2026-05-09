@@ -8,7 +8,9 @@ import {
   Alert, FormControl, InputLabel, Select, MenuItem,
   Table, TableBody, TableCell, TableHead, TableRow, TableContainer,
   Avatar, IconButton, Tooltip, Rating,
+  Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -22,6 +24,7 @@ import TableDotStatus from '../../components/common/TableDotStatus';
 import { modernTableSx } from '../../utils/floatingPanelSx';
 import { REVIEW_STATUSES } from '../../utils/constants';
 import { getRatingLabel, getRatingColor, formatDate } from '../../utils/helpers';
+import { normalizeQuestionTextToHtml, sanitizeRichTextHtml } from '../../utils/richText';
 import useFinancialYears from '../../hooks/useFinancialYears';
 
 /** Self-eval lifecycle: typically no published ratings until submission. */
@@ -29,39 +32,75 @@ function canOpenResultsReview(row) {
   return row?.status === REVIEW_STATUSES.SUBMITTED || row?.status === REVIEW_STATUSES.COMPLETED;
 }
 
-function FocusAreaReviewCell({ text }: { text: string }) {
-  const t = typeof text === 'string' ? text.trim() : '';
-  if (!t) {
-    return (
-      <Typography variant="caption" color="text.secondary">
-        -
-      </Typography>
-    );
-  }
+const questionRowAltSx = (qIdx: number) => {
+  const isOdd = qIdx % 2 === 1;
+  return {
+    bgcolor: isOdd ? 'rgba(2, 136, 209, 0.06)' : 'rgba(46, 125, 50, 0.05)',
+    borderLeft: '4px solid',
+    borderLeftColor: isOdd ? 'info.light' : 'success.light',
+  };
+};
+
+const weightChipSx = {
+  flexShrink: 0,
+  fontWeight: 700,
+  bgcolor: 'rgba(2, 136, 209, 0.12)',
+  borderColor: 'info.main',
+  color: 'info.dark',
+  '& .MuiChip-label': { px: 1.25 },
+};
+
+function PublishedPhaseReadout({
+  label,
+  snapshot,
+  scale,
+  accentColor,
+}: {
+  label: string;
+  snapshot: { rating: number; comment: string } | null;
+  scale: number;
+  accentColor: string;
+}) {
+  const has =
+    snapshot &&
+    ((Number(snapshot.rating) || 0) > 0 || String(snapshot.comment || '').trim() !== '');
   return (
-    <Tooltip
-      title={<Typography sx={{ whiteSpace: 'pre-wrap', maxWidth: 420 }} component="span" variant="body2">{t}</Typography>}
-      placement="top-start"
-      enterDelay={280}
-      slotProps={{
-        tooltip: { sx: { maxWidth: 440 } },
-      }}
-    >
-      <Typography
-        variant="body2"
-        sx={{
-          fontSize: '0.8125rem',
-          color: 'text.secondary',
-          maxWidth: { xs: 140, sm: 220, md: 280 },
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          cursor: 'default',
-        }}
-      >
-        {t}
-      </Typography>
-    </Tooltip>
+    <Box>
+      {label ? (
+        <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          {label}
+        </Typography>
+      ) : null}
+      {!has ? (
+        <Typography variant="caption" color="text.secondary">-</Typography>
+      ) : (
+        <>
+          {scale !== 10 ? (
+            <Rating
+              value={Math.min(scale, Math.max(0, Number(snapshot.rating) || 0))}
+              max={scale}
+              readOnly
+              precision={0.1}
+              size="small"
+              sx={{
+                mb: 0.5,
+                '& .MuiRating-iconFilled': { color: accentColor },
+                '& .MuiRating-iconEmpty': { color: 'action.disabledBackground' },
+              }}
+            />
+          ) : null}
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            Rating:{' '}
+            <strong>
+              {Number(snapshot.rating || 0).toFixed(1)} / {scale}
+            </strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+            {String(snapshot.comment || '').trim() || '-'}
+          </Typography>
+        </>
+      )}
+    </Box>
   );
 }
 
@@ -268,11 +307,11 @@ function PublishedResultPanels({ result }) {
         </Grid>
       </Grid>
 
-      <AppCard variant="table" sx={{ mt: 3 }}>
+      <AppCard sx={{ mt: 3, overflow: 'hidden', p: 0 }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'rgba(248,250,252,0.92)' }}>
           <Typography variant="subtitle1" fontWeight={700}>Focus area breakdown</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Self and manager scores and written feedback per focus area
+            Each focus area lists its evaluation questions with your answers, manager answers, and ratings (same layout as the review form editor).
           </Typography>
         </Box>
         {n === 0 ? (
@@ -280,42 +319,168 @@ function PublishedResultPanels({ result }) {
             <Typography variant="body2" color="text.secondary">No rows to display.</Typography>
           </Box>
         ) : (
-          <TableContainer>
-            <Table sx={modernTableSx}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Focus area</TableCell>
-                  <TableCell align="center">Self score</TableCell>
-                  <TableCell align="center">Manager score</TableCell>
-                  <TableCell>Self review</TableCell>
-                  <TableCell>Manager review</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {result.focusAreas.map((fa) => (
-                  <TableRow key={fa.rowId || fa.name} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={700}>{fa.name}</Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip label={`${fa.selfScore} / ${scale}`} size="small"
-                        sx={{ bgcolor: '#9c27b015', color: '#6a1b9a', fontWeight: 600 }} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip label={`${fa.managerScore} / ${scale}`} size="small"
-                        sx={{ bgcolor: '#1976d215', color: '#0d47a1', fontWeight: 600 }} />
-                    </TableCell>
-                    <TableCell>
-                      <FocusAreaReviewCell text={fa.selfComment ?? ''} />
-                    </TableCell>
-                    <TableCell>
-                      <FocusAreaReviewCell text={fa.managerComment ?? ''} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box sx={{ px: 2, py: 2 }}>
+            {result.focusAreas.map((fa) => {
+              const qs = Array.isArray(fa.questions) ? fa.questions : [];
+              const w =
+                fa.weightage != null && fa.weightage !== ''
+                  ? (() => {
+                      const num = Number(fa.weightage);
+                      return Number.isFinite(num) ? `${num}x` : String(fa.weightage);
+                    })()
+                  : null;
+              return (
+                <Accordion
+                  key={fa.rowId || fa.name}
+                  defaultExpanded
+                  disableGutters
+                  sx={{
+                    mb: 1.5,
+                    '&:before': { display: 'none' },
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{ bgcolor: 'grey.50', px: 2 }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', flex: 1, pr: 1 }}>
+                      <Typography fontWeight={700}>{fa.name}</Typography>
+                      {qs.length > 0 ? (
+                        <Chip label={`${qs.length} questions`} size="small" />
+                      ) : null}
+                      {w ? (
+                        <Chip label={w} size="small" variant="outlined" sx={weightChipSx} />
+                      ) : null}
+                      <Chip
+                        label={`Self (area): ${fa.selfScore} / ${scale}`}
+                        size="small"
+                        sx={{ bgcolor: '#9c27b015', color: '#6a1b9a', fontWeight: 600 }}
+                      />
+                      <Chip
+                        label={`Manager (area): ${fa.managerScore} / ${scale}`}
+                        size="small"
+                        sx={{ bgcolor: '#1976d215', color: '#0d47a1', fontWeight: 600 }}
+                      />
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 2.5, pt: 0 }}>
+                    {qs.length > 0 ? (
+                      <Stack spacing={2}>
+                        {qs.map((q, qIdx) => {
+                          const html = sanitizeRichTextHtml(
+                            normalizeQuestionTextToHtml(q?.text ?? '')
+                          );
+                          const qw =
+                            q.weightage != null && q.weightage !== ''
+                              ? (() => {
+                                  const num = Number(q.weightage);
+                                  return Number.isFinite(num) ? `${num}x` : String(q.weightage);
+                                })()
+                              : null;
+                          return (
+                            <Box
+                              key={q.id || qIdx}
+                              sx={{
+                                p: 2,
+                                borderRadius: 1.5,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                ...questionRowAltSx(qIdx),
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  gap: 1.5,
+                                  mb: 2,
+                                }}
+                              >
+                                <Chip label={`Q${qIdx + 1}`} size="small" sx={{ flexShrink: 0, mt: 0.2 }} />
+                                <Box
+                                  sx={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    '& p': { m: 0 },
+                                    '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
+                                    '& li': { mt: 0.25 },
+                                  }}
+                                  dangerouslySetInnerHTML={{ __html: html }}
+                                />
+                                {qw ? (
+                                  <Chip label={qw} size="small" variant="outlined" sx={{ ...weightChipSx, flexShrink: 0 }} />
+                                ) : null}
+                              </Box>
+                              <Grid container spacing={2}>
+                                <Grid item xs={12} md={6}>
+                                  <PublishedPhaseReadout
+                                    label="Your response"
+                                    snapshot={q.selfReview}
+                                    scale={scale}
+                                    accentColor="#9c27b0"
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                  <PublishedPhaseReadout
+                                    label="Manager review"
+                                    snapshot={q.managerReview}
+                                    scale={scale}
+                                    accentColor="#1976d2"
+                                  />
+                                </Grid>
+                              </Grid>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    ) : (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          No per-question breakdown returned; showing focus area summary only.
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={6}>
+                            <PublishedPhaseReadout
+                              label="Your response"
+                              snapshot={
+                                fa.selfScore > 0 || String(fa.selfComment || '').trim()
+                                  ? {
+                                      rating: Number(fa.selfScore) || 0,
+                                      comment: String(fa.selfComment || ''),
+                                    }
+                                  : null
+                              }
+                              scale={scale}
+                              accentColor="#9c27b0"
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <PublishedPhaseReadout
+                              label="Manager review"
+                              snapshot={
+                                fa.managerScore > 0 || String(fa.managerComment || '').trim()
+                                  ? {
+                                      rating: Number(fa.managerScore) || 0,
+                                      comment: String(fa.managerComment || ''),
+                                    }
+                                  : null
+                              }
+                              scale={scale}
+                              accentColor="#1976d2"
+                            />
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              );
+            })}
+          </Box>
         )}
       </AppCard>
     </>
