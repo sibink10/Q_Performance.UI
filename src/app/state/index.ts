@@ -1,6 +1,6 @@
 // @ts-nocheck
 // src/app/state/index.js
-// Central Redux store — combines all slices for the QHRMS application
+// Central Redux store - combines all slices for the QHRMS application
 
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';

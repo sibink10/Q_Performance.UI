@@ -1,26 +1,37 @@
 // @ts-nocheck
 // Admin: Create / edit review form template UI
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Grid, Stack, Divider,
   Accordion, AccordionSummary, AccordionDetails, IconButton,
   FormControl, InputLabel, Select, MenuItem, Alert,
-  Snackbar, Chip, Tooltip, CircularProgress,
+  Snackbar, Chip, Tooltip, CircularProgress, Fab,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import usePerformance from '../../../hooks/usePerformance';
 import usePerformanceApi from '../../../hooks/usePerformanceApi';
 import AppButton from '../../common/AppButton';
-import { AppCard, AppLoader, ConfirmDialog, PageHeader } from '../../common/index';
+import { AppCard, AppLoader, ConfirmDialog, PageHeader, RichTextEditor } from '../../common/index';
 import { WEIGHTAGE_OPTIONS } from '../../../utils/constants';
+import { normalizeQuestionTextToHtml, richTextHtmlToPlainText } from '../../../utils/richText';
 
-const newQuestion = () => ({ id: Date.now(), text: '', weightage: 1 });
+const newQuestion = () => ({ id: Date.now(), text: '', weightage: '' });
+
+const questionAltSx = (qIdx) => {
+  const isOdd = qIdx % 2 === 1;
+  return {
+    bgcolor: isOdd ? 'rgba(2, 136, 209, 0.06)' : 'rgba(46, 125, 50, 0.05)',
+    borderLeft: '4px solid',
+    borderLeftColor: isOdd ? 'info.light' : 'success.light',
+  };
+};
 
 const newFocusAreaEntry = (fa) => ({
   focusAreaId: fa.id,
@@ -43,7 +54,6 @@ const ReviewFormEditor = () => {
   const isEditMode = !!formId && formId !== 'new';
   const [form, setForm] = useState({
     name: '',
-    period: '',
     sections: [],
   });
   const [errors, setErrors] = useState({});
@@ -52,6 +62,9 @@ const ReviewFormEditor = () => {
   const [pendingNavAfterSnack, setPendingNavAfterSnack] = useState(false);
   const [loadingMoreFocusAreas, setLoadingMoreFocusAreas] = useState(false);
   const [questionDelete, setQuestionDelete] = useState(null);
+  const [pendingScrollFocusAreaId, setPendingScrollFocusAreaId] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const sectionRefs = useRef({});
 
   useEffect(() => {
     loadFocusAreas({ page: 1, pageSize: REVIEW_FORM_FOCUS_AREAS_PAGE_SIZE });
@@ -88,7 +101,17 @@ const ReviewFormEditor = () => {
       setHydrating(true);
       try {
         const data = await getReviewFormById(formId);
-        setForm(data);
+        setForm({
+          name: data?.name ?? '',
+          sections: Array.isArray(data?.sections)
+            ? data.sections.map((s) => ({
+                ...s,
+                questions: Array.isArray(s?.questions)
+                  ? s.questions.map((q) => ({ ...q, text: normalizeQuestionTextToHtml(q?.text) }))
+                  : [],
+              }))
+            : [],
+        });
       } catch {
         // UI uses `error` from Redux for mutations; load errors can be reflected via existing alert.
       }
@@ -98,6 +121,8 @@ const ReviewFormEditor = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId, isEditMode]);
 
+  const currentSections = Array.isArray(form.sections) ? form.sections : [];
+
   const toggleFocusArea = (fa) => {
     setForm((p) => {
       const currentSections = Array.isArray(p.sections) ? p.sections : [];
@@ -106,6 +131,45 @@ const ReviewFormEditor = () => {
         ? { ...p, sections: currentSections.filter((s) => s.focusAreaId !== fa.id) }
         : { ...p, sections: [...currentSections, newFocusAreaEntry(fa)] };
     });
+  };
+
+  const scrollToFocusAreaSection = useCallback((focusAreaId) => {
+    const el = sectionRefs.current?.[focusAreaId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const handleFocusAreaChipClick = (fa) => {
+    const alreadySelected = !!currentSections.find((s) => s.focusAreaId === fa.id);
+    toggleFocusArea(fa);
+    if (alreadySelected) {
+      scrollToFocusAreaSection(fa.id);
+    } else {
+      setPendingScrollFocusAreaId(fa.id);
+    }
+  };
+
+  useEffect(() => {
+    if (!pendingScrollFocusAreaId) return;
+    const nowExists = !!currentSections.find((s) => s.focusAreaId === pendingScrollFocusAreaId);
+    if (!nowExists) return;
+
+    // Ensure the new card has mounted before scrolling.
+    requestAnimationFrame(() => {
+      scrollToFocusAreaSection(pendingScrollFocusAreaId);
+      setPendingScrollFocusAreaId(null);
+    });
+  }, [currentSections, pendingScrollFocusAreaId, scrollToFocusAreaSection]);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop((window.scrollY || 0) > 350);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const updateSection = (sectionIdx, field, value) => {
@@ -145,15 +209,53 @@ const ReviewFormEditor = () => {
     });
   };
 
+  const questionPlainText = useCallback((q) => richTextHtmlToPlainText(String(q?.text || '')), []);
+
+  const isQuestionComplete = useCallback(
+    (q) => {
+      const plain = questionPlainText(q);
+      const hasText = !!plain.trim();
+      const hasWeightage = q?.weightage !== '' && q?.weightage !== null && q?.weightage !== undefined;
+      return hasText && hasWeightage;
+    },
+    [questionPlainText]
+  );
+
+  const canAddNextQuestion = useCallback(
+    (section) => {
+      const qs = Array.isArray(section?.questions) ? section.questions : [];
+      if (!qs.length) return true;
+      return isQuestionComplete(qs[qs.length - 1]);
+    },
+    [isQuestionComplete]
+  );
+
+  const canSaveForm = useMemo(() => {
+    const currentSections = Array.isArray(form.sections) ? form.sections : [];
+    if (!form.name.trim()) return false;
+    if (!currentSections.length) return false;
+    for (const s of currentSections) {
+      const qs = Array.isArray(s?.questions) ? s.questions : [];
+      if (!qs.length) return false;
+      for (const q of qs) {
+        if (!isQuestionComplete(q)) return false;
+      }
+    }
+    return true;
+  }, [form.name, form.sections, isQuestionComplete]);
+
   const validate = () => {
     const e = {};
     const currentSections = Array.isArray(form.sections) ? form.sections : [];
     if (!form.name.trim()) e.name = 'Form name is required';
-    if (!form.period.trim()) e.period = 'Period is required';
     if (!currentSections.length) e.sections = 'Select at least one focus area';
     currentSections.forEach((s, si) => {
       s.questions.forEach((q, qi) => {
-        if (!q.text.trim()) e[`q_${si}_${qi}`] = 'Question text is required';
+        const plain = questionPlainText(q);
+        if (!plain.trim()) e[`q_${si}_${qi}`] = 'Question text is required';
+        if (q?.weightage === '' || q?.weightage === null || q?.weightage === undefined) {
+          e[`qw_${si}_${qi}`] = 'Weightage is required';
+        }
       });
     });
     setErrors(e);
@@ -162,9 +264,12 @@ const ReviewFormEditor = () => {
 
   const handleSave = async () => {
     if (!validate()) return;
+    // Backend may still return legacy fields (e.g., `period`) in edit mode; do not persist them.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { period, ...payload } = form;
     const result = isEditMode
-      ? await editReviewForm(formId, form)
-      : await createReviewForm(form);
+      ? await editReviewForm(formId, payload)
+      : await createReviewForm(payload);
     if (result?.meta?.requestStatus === 'fulfilled') {
       setPendingNavAfterSnack(true);
     }
@@ -177,8 +282,6 @@ const ReviewFormEditor = () => {
       return false;
     });
   };
-
-  const currentSections = Array.isArray(form.sections) ? form.sections : [];
 
   if (hydrating) return <AppLoader />;
 
@@ -193,7 +296,12 @@ const ReviewFormEditor = () => {
           </IconButton>
         }
         actions={
-          <AppButton loading={isSaving} startIcon={<SaveIcon />} onClick={handleSave}>
+          <AppButton
+            loading={isSaving}
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={!canSaveForm || isSaving}
+          >
             {isEditMode ? 'Save Changes' : 'Save Form'}
           </AppButton>
         }
@@ -216,17 +324,6 @@ const ReviewFormEditor = () => {
               helperText={errors.name}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Applicable Period *"
-              value={form.period}
-              onChange={(e) => { setForm((p) => ({ ...p, period: e.target.value })); setErrors((po) => ({ ...po, period: '' })); }}
-              fullWidth size="small"
-              placeholder="e.g., FY 2025-2026"
-              error={!!errors.period}
-              helperText={errors.period}
-            />
-          </Grid>
         </Grid>
       </AppCard>
 
@@ -247,7 +344,7 @@ const ReviewFormEditor = () => {
                 clickable
                 color={selected ? 'primary' : 'default'}
                 variant={selected ? 'filled' : 'outlined'}
-                onClick={() => toggleFocusArea(fa)}
+                onClick={() => handleFocusAreaChipClick(fa)}
                 sx={
                   selected
                     ? {
@@ -295,103 +392,151 @@ const ReviewFormEditor = () => {
       </AppCard>
 
       {currentSections.map((section, sIdx) => (
-        <AppCard
+        <Box
           key={section.focusAreaId}
-          sx={{ mb: 2, overflow: 'hidden', p: 0 }}
+          ref={(el) => {
+            sectionRefs.current[section.focusAreaId] = el;
+          }}
+          sx={{ scrollMarginTop: 96 }}
         >
-          <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: 'grey.50' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                <Typography fontWeight={600}>{section.focusAreaName}</Typography>
-                <Chip label={`${section.questions.length} questions`} size="small" />
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Typography variant="body2" fontWeight={500}>Focus Area Weightage:</Typography>
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <Select
-                    value={section.weightage}
-                    onChange={(e) => updateSection(sIdx, 'weightage', e.target.value)}
-                  >
-                    {WEIGHTAGE_OPTIONS.map((w) => (
-                      <MenuItem key={w} value={w}>{w}x</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-
-              <Divider sx={{ mb: 2 }} />
-
-              <Typography variant="body2" fontWeight={500} gutterBottom>Evaluation Questions</Typography>
-              <Stack spacing={2}>
-                {section.questions.map((q, qIdx) => (
-                  <Box
-                    key={q.id}
-                    sx={{
-                      display: 'flex', gap: 2, alignItems: 'flex-start',
-                      p: 2, borderRadius: 1.5, border: '1px solid',
-                      borderColor: errors[`q_${sIdx}_${qIdx}`] ? 'error.main' : 'divider',
-                      bgcolor: 'grey.50',
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ mt: 1.2, minWidth: 20, color: 'text.secondary', fontWeight: 700 }}
+          <AppCard sx={{ mb: 2, overflow: 'hidden', p: 0 }}>
+            <Accordion defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: 'grey.50' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                  <Typography fontWeight={600}>{section.focusAreaName}</Typography>
+                  <Chip label={`${section.questions.length} questions`} size="small" />
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Typography variant="body2" fontWeight={500}>Focus Area Weightage:</Typography>
+                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <Select
+                      value={section.weightage}
+                      onChange={(e) => updateSection(sIdx, 'weightage', e.target.value)}
                     >
-                      Q{qIdx + 1}
-                    </Typography>
-                    <TextField
-                      value={q.text}
-                      onChange={(e) => {
-                        updateQuestion(sIdx, qIdx, 'text', e.target.value);
-                        setErrors((p) => ({ ...p, [`q_${sIdx}_${qIdx}`]: '' }));
+                      {WEIGHTAGE_OPTIONS.map((w) => (
+                        <MenuItem key={w} value={w}>{w}x</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Divider sx={{ mb: 2 }} />
+
+                <Typography variant="body2" fontWeight={500} gutterBottom>Evaluation Questions</Typography>
+                <Stack spacing={2}>
+                  {section.questions.map((q, qIdx) => (
+                    <Box
+                      key={q.id}
+                      sx={{
+                        display: 'flex', gap: 2, alignItems: 'flex-start',
+                        p: 2, borderRadius: 1.5, border: '1px solid',
+                        borderColor: errors[`q_${sIdx}_${qIdx}`] ? 'error.main' : 'divider',
+                        ...questionAltSx(qIdx),
                       }}
-                      fullWidth size="small"
-                      placeholder="Enter evaluation question..."
-                      error={!!errors[`q_${sIdx}_${qIdx}`]}
-                      helperText={errors[`q_${sIdx}_${qIdx}`]}
-                      multiline
-                    />
-                    <FormControl size="small" sx={{ minWidth: 90, flexShrink: 0 }}>
-                      <InputLabel>Weight</InputLabel>
-                      <Select
-                        value={q.weightage}
-                        label="Weight"
-                        onChange={(e) => updateQuestion(sIdx, qIdx, 'weightage', e.target.value)}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{ mt: 1.2, minWidth: 20, color: 'text.secondary', fontWeight: 700 }}
                       >
-                        {WEIGHTAGE_OPTIONS.map((w) => (
-                          <MenuItem key={w} value={w}>{w}x</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <Tooltip title="Remove question">
-                      <IconButton
+                        Q{qIdx + 1}
+                      </Typography>
+                      <RichTextEditor
+                        value={q.text}
+                        onChange={(nextHtml) => {
+                          updateQuestion(sIdx, qIdx, 'text', nextHtml);
+                          setErrors((p) => ({ ...p, [`q_${sIdx}_${qIdx}`]: '' }));
+                        }}
+                        placeholder="Enter evaluation question..."
+                        error={!!errors[`q_${sIdx}_${qIdx}`]}
+                        helperText={errors[`q_${sIdx}_${qIdx}`]}
+                        minHeight={84}
+                      />
+                      <FormControl
                         size="small"
-                        onClick={() => setQuestionDelete({ sIdx, qIdx })}
-                        disabled={section.questions.length === 1}
-                        color="error"
-                        sx={{ mt: 0.3 }}
+                        sx={{ minWidth: 90, flexShrink: 0 }}
+                        error={!!errors[`qw_${sIdx}_${qIdx}`]}
                       >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                ))}
-              </Stack>
-              <AppButton
-                variant="outlined"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={() => addQuestion(sIdx)}
-                sx={{ mt: 2 }}
-              >
-                Add Question
-              </AppButton>
-            </AccordionDetails>
-          </Accordion>
-        </AppCard>
+                        <InputLabel
+                          id={`q-weightage-label-${sIdx}-${qIdx}`}
+                          shrink
+                        >
+                          Weight
+                        </InputLabel>
+                        <Select
+                          id={`q-weightage-${sIdx}-${qIdx}`}
+                          labelId={`q-weightage-label-${sIdx}-${qIdx}`}
+                          value={q.weightage}
+                          label="Weight"
+                          onChange={(e) => {
+                            updateQuestion(sIdx, qIdx, 'weightage', e.target.value);
+                            setErrors((p) => ({ ...p, [`qw_${sIdx}_${qIdx}`]: '' }));
+                          }}
+                          displayEmpty
+                          renderValue={(selected) => (selected === '' ? 'Select' : `${selected}x`)}
+                        >
+                          {WEIGHTAGE_OPTIONS.map((w) => (
+                            <MenuItem key={w} value={w}>{w}x</MenuItem>
+                          ))}
+                        </Select>
+                        {!!errors[`qw_${sIdx}_${qIdx}`] && (
+                          <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                            {errors[`qw_${sIdx}_${qIdx}`]}
+                          </Typography>
+                        )}
+                      </FormControl>
+                      <Tooltip title="Remove question">
+                        <IconButton
+                          size="small"
+                          onClick={() => setQuestionDelete({ sIdx, qIdx })}
+                          disabled={section.questions.length === 1}
+                          color="error"
+                          sx={{ mt: 0.3 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  ))}
+                </Stack>
+                <AppButton
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => addQuestion(sIdx)}
+                  disabled={!canAddNextQuestion(section)}
+                  sx={{ mt: 2 }}
+                >
+                  Add Question
+                </AppButton>
+              </AccordionDetails>
+            </Accordion>
+          </AppCard>
+        </Box>
       ))}
+
+      <Fab
+        size="small"
+        aria-label="Scroll to top"
+        onClick={handleScrollToTop}
+        sx={{
+          position: 'fixed',
+          right: 22,
+          bottom: 22,
+          zIndex: 1400,
+          display: showScrollTop ? 'inline-flex' : 'none',
+          bgcolor: 'primary.light',
+          color: 'primary.dark',
+          boxShadow: (t) => `0 10px 24px rgba(15, 157, 120, 0.25)`,
+          '&:hover': {
+            bgcolor: 'primary.main',
+            color: '#fff',
+          },
+        }}
+      >
+        <KeyboardArrowUpIcon />
+      </Fab>
 
       <Snackbar
         open={!!successMessage}

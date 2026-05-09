@@ -1,4 +1,4 @@
-// Employee: Published performance results — list by financial year,
+// Employee: Published performance results - list by financial year,
 // detailed view via GET /performance/my-results/:assignmentId
 
 import { useEffect, useMemo, useState } from 'react';
@@ -34,7 +34,7 @@ function FocusAreaReviewCell({ text }: { text: string }) {
   if (!t) {
     return (
       <Typography variant="caption" color="text.secondary">
-        —
+        -
       </Typography>
     );
   }
@@ -240,11 +240,11 @@ function PublishedResultPanels({ result }) {
           <AppCard sx={{ p: 3 }}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>HR / Admin Feedback</Typography>
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" sx={{ lineHeight: 1.8, fontStyle: result.hrComments !== '—' ? 'italic' : 'normal', color: 'text.secondary' }}>
-              {result.hrComments !== '—' ? `“${result.hrComments}”` : 'No overall HR comments for this result.'}
+            <Typography variant="body2" sx={{ lineHeight: 1.8, fontStyle: result.hrComments !== '-' ? 'italic' : 'normal', color: 'text.secondary' }}>
+              {result.hrComments !== '-' ? `“${result.hrComments}”` : 'No overall HR comments for this result.'}
             </Typography>
             <Typography variant="caption" color="text.secondary" mt={1} display="block">
-              — {result.hrName}
+              - {result.hrName}
             </Typography>
           </AppCard>
 
@@ -403,7 +403,7 @@ const MyResults = () => {
     <Box>
       <PageHeader
         title="My Results"
-        subtitle="Your assignments for the year — open a submission to view published ratings when available"
+        subtitle="Your assignments for the year - open a submission to view published ratings when available"
         actions={
           <FormControl size="small" sx={{ minWidth: 168 }}>
             <InputLabel>Review Period</InputLabel>
@@ -447,7 +447,7 @@ const MyResults = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                        {formatDate(row.startDate)} — {formatDate(row.endDate)}
+                        {formatDate(row.startDate)} - {formatDate(row.endDate)}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -455,7 +455,7 @@ const MyResults = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                        {row.submittedAt ? formatDate(row.submittedAt) : '—'}
+                        {row.submittedAt ? formatDate(row.submittedAt) : '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>

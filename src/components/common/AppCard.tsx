@@ -1,4 +1,4 @@
-// Shared content surface — same radius, border, shadow as theme MuiCard/MuiPaper.
+// Shared content surface - same radius, border, shadow as theme MuiCard/MuiPaper.
 
 import { Paper } from '@mui/material';
 import type { PaperProps } from '@mui/material';

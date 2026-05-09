@@ -25,7 +25,7 @@ export function registerNavigationService(handlers: Handlers) {
   onUnauthorizedFn = handlers.onUnauthorized ?? null;
 }
 
-/** Session expired — clear auth (if handler registered), then SPA navigate to login. */
+/** Session expired - clear auth (if handler registered), then SPA navigate to login. */
 export function navigateToLoginAfterUnauthorized() {
   try {
     onUnauthorizedFn?.();

@@ -3,7 +3,7 @@
 // Assignment detail: progressive reveal via allReviewsSubmitted + per-question phase snapshots.
 // @ts-nocheck
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
@@ -44,6 +44,7 @@ import {
   isAssignmentPhaseSubmitted,
   getApiErrorMessage,
 } from '../../utils/helpers';
+import { normalizeQuestionTextToHtml, sanitizeRichTextHtml } from '../../utils/richText';
 import { validateHrSubmitInput } from '../../utils/performanceSubmission';
 import {
   saveEvaluation,
@@ -52,6 +53,9 @@ import {
   submitHrReview,
 } from '../../app/state/slices/performanceThunks';
 import { clearError as clearPerformanceError } from '../../app/state/slices/performanceSlice';
+
+const SELF_EVAL_MIN_ANSWER_LEN = 50;
+const getTextLen = (value) => String(value || '').trim().length;
 
 /** Read-only snapshot (self / manager / HR). */
 const PhaseSnapshotDisplay = ({ label, snapshot, ratingScale }) => {
@@ -70,10 +74,19 @@ const PhaseSnapshotDisplay = ({ label, snapshot, ratingScale }) => {
         </strong>
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-        {snapshot.comment?.trim() ? snapshot.comment : '—'}
+        {snapshot.comment?.trim() ? snapshot.comment : '-'}
       </Typography>
     </Box>
   );
+};
+
+const questionAltSx = (qIdx) => {
+  const isOdd = qIdx % 2 === 1;
+  return {
+    bgcolor: isOdd ? 'rgba(2, 136, 209, 0.06)' : 'rgba(46, 125, 50, 0.05)',
+    borderLeft: '4px solid',
+    borderLeftColor: isOdd ? 'info.light' : 'success.light',
+  };
 };
 
 const SelfEvaluationForm = () => {
@@ -82,7 +95,12 @@ const SelfEvaluationForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAdmin } = useAuth();
-  const { getAssignmentById, publishRatings, unpublishAssignmentResults } = usePerformanceApi();
+  const {
+    getAssignmentById,
+    publishRatings,
+    unpublishAssignmentResults,
+    saveManagerEvaluationDraft,
+  } = usePerformanceApi();
 
   const modeManager = searchParams.get('mode') === 'manager';
   const modeHr = searchParams.get('mode') === 'hr';
@@ -100,17 +118,23 @@ const SelfEvaluationForm = () => {
 
   const [review, setReview] = useState(null);
   const [answers, setAnswers] = useState({});
+  const [expandedFocusAreaId, setExpandedFocusAreaId] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(() => !!reviewId);
   const [loadError, setLoadError] = useState(null);
   /** Locks UI after 409 Conflict (phase already submitted). */
   const [phaseConflict, setPhaseConflict] = useState({ self: false, manager: false, hr: false });
   const [mutationToast, setMutationToast] = useState(null);
+  const [selfSubmitValidationOn, setSelfSubmitValidationOn] = useState(false);
   const [hrOverallRating, setHrOverallRating] = useState('');
   const [hrComments, setHrComments] = useState('');
   const [hrValidation, setHrValidation] = useState({});
   const [publishBusy, setPublishBusy] = useState(false);
   const [unpublishConfirmOpen, setUnpublishConfirmOpen] = useState(false);
+
+  // Manager draft save UX (manual-only; does not submit).
+  const [managerDraftSaveStatus, setManagerDraftSaveStatus] = useState('idle'); // idle | saving | saved | failed
+  const managerDraftSaveSeqRef = useRef(0);
 
   const pickInitialAnswers = useCallback((mapped) => {
     if (isHrMode) return mapped.hrInitialAnswers && typeof mapped.hrInitialAnswers === 'object' ? mapped.hrInitialAnswers : {};
@@ -164,9 +188,15 @@ const SelfEvaluationForm = () => {
   useEffect(() => {
     if (!review) return;
     setAnswers(pickInitialAnswers(review));
+    setExpandedFocusAreaId((prev) => {
+      const firstId = review?.sections?.[0]?.focusAreaId;
+      if (!firstId) return false;
+      // If current expanded panel is still valid, keep it; otherwise expand the first section.
+      return prev && review.sections.some((s) => s.focusAreaId === prev) ? prev : firstId;
+    });
     setHrOverallRating(
-      review.hrOverallRating != null && review.hrOverallRating !== ''
-        ? String(review.hrOverallRating)
+      review.hrOverallScore != null && review.hrOverallScore !== ''
+        ? String(review.hrOverallScore)
         : ''
     );
     setHrComments(
@@ -174,7 +204,9 @@ const SelfEvaluationForm = () => {
         ? String(review.hrComments)
         : ''
     );
+    setSelfSubmitValidationOn(false);
     setHrValidation({});
+    setManagerDraftSaveStatus('idle');
   }, [review, pickInitialAnswers, modeManager, modeHr]);
 
   const allQuestions = review ? review.sections.flatMap((s) => s.questions) : [];
@@ -182,13 +214,27 @@ const SelfEvaluationForm = () => {
     Number.isFinite(Number(review?.ratingScale)) && Number(review?.ratingScale) > 0
       ? Number(review.ratingScale)
       : 10;
-  const completionPct = calculateCompletionPercentage(answers, allQuestions);
+  const selfAnsweredCountMinLen = allQuestions.filter((q) => {
+    const a = answers[q.id] || {};
+    return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
+  }).length;
+  const completionPct =
+    isManagerMode || isHrMode
+      ? calculateCompletionPercentage(answers, allQuestions)
+      : allQuestions.length
+        ? Math.round((selfAnsweredCountMinLen / allQuestions.length) * 100)
+        : 0;
   const hrCompletionPct =
     hrOverallRating !== '' && Number.isFinite(Number(hrOverallRating)) ? 100 : 0;
   const effectiveCompletionPct = isHrMode ? hrCompletionPct : completionPct;
   const canSubmit = isHrMode
     ? Object.keys(validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale)).length === 0
-    : isFormComplete(answers, allQuestions);
+    : isManagerMode
+      ? isFormComplete(answers, allQuestions)
+      : allQuestions.every((q) => {
+          const a = answers[q.id] || {};
+          return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
+        });
 
   const hrOverallRatingNum = Number(hrOverallRating);
   const hrOverallRatingStarValue =
@@ -213,6 +259,30 @@ const SelfEvaluationForm = () => {
   const managerPhaseComplete = isAssignmentPhaseSubmitted(review?.managerEvalStatus);
   const hrPhaseComplete = isAssignmentPhaseSubmitted(review?.hrReviewStatus);
   const hrResultsVisible = Boolean(review?.resultsPublishedToEmployee);
+  const overallRatingNum = Number(review?.overallRating);
+  const hasOverallRating =
+    review?.overallRating != null &&
+    review.overallRating !== '' &&
+    Number.isFinite(overallRatingNum);
+
+  const formatWeightage = (value) => {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    // Keep integers clean, keep decimals when provided (e.g. 3.5)
+    return Number.isInteger(n) ? String(n) : String(n);
+  };
+
+const weightageChipSx = {
+  flexShrink: 0,
+  fontWeight: 700,
+  bgcolor: 'rgba(2, 136, 209, 0.12)', // info light background
+  borderColor: 'info.main',
+  color: 'info.dark',
+  '& .MuiChip-label': {
+    px: 1.25,
+  },
+};
 
   const selfFieldsReadOnly =
     !isManagerMode && !isHrMode && (selfPhaseComplete || phaseConflict.self);
@@ -221,11 +291,13 @@ const SelfEvaluationForm = () => {
   const hrFieldsReadOnly = isHrMode && (hrPhaseComplete || phaseConflict.hr);
 
   const showSaveDraft = !isManagerMode && !isHrMode && !selfFieldsReadOnly;
+  const showManagerSaveDraft =
+    isManagerMode && !!effectiveEmployeeId && !managerFieldsReadOnly && !phaseConflict.manager;
 
   const hasHrOverall =
-    review?.hrOverallRating != null &&
-    review.hrOverallRating !== '' &&
-    Number.isFinite(Number(review.hrOverallRating));
+    review?.hrOverallScore != null &&
+    review.hrOverallScore !== '' &&
+    Number.isFinite(Number(review.hrOverallScore));
   const hasHrOverallComments =
     review?.hrComments != null && String(review.hrComments).trim() !== '';
   const showHrOverallSummary = (hasHrOverall || hasHrOverallComments) && (review.allReviewsSubmitted || hrResultsVisible || isHrMode);
@@ -248,6 +320,33 @@ const SelfEvaluationForm = () => {
     }));
   };
 
+  const saveManagerDraftNow = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!reviewId || !showManagerSaveDraft) return;
+
+      const seq = ++managerDraftSaveSeqRef.current;
+      if (!silent) clearError();
+      setManagerDraftSaveStatus('saving');
+
+      try {
+        await saveManagerEvaluationDraft({
+          employeeId: effectiveEmployeeId,
+          assignmentId: reviewId,
+          answers,
+        });
+        if (managerDraftSaveSeqRef.current === seq) setManagerDraftSaveStatus('saved');
+      } catch (e) {
+        const status = e?.status;
+        if (managerDraftSaveSeqRef.current === seq) setManagerDraftSaveStatus('failed');
+        if (!silent) {
+          setMutationToast({ severity: 'error', message: e?.message ?? 'Could not save draft.' });
+        }
+        if (status === 409) setPhaseConflict((p) => ({ ...p, manager: true }));
+      }
+    },
+    [answers, clearError, effectiveEmployeeId, reviewId, saveManagerEvaluationDraft, showManagerSaveDraft]
+  );
+
   const handleSaveDraft = async () => {
     if (!reviewId || isManagerMode || isHrMode) return;
     clearError();
@@ -268,7 +367,31 @@ const SelfEvaluationForm = () => {
       setHrValidation(nextErrors);
       if (Object.keys(nextErrors).length > 0) return;
     }
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      if (isHrMode) {
+        setMutationToast({
+          severity: 'warning',
+          message: 'Please provide the required HR overall rating (and comments if applicable) before submitting.',
+        });
+        return;
+      }
+
+      if (!isManagerMode && !isHrMode) setSelfSubmitValidationOn(true);
+      const unansweredCount = allQuestions.filter((q) => {
+        const a = answers[q.id] || {};
+        if (isManagerMode) return !(a?.rating && String(a?.comment || '').trim());
+        return !(a?.rating && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN);
+      }).length;
+
+      setMutationToast({
+        severity: 'warning',
+        message:
+          unansweredCount > 0
+            ? `Please complete ${unansweredCount} more question${unansweredCount === 1 ? '' : 's'} (rating + at least ${SELF_EVAL_MIN_ANSWER_LEN} characters) before submitting.`
+            : 'Please complete all required fields before submitting.',
+      });
+      return;
+    }
     setConfirmOpen(true);
   };
 
@@ -359,18 +482,21 @@ const SelfEvaluationForm = () => {
 
   const renderRevealPlaceholder = () => (
     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-      Other reviews will appear after everyone submits.
+      Reviews are hidden until they become available.
     </Typography>
   );
 
-  const renderNonEditablePhase = (snapshot) => {
-    if (snapshot) {
-      return <PhaseSnapshotDisplay label="" snapshot={snapshot} ratingScale={review.ratingScale} />;
-    }
-    if (review.allReviewsSubmitted) {
+  /**
+   * Read-only phase renderer with explicit reveal behavior.
+   * - If `allowReveal` is false, we show placeholder unless snapshot exists.
+   * - If `allowReveal` is true and snapshot is missing, show "-" (meaning not provided).
+   */
+  const renderNonEditablePhase = (snapshot, { allowReveal = false } = {}) => {
+    if (snapshot) return <PhaseSnapshotDisplay label="" snapshot={snapshot} ratingScale={review.ratingScale} />;
+    if (allowReveal) {
       return (
         <Typography variant="caption" color="text.secondary">
-          —
+          -
         </Typography>
       );
     }
@@ -380,10 +506,8 @@ const SelfEvaluationForm = () => {
   const renderSelfColumn = (question, qAns) => {
     if (isManagerMode || isHrMode) {
       const snap = question.selfReview;
-      if (snap || review.allReviewsSubmitted) {
-        return renderNonEditablePhase(snap);
-      }
-      return renderRevealPlaceholder();
+      // Manager/HR can see employee self review as soon as it's available.
+      return renderNonEditablePhase(snap, { allowReveal: true });
     }
 
     if (selfFieldsReadOnly) {
@@ -426,9 +550,19 @@ const SelfEvaluationForm = () => {
           minRows={2}
           size="small"
           required
-          error={!!(qAns?.rating && !qAns?.comment?.trim())}
+          error={
+            !!(
+              selfSubmitValidationOn &&
+              qAns?.rating &&
+              getTextLen(qAns?.comment) < SELF_EVAL_MIN_ANSWER_LEN
+            )
+          }
           helperText={
-            qAns?.rating && !qAns?.comment?.trim() ? 'Comment is required before submission' : ''
+            selfSubmitValidationOn &&
+            qAns?.rating &&
+            getTextLen(qAns?.comment) < SELF_EVAL_MIN_ANSWER_LEN
+              ? `Minimum ${SELF_EVAL_MIN_ANSWER_LEN} characters required (${getTextLen(qAns?.comment)}/${SELF_EVAL_MIN_ANSWER_LEN}).`
+              : ''
           }
         />
       </>
@@ -437,7 +571,10 @@ const SelfEvaluationForm = () => {
 
   const renderManagerColumn = (question, qAns) => {
     if (!isManagerMode) {
-      return renderNonEditablePhase(question.managerReview);
+      // Employee can see manager review only after results are published.
+      // HR can always see manager review (even if not all phases submitted).
+      const allowReveal = isHrMode ? true : hrResultsVisible;
+      return renderNonEditablePhase(question.managerReview, { allowReveal });
     }
     if (!managerFieldsReadOnly) {
       return (
@@ -474,12 +611,16 @@ const SelfEvaluationForm = () => {
     return renderNonEditablePhase(
       question.managerReview ||
         (qAns?.rating ? { rating: Number(qAns.rating), comment: String(qAns.comment || '') } : null)
+      , { allowReveal: true }
     );
   };
 
   const renderHrColumn = (question, qAns) => {
     if (!isHrMode) {
-      return renderNonEditablePhase(question.hrReview);
+      // Employee can see HR review only after results are published.
+      // Manager can always see HR review only when it's available (typically overall).
+      const allowReveal = isManagerMode ? true : hrResultsVisible;
+      return renderNonEditablePhase(question.hrReview, { allowReveal });
     }
     const snap = question.hrReview;
     // New API captures HR review at assignment-level (overall score/comments),
@@ -493,7 +634,6 @@ const SelfEvaluationForm = () => {
   };
 
   const submitDisabled =
-    !canSubmit ||
     (isManagerMode && (!effectiveEmployeeId || managerFieldsReadOnly)) ||
     (!isManagerMode && !isHrMode && selfFieldsReadOnly) ||
     (isHrMode && hrFieldsReadOnly);
@@ -544,8 +684,8 @@ const SelfEvaluationForm = () => {
   const pageTitle = isHrMode ? 'HR Review' : isManagerMode ? 'Manager Evaluation' : 'Self Evaluation';
 
   const subtitleExtra =
-    `${review.formName}${isManagerMode ? ' — Provide your assessment for this team member' : ''}${
-      isHrMode ? ' — Record HR evaluation for this assignment' : ''
+    `${review.formName}${isManagerMode ? ' - Provide your assessment for this team member' : ''}${
+      isHrMode ? ' - Record HR evaluation for this assignment' : ''
     }`;
 
   return (
@@ -559,14 +699,7 @@ const SelfEvaluationForm = () => {
           </IconButton>
         }
       />
-      {isManagerMode && effectiveEmployeeId && (
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2, mt: -2 }}>
-          Employee id (assignment):{' '}
-          <Box component="span" sx={{ fontFamily: 'monospace' }}>
-            {effectiveEmployeeId}
-          </Box>
-        </Typography>
-      )}
+      
 
       <AppCard sx={{ p: 2.5, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
@@ -574,11 +707,40 @@ const SelfEvaluationForm = () => {
             {isHrMode
               ? `Progress: ${hrCompletionPct === 100 ? 'Overall rating provided' : 'Overall rating pending'}`
               : `Progress: ${
-                  Object.keys(answers).filter((k) => answers[k]?.rating && answers[k]?.comment?.trim())
-                    .length
+                  isManagerMode ? Object.keys(answers).filter((k) => answers[k]?.rating && answers[k]?.comment?.trim()).length : selfAnsweredCountMinLen
                 } of ${allQuestions.length} questions answered`}
           </Typography>
           <Stack direction="row" spacing={1}>
+            {isManagerMode && showManagerSaveDraft && (
+              <Chip
+                label={
+                  managerDraftSaveStatus === 'saving'
+                    ? 'Saving…'
+                    : managerDraftSaveStatus === 'saved'
+                      ? 'Saved'
+                      : managerDraftSaveStatus === 'failed'
+                        ? 'Save failed'
+                        : 'Draft'
+                }
+                color={
+                  managerDraftSaveStatus === 'saved'
+                    ? 'success'
+                    : managerDraftSaveStatus === 'failed'
+                      ? 'error'
+                      : 'default'
+                }
+                size="small"
+                variant="outlined"
+              />
+            )}
+            {hasOverallRating && (
+              <Chip
+                label={`Overall rating: ${overallRatingNum.toFixed(2)}`}
+                color="secondary"
+                size="small"
+                variant="outlined"
+              />
+            )}
             <Chip
               label={`${effectiveCompletionPct}% complete`}
               color={effectiveCompletionPct === 100 ? 'success' : 'primary'}
@@ -599,10 +761,10 @@ const SelfEvaluationForm = () => {
       {!review.allReviewsSubmitted && (
         <Alert severity="info" sx={{ mb: 2 }}>
           {isManagerMode
-            ? 'You can edit your manager review below. Self and HR responses stay hidden until everyone has submitted.'
+            ? 'You can edit your manager review below. Employee self responses are visible when submitted; HR results appear when available.'
             : isHrMode
               ? 'Provide overall HR rating and final comments. Per-question HR inputs are no longer required.'
-              : 'Manager and HR reviews stay hidden until everyone has submitted. You always see your own responses below.'}
+              : 'Manager/HR reviews are visible to you only after results are published. You always see your own responses below.'}
         </Alert>
       )}
 
@@ -681,7 +843,7 @@ const SelfEvaluationForm = () => {
             <Typography variant="body2">
               Score:{' '}
               <strong>
-                {hasHrOverall ? `${Number(review.hrOverallRating).toFixed(1)} / ${hrRatingScale}` : '—'}
+                {hasHrOverall ? `${Number(review.hrOverallScore).toFixed(1)} / ${hrRatingScale}` : '-'}
               </strong>
             </Typography>
             <Typography
@@ -689,7 +851,7 @@ const SelfEvaluationForm = () => {
               color="text.secondary"
               sx={{ whiteSpace: 'pre-wrap' }}
             >
-              {hasHrOverallComments ? String(review.hrComments).trim() : '—'}
+              {hasHrOverallComments ? String(review.hrComments).trim() : '-'}
             </Typography>
           </Stack>
         </AppCard>
@@ -703,7 +865,7 @@ const SelfEvaluationForm = () => {
 
       {isManagerMode && !effectiveEmployeeId && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          Missing employee id for this assignment — open this review from the team list so the assignment employee is
+          Missing employee id for this assignment - open this review from the team list so the assignment employee is
           set correctly.
         </Alert>
       )}
@@ -751,11 +913,15 @@ const SelfEvaluationForm = () => {
         const sectionAnswered = section.questions.filter(
           (q) => answers[q.id]?.rating && answers[q.id]?.comment?.trim()
         ).length;
+        const sectionWeight = formatWeightage(section.weightage);
 
         return (
           <Accordion
             key={section.focusAreaId}
-            defaultExpanded={sIdx === 0}
+            expanded={expandedFocusAreaId === section.focusAreaId}
+            onChange={(_, isExpanded) =>
+              setExpandedFocusAreaId(isExpanded ? section.focusAreaId : false)
+            }
             elevation={0}
             sx={{
               border: '1px solid',
@@ -769,13 +935,36 @@ const SelfEvaluationForm = () => {
               expandIcon={<ExpandMoreIcon />}
               sx={{ bgcolor: 'grey.50', borderRadius: '8px 8px 0 0' }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                <Typography fontWeight={600}>{section.focusAreaName}</Typography>
-                <Chip
-                  label={`${sectionAnswered} / ${section.questions.length}`}
-                  size="small"
-                  color={sectionAnswered === section.questions.length ? 'success' : 'default'}
-                />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  flex: 1,
+                  minWidth: 0,
+                  pr: 1,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+                  <Typography fontWeight={600} sx={{ wordBreak: 'break-word' }}>
+                    {section.focusAreaName}
+                  </Typography>
+                  <Chip
+                    label={`${sectionAnswered} / ${section.questions.length}`}
+                    size="small"
+                    color={sectionAnswered === section.questions.length ? 'success' : 'default'}
+                    sx={{ flexShrink: 0 }}
+                  />
+                </Box>
+                {sectionWeight != null && (
+                  <Chip
+                    label={`Weightage: ${sectionWeight}`}
+                    size="small"
+                    variant="outlined"
+                    sx={weightageChipSx}
+                  />
+                )}
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 3 }}>
@@ -788,6 +977,10 @@ const SelfEvaluationForm = () => {
                 {section.questions.map((question, qIdx) => {
                   const qAns = answers[question.id] || {};
                   const isAnswered = qAns.rating && qAns.comment?.trim();
+                  const questionWeight = formatWeightage(question.weightage);
+                  const questionHtml = sanitizeRichTextHtml(
+                    normalizeQuestionTextToHtml(question?.text)
+                  );
 
                   return (
                     <Box
@@ -797,19 +990,51 @@ const SelfEvaluationForm = () => {
                         borderRadius: 2,
                         border: '1px solid',
                         borderColor: isAnswered ? 'success.light' : 'divider',
-                        bgcolor: isAnswered ? 'success.50' : 'background.paper',
+                        ...(isAnswered ? { bgcolor: 'success.50' } : questionAltSx(qIdx)),
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
-                        <Chip
-                          label={`Q${qIdx + 1}`}
-                          size="small"
-                          color={isAnswered ? 'success' : 'default'}
-                          sx={{ flexShrink: 0, mt: 0.3 }}
-                        />
-                        <Typography variant="body2" fontWeight={500}>
-                          {question.text}
-                        </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: 2,
+                          mb: 2,
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
+                          <Chip
+                            label={`Q${qIdx + 1}`}
+                            size="small"
+                            color={isAnswered ? 'success' : 'default'}
+                            sx={{ flexShrink: 0, mt: 0.3 }}
+                          />
+                          <Box
+                            sx={{
+                              minWidth: 0,
+                              wordBreak: 'break-word',
+                              '& p': { m: 0 },
+                              '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
+                              '& li': { mt: 0.25 },
+                              '& strong': { fontWeight: 700 },
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              fontWeight={500}
+                              component="div"
+                              dangerouslySetInnerHTML={{ __html: questionHtml }}
+                            />
+                          </Box>
+                        </Box>
+                        {questionWeight != null && (
+                          <Chip
+                            label={`${questionWeight}`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ ...weightageChipSx, mt: 0.3 }}
+                          />
+                        )}
                       </Box>
 
                       <Stack spacing={0} divider={<Divider flexItem sx={{ borderColor: 'divider' }} />}>
@@ -843,7 +1068,31 @@ const SelfEvaluationForm = () => {
         );
       })}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
+      <Box
+        sx={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 2,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 2,
+          mt: 3,
+          py: 2,
+          bgcolor: 'background.default',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        {showManagerSaveDraft && (
+          <AppButton
+            variant="outlined"
+            startIcon={<SaveIcon />}
+            onClick={() => saveManagerDraftNow({ silent: false })}
+            disabled={managerFieldsReadOnly}
+          >
+            Save Draft
+          </AppButton>
+        )}
         {showSaveDraft && (
           <AppButton
             variant="outlined"
@@ -869,11 +1118,20 @@ const SelfEvaluationForm = () => {
         <DialogTitle>Confirm Submission</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            {isHrMode
-              ? 'Submit the HR review for this assignment? This action cannot be undone.'
-              : isManagerMode
-                ? 'Are you sure you want to submit your manager evaluation? This action cannot be undone.'
-                : 'Are you sure you want to submit your self-evaluation? Once submitted, you will not be able to make changes.'}
+            {isHrMode ? (
+              <>
+                Submit the <strong>HR review</strong> for this assignment? This action cannot be undone.
+              </>
+            ) : isManagerMode ? (
+              <>
+                Are you sure you want to submit your <strong>manager evaluation</strong>? This action cannot be undone.
+              </>
+            ) : (
+              <>
+                Are you sure you want to submit your <strong>self-evaluation</strong>? Once submitted, you will not be
+                able to make changes.
+              </>
+            )}
           </Typography>
         </DialogContent>
         <DialogActions>

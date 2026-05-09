@@ -24,6 +24,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import useFinancialYears from '../../hooks/useFinancialYears';
 
+const DATE_FORMAT = 'DD/MM/YYYY';
+
 // ── Phase status chip ─────────────────────────────────────────────────────────
 const PhaseChip = ({ status }) => {
   const colorMap = {
@@ -55,7 +57,7 @@ const ExtendTimelineModal = ({ open, onClose, employee, onSave, isSaving }) => {
       <AppModal
         open={open}
         onClose={onClose}
-        title={`Extend Timeline${employee ? ` — ${employee.name}` : ' (Global)'}`}
+        title={`Extend Timeline${employee ? ` - ${employee.name}` : ' (Global)'}`}
         maxWidth="sm"
         actions={
           <>
@@ -90,6 +92,7 @@ const ExtendTimelineModal = ({ open, onClose, employee, onSave, isSaving }) => {
             value={newDate}
             onChange={setNewDate}
             minDate={dayjs().add(1, 'day')}
+            format={DATE_FORMAT}
             slotProps={{ textField: { size: 'small', fullWidth: true } }}
           />
         </Stack>
@@ -265,7 +268,7 @@ const OperationsPerformance = () => {
                       <TableCell align="center"><PhaseChip status={emp.hrReviewStatus} /></TableCell>
                       <TableCell align="center"><PhaseChip status={emp.publishedStatus} /></TableCell>
                       <TableCell>
-                        <Typography variant="caption">{emp.managerName || '—'}</Typography>
+                        <Typography variant="caption">{emp.managerName || '-'}</Typography>
                       </TableCell>
                       <TableCell align="center">
                         {emp.finalRating ? (
@@ -274,7 +277,7 @@ const OperationsPerformance = () => {
                             color="primary"
                             size="small"
                           />
-                        ) : '—'}
+                        ) : '-'}
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Extend Timeline">

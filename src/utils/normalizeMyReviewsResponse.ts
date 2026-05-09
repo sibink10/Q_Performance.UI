@@ -68,19 +68,30 @@ export function mapMyReviewItem(raw) {
   const status = STATUS_NORMALIZE[statusKey] ?? rawStatus ?? REVIEW_STATUSES.NOT_STARTED;
 
   const startDate =
+    // For employee "My Reviews" pending cards, backend provides explicit self-eval window.
+    raw.selfEvalStart ??
+    raw.selfEvaluationStart ??
     raw.startDate ??
+    raw.fromDate ??
+    raw.from_date ??
+    raw.reviewStartDate ??
+    raw.review_start_date ??
+    raw.selfEvalStart ??
+    raw.selfEvaluationStart ??
     raw.periodStart ??
     raw.evaluationStartDate ??
     raw.start_date ??
     raw.period_start ??
+    raw.evaluation_start_date ??
     null;
   const endDate =
+    // Prefer explicit self-eval end window when present.
+    raw.selfEvalEnd ??
+    raw.selfEvaluationEnd ??
     raw.endDate ??
     raw.periodEnd ??
     raw.evaluationEndDate ??
     raw.deadline ??
-    raw.selfEvalEnd ??
-    raw.selfEvaluationEnd ??
     raw.end_date ??
     raw.period_end ??
     raw.evaluation_end_date ??

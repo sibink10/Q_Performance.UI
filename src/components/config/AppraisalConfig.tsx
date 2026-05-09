@@ -192,7 +192,7 @@ const AppraisalConfig = () => {
                     <TableCell>
                       {row.financialYearName
                         || financialYears.find((y) => y.id === row.financialYearId)?.name
-                        || '—'}
+                        || '-'}
                     </TableCell>
                     <TableCell>{row.cycleType}</TableCell>
                     <TableCell>{row.ratingScale}</TableCell>
@@ -248,7 +248,7 @@ const AppraisalConfig = () => {
           <DialogTitle>Delete config?</DialogTitle>
           <DialogContent dividers>
             <Typography>
-              This will permanently delete the selected appraisal configuration.
+              This will permanently delete the selected <strong>appraisal configuration</strong>.
             </Typography>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>

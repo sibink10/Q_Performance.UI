@@ -19,15 +19,17 @@ import dayjs from 'dayjs';
 import AppButton from '../common/AppButton';
 import { APPRAISAL_CYCLE_TYPES, APPRAISAL_START_MONTHS, RATING_SCALES } from '../../utils/constants';
 
+const DATE_FORMAT = 'DD/MM/YYYY';
+
 const PHASE_FIELDS = [
-  ['selfEvalStart', 'Self evaluation — start'],
-  ['selfEvalEnd', 'Self evaluation — end'],
-  ['managerEvalStart', 'Manager evaluation — start'],
-  ['managerEvalEnd', 'Manager evaluation — end'],
-  ['hrReviewStart', 'HR review — start'],
-  ['hrReviewEnd', 'HR review — end'],
-  ['ratingPublishStart', 'Rating publish — start'],
-  ['ratingPublishEnd', 'Rating publish — end'],
+  ['selfEvalStart', 'Self evaluation - start'],
+  ['selfEvalEnd', 'Self evaluation - end'],
+  ['managerEvalStart', 'Manager evaluation - start'],
+  ['managerEvalEnd', 'Manager evaluation - end'],
+  ['hrReviewStart', 'HR review - start'],
+  ['hrReviewEnd', 'HR review - end'],
+  ['ratingPublishStart', 'Rating publish - start'],
+  ['ratingPublishEnd', 'Rating publish - end'],
 ];
 
 type Props = {
@@ -163,6 +165,7 @@ const AppraisalConfigModal = ({
                 label={label}
                 value={configForm[key] ? dayjs(configForm[key]) : null}
                 onChange={(v) => setConfigForm((p: any) => ({ ...p, [key]: v?.toISOString() ?? null }))}
+                format={DATE_FORMAT}
                 slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
             </Grid>

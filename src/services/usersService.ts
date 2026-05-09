@@ -1,6 +1,6 @@
 import api from './api';
 
-/** Manager block from `/users/entra` — sent as `manager` on each assignment row. */
+/** Manager block from `/users/entra` - sent as `manager` on each assignment row. */
 export interface EntraManagerDetails {
   id: string;
   displayName: string;
@@ -13,7 +13,7 @@ export interface EntraUserOption {
   code: string;
   name: string;
   designation: string;
-  /** Mail or UPN — used when building assign payload `email`. */
+  /** Mail or UPN - used when building assign payload `email`. */
   email: string;
   firstName: string;
   lastName: string;
@@ -48,7 +48,7 @@ function coerceItems(payload: unknown): unknown[] {
   return Array.isArray(direct) ? direct : [];
 }
 
-/** Continuation URL or token — nested under `data` per Encra payload */
+/** Continuation URL or token - nested under `data` per Encra payload */
 function readNextPageReference(payload: unknown): string | null {
   const root = asRecord(payload);
   if (!root) return null;
@@ -152,7 +152,7 @@ function mapRawUser(raw: Record<string, unknown>, index: number): EntraUserOptio
     id: id !== undefined && id !== null ? String(id) : `row-${index}`,
     code,
     name,
-    designation: designationRaw || '—',
+    designation: designationRaw || '-',
     email,
     firstName,
     lastName,
@@ -186,13 +186,13 @@ function isAbsoluteHttpUrl(url: string): boolean {
 }
 
 /**
- * GET /users/entra — Entra-linked users for assignment picker (local state only).
+ * GET /users/entra - Entra-linked users for assignment picker (local state only).
  * Parses `{ data: { data: [], nextPageUrl, page, ... } }` envelope.
  */
 export async function fetchEntraUsers(params: {
   search?: string;
   top?: number;
-  /** Continuation — full URL from `nextPageUrl` or opaque token/query value */
+  /** Continuation - full URL from `nextPageUrl` or opaque token/query value */
   nextLink?: string;
   /** Alias for callers that mirror API naming */
   nextPageUrl?: string;
@@ -232,7 +232,7 @@ export function entraUserToAssignmentPayload(user: EntraUserOption): {
   designation: string;
 } {
   const designation =
-    user.designation && user.designation !== '—' ? user.designation : '';
+    user.designation && user.designation !== '-' ? user.designation : '';
   const mgr = user.manager;
   return {
     entraObjectId: user.id,
@@ -311,7 +311,7 @@ export async function importStudentsFromEntra(
 }
 
 /**
- * POST /users/entra/students (no body) — server-triggered sync/import from Entra.
+ * POST /users/entra/students (no body) - server-triggered sync/import from Entra.
  * Matches curl: POST https://<host>/api/users/entra/students -d ''
  */
 export async function syncStudentsFromEntra(): Promise<EntraStudentsImportResult> {

@@ -1,9 +1,9 @@
 import { alpha } from '@mui/material/styles';
 
-/** Base tint — paired with gradients below */
+/** Base tint - paired with gradients below */
 export const APP_PAGE_BACKGROUND_COLOR = '#f6f7f9';
 
-/** Same layers as CssBaseline `body` — overlays (e.g. sticky subheader gap) must blend with page */
+/** Same layers as CssBaseline `body` - overlays (e.g. sticky subheader gap) must blend with page */
 export const APP_PAGE_BACKGROUND_IMAGE = `
 radial-gradient(900px 520px at 12% -18%, ${alpha('#22c55e', 0.09)} 0%, transparent 60%),
 radial-gradient(900px 520px at 105% 10%, ${alpha('#14b8a6', 0.07)} 0%, transparent 55%),

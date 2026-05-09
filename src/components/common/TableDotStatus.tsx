@@ -59,9 +59,9 @@ const TableDotStatus = ({ label, tone: toneProp = undefined }) => {
           lineHeight: 1.35,
         }}
       >
-        {String(label ?? '—')
+        {String(label ?? '-')
           .trim()
-          .toLowerCase() || '—'}
+          .toLowerCase() || '-'}
       </Typography>
     </Stack>
   );

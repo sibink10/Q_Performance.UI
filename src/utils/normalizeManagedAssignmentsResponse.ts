@@ -40,7 +40,7 @@ const mapManagedRowToTeamMember = (row) => {
     emp.email ??
     row?.email ??
     row?.Email ??
-    '—';
+    '-';
 
   const id =
     row?.employeeId ??
@@ -105,7 +105,7 @@ const mapEmployeeAssignmentToTeamMember = (employee, bundle) => {
   const name =
     a.employeeName ??
     a.EmployeeName ??
-    (trimmedFull || emp.email || emp.Email || '—');
+    (trimmedFull || emp.email || emp.Email || '-');
 
   const id = emp.id ?? emp.Id ?? emp.employeeId ?? emp.EmployeeId ?? a.employeeId ?? a.EmployeeId;
 

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import performanceService from '../services/performanceService';
 import { getApiErrorMessage, toEntityFromPayload } from '../utils/helpers';
+import { buildSelfOrManagerSubmitPayload } from '../utils/performanceSubmission';
 
 /**
  * Thin hook wrapper around `performanceService` so components don't call API services directly.
@@ -41,11 +42,24 @@ const usePerformanceApi = () => {
     }
   };
 
+  const saveManagerEvaluationDraft = async ({ employeeId, assignmentId, answers }) => {
+    try {
+      const payload = buildSelfOrManagerSubmitPayload(answers);
+      return await performanceService.saveManagerEvaluationDraft(employeeId, assignmentId, payload);
+    } catch (e) {
+      const err = new Error(getApiErrorMessage(e));
+      // Attach status for UI-specific handling (403/409).
+      err.status = e?.response?.status;
+      throw err;
+    }
+  };
+
   return {
     getReviewFormById,
     getAssignmentById,
     publishRatings,
     unpublishAssignmentResults,
+    saveManagerEvaluationDraft,
   };
 };
 

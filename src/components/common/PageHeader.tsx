@@ -1,4 +1,4 @@
-// Sticky, glass-style page title band — pairs with MainLayout AppBar height (56px).
+// Sticky, glass-style page title band - pairs with MainLayout AppBar height (56px).
 
 import type { ReactNode } from 'react';
 import { Box, Typography } from '@mui/material';
@@ -9,7 +9,7 @@ import { appSurfaceGlassSx } from '../../utils/appSurfaceSx';
 
 export const MAIN_LAYOUT_APP_BAR_HEIGHT = 56;
 
-/** MUI `spacing()` units — gap below the fixed AppBar for sticky page subheaders */
+/** MUI `spacing()` units - gap below the fixed AppBar for sticky page subheaders */
 export const PAGE_SUBHEADER_TOP_MARGIN_SPACING = 2;
 
 /**

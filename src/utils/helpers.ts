@@ -75,8 +75,8 @@ export const calculateOverallScore = (focusAreas, answers, ratingScale) => {
 /**
  * Format a date string for display.
  */
-export const formatDate = (date, format = 'MMM D, YYYY') =>
-  date ? dayjs(date).format(format) : '—';
+export const formatDate = (date, format = 'DD/MM/YYYY') =>
+  date ? dayjs(date).format(format) : '-';
 
 /**
  * Get a rating label based on score and scale.
@@ -127,7 +127,7 @@ export const getFinancialYears = (count = 5) => {
 
 /**
  * Performance APIs expect financial year query values like `FY 2026-2027`.
- * Dropdown state often stores `2026-2027` only — normalize before sending.
+ * Dropdown state often stores `2026-2027` only - normalize before sending.
  */
 export const normalizeFinancialYearForApi = (fy) => {
   if (fy == null || String(fy).trim() === '') return fy;
@@ -246,16 +246,22 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
   /**
    * GET /performance/assignments/:id returns `data` as:
    * `{ assignment: {...}, reviewForm: { sections, ... }, selfEvaluationStatus?: string }`
-   * (after unwrap, sibling keys — not a single merged object).
+   * (after unwrap, sibling keys - not a single merged object).
    */
   let a = assignment;
   const rootSelfEvaluationStatus =
     a.selfEvaluationStatus ?? a.SelfEvaluationStatus ?? null;
-  const rootHrOverallRating =
-    a.hrOverallRating ??
+  const rootSelfOverallScore =
+    a.selfOverallScore ?? a.SelfOverallScore ?? null;
+  const rootManagerOverallScore =
+    a.managerOverallScore ?? a.ManagerOverallScore ?? null;
+  const rootOverallRating =
+    a.overallRating ?? a.OverallRating ?? null;
+  const rootHrOverallScore =
     a.hrOverallScore ??
-    a.HrOverallRating ??
     a.HrOverallScore ??
+    a.hrOverallRating ??
+    a.HrOverallRating ??
     null;
   const rootHrComments =
     a.hrComments ??
@@ -286,12 +292,24 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
         siblingAssign.allReviewsSubmitted ??
         siblingAssign.AllReviewsSubmitted ??
         rootAllReviewsSubmitted,
-      hrOverallRating:
-        siblingAssign.hrOverallRating ??
+      selfOverallScore:
+        siblingAssign.selfOverallScore ??
+        siblingAssign.SelfOverallScore ??
+        rootSelfOverallScore,
+      managerOverallScore:
+        siblingAssign.managerOverallScore ??
+        siblingAssign.ManagerOverallScore ??
+        rootManagerOverallScore,
+      overallRating:
+        siblingAssign.overallRating ??
+        siblingAssign.OverallRating ??
+        rootOverallRating,
+      hrOverallScore:
         siblingAssign.hrOverallScore ??
-        siblingAssign.HrOverallRating ??
         siblingAssign.HrOverallScore ??
-        rootHrOverallRating,
+        siblingAssign.hrOverallRating ??
+        siblingAssign.HrOverallRating ??
+        rootHrOverallScore,
       hrComments:
         siblingAssign.hrComments ??
         siblingAssign.hrFeedback ??
@@ -383,12 +401,24 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
         '') ||
         ''
     ),
-    hrOverallRating:
-      a.hrOverallRating ??
+    selfOverallScore:
+      a.selfOverallScore ??
+      a.SelfOverallScore ??
+      rootSelfOverallScore,
+    managerOverallScore:
+      a.managerOverallScore ??
+      a.ManagerOverallScore ??
+      rootManagerOverallScore,
+    overallRating:
+      a.overallRating ??
+      a.OverallRating ??
+      rootOverallRating,
+    hrOverallScore:
       a.hrOverallScore ??
-      a.HrOverallRating ??
       a.HrOverallScore ??
-      rootHrOverallRating,
+      a.hrOverallRating ??
+      a.HrOverallRating ??
+      rootHrOverallScore,
     hrComments:
       a.hrComments ??
       a.hrFeedback ??
@@ -417,7 +447,7 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
         : typeof payload.maxRating === 'number'
           ? payload.maxRating
           : 5;
-  const status = payload.status ?? '—';
+  const status = payload.status ?? '-';
   const endDate =
     payload.endDate ?? payload.periodEnd ?? payload.evaluationEndDate ?? payload.deadline ?? payload.period ?? null;
 
@@ -433,6 +463,7 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
     const focusAreaId = String(s?.focusAreaId ?? s?.id ?? `section-${idx}`);
     const focusAreaName = s?.focusAreaName ?? s?.name ?? s?.title ?? `Focus area ${idx + 1}`;
     const description = s?.description ?? s?.details ?? '';
+    const weightage = s?.weightage ?? s?.Weightage ?? null;
     const questionsSrc = Array.isArray(s?.questions) ? s.questions : [];
     const questions = questionsSrc.map((q, qIdx) => {
       const qid = String(q?.id ?? `q-${idx}-${qIdx}`);
@@ -478,12 +509,14 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
       return {
         id: qid,
         text: q?.text ?? q?.questionText ?? q?.prompt ?? q?.question ?? '',
+        weightage: q?.weightage ?? q?.Weightage ?? null,
+        sortOrder: q?.sortOrder ?? q?.SortOrder ?? qIdx,
         selfReview: selfSnap,
         managerReview: mgrSnap,
         hrReview: hrSnap,
       };
     });
-    return { focusAreaId, focusAreaName, description, questions };
+    return { focusAreaId, focusAreaName, description, weightage, questions };
   });
 
   const selfEvaluationStatus =
@@ -495,11 +528,17 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
   const hrReviewStatus = payload.hrReviewStatus ?? payload.HrReviewStatus ?? null;
   const assignmentEmployeeId =
     typeof payload.assignmentEmployeeId === 'string' ? payload.assignmentEmployeeId : '';
-  const hrOverallRating =
-    payload.hrOverallRating ??
+  const selfOverallScore =
+    payload.selfOverallScore ?? payload.SelfOverallScore ?? null;
+  const managerOverallScore =
+    payload.managerOverallScore ?? payload.ManagerOverallScore ?? null;
+  const overallRating =
+    payload.overallRating ?? payload.OverallRating ?? null;
+  const hrOverallScore =
     payload.hrOverallScore ??
-    payload.HrOverallRating ??
     payload.HrOverallScore ??
+    payload.hrOverallRating ??
+    payload.HrOverallRating ??
     null;
   const hrComments = payload.hrComments ?? payload.hrFeedback ?? payload.HrComments ?? '';
   const publishedStatus = payload.publishedStatus ?? payload.PublishedStatus ?? null;
@@ -531,7 +570,10 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
     managerEvalStatus,
     hrReviewStatus,
     assignmentEmployeeId,
-    hrOverallRating,
+    selfOverallScore,
+    managerOverallScore,
+    hrOverallScore,
+    overallRating,
     hrComments,
     publishedStatus,
     resultsPublishedToEmployee,
@@ -565,7 +607,7 @@ export const serializeEvaluationAnswersForApi = (answers) => {
 
 /**
  * Drops `id` from each question unless it looks like a server Guid.
- * Temporary keys (e.g. `Date.now()`) must not be sent — servers reject them for Guid fields.
+ * Temporary keys (e.g. `Date.now()`) must not be sent - servers reject them for Guid fields.
  */
 export const serializeReviewFormForApi = (form) => {
   if (!form || typeof form !== 'object') return form;

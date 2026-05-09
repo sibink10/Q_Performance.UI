@@ -163,7 +163,7 @@ const FocusAreas = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {fa.description || '—'}
+                        {fa.description || '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>

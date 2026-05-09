@@ -71,7 +71,7 @@ const readSummaryRow = (row) => ({
 });
 
 const formatWindow = (start, end) => {
-  if (!start && !end) return '—';
+  if (!start && !end) return '-';
   return `${formatDate(start)} – ${formatDate(end)}`;
 };
 
@@ -256,10 +256,10 @@ const AssignedReviewFormsList = () => {
                     <TableRow key={`${r.reviewFormId}-${r.financialYear}`} hover>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
-                          {r.reviewFormName || '—'}
+                          {r.reviewFormName || '-'}
                         </Typography>
                       </TableCell>
-                      <TableCell>{r.financialYear ?? '—'}</TableCell>
+                      <TableCell>{r.financialYear ?? '-'}</TableCell>
                       <TableCell align="right">{r.employeeCount}</TableCell>
                       <TableCell>
                         <Typography variant="body2">

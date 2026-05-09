@@ -56,8 +56,8 @@ const ASSIGNMENT_TIMELINE_KEYS = [
 ] as const;
 
 const TIMELINE_ROWS: { label: string; startKey: string; endKey: string }[] = [
-  { label: 'Self evaluation', startKey: 'selfEvalStart', endKey: 'selfEvalEnd' },
-  { label: 'Manager evaluation', startKey: 'managerEvalStart', endKey: 'managerEvalEnd' },
+  { label: 'Self Evaluation', startKey: 'selfEvalStart', endKey: 'selfEvalEnd' },
+  { label: 'Manager valuation', startKey: 'managerEvalStart', endKey: 'managerEvalEnd' },
   { label: 'HR / admin review', startKey: 'hrReviewStart', endKey: 'hrReviewEnd' },
 ];
 
@@ -141,6 +141,7 @@ const AssignReviewForm = () => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersFetchError, setUsersFetchError] = useState('');
   const [pendingRemoveUser, setPendingRemoveUser] = useState(null);
+  const [pendingClearAllUsers, setPendingClearAllUsers] = useState(false);
   const [importSummary, setImportSummary] = useState(null);
   const [importing, setImporting] = useState(false);
   const [syncingUsers, setSyncingUsers] = useState(false);
@@ -158,7 +159,11 @@ const AssignReviewForm = () => {
   }, [activeFinancialYear]);
 
   useEffect(() => {
-    if (!formData.financialYearId) return;
+    if (!formData.financialYearId) {
+      // Nothing to fetch yet (or user cleared selection) — don't show the loading state.
+      setConfigFetchSettled(true);
+      return;
+    }
     setConfigFetchSettled(false);
     loadAppraisalConfig(formData.financialYearId)
       .unwrap()
@@ -351,11 +356,9 @@ const AssignReviewForm = () => {
                   label="Review Form"
                   value={formData.reviewFormId}
                   onChange={(e) => {
-                    setSelectedUsers([]);
                     setFormData((prev) => ({
                       ...prev,
                       reviewFormId: e.target.value,
-                      employeeIds: [],
                     }));
                   }}
                 >
@@ -387,7 +390,7 @@ const AssignReviewForm = () => {
               These dates are loaded from the appraisal config API and included in the assignment
               request.
             </Typography>
-            {!configFetchSettled && (
+            {!!formData.financialYearId && !configFetchSettled && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CircularProgress size={18} />
                 <Typography variant="body2" color="text.secondary">
@@ -407,7 +410,7 @@ const AssignReviewForm = () => {
                 ))}
               </Grid>
             )}
-            {configFetchSettled && !appraisalConfig && (
+            {!!formData.financialYearId && configFetchSettled && !appraisalConfig && (
               <Typography variant="body2" color="warning.main">
                 No appraisal configuration found. Save settings under Appraisal Config first.
               </Typography>
@@ -438,7 +441,12 @@ const AssignReviewForm = () => {
               size="small"
               options={entraUsers}
               value={selectedUsers}
-              onChange={(_, newValue) => syncSelection(newValue)}
+              onChange={(_, newValue) => {
+                syncSelection(newValue);
+                // After picking a user, clear the search box so the next pick starts fresh.
+                setUserSearchInput('');
+                setDebouncedSearch('');
+              }}
               inputValue={userSearchInput}
               onInputChange={(_, val, reason) => {
                 if (reason !== 'reset') setUserSearchInput(val);
@@ -512,7 +520,7 @@ const AssignReviewForm = () => {
                 <TextField
                   {...params}
                   label="Search and select users"
-                  placeholder="Type to search the directory — select multiple from the list"
+                  placeholder="Type to search the directory - select multiple from the list"
                 />
               )}
             />
@@ -520,9 +528,18 @@ const AssignReviewForm = () => {
 
           {formData.employeeIds.length > 0 && (
             <AppCard sx={{ p: 2, borderStyle: 'dashed', bgcolor: 'grey.50', boxShadow: 'none' }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Selected users
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="subtitle2">Selected users</Typography>
+                <AppButton
+                  variant="text"
+                  color="error"
+                  size="small"
+                  disabled={!selectedUsers.length}
+                  onClick={() => setPendingClearAllUsers(true)}
+                >
+                  Clear all
+                </AppButton>
+              </Box>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {selectedUsers.map((emp) => (
                   <Chip
@@ -581,7 +598,11 @@ const AssignReviewForm = () => {
       <ConfirmDialog
         open={!!pendingRemoveUser}
         title="Remove user"
-        message={`Remove "${getEntraUserDisplayName(pendingRemoveUser) || ''}" from the assignment selection?`}
+        message={
+          <>
+            Remove <strong>{getEntraUserDisplayName(pendingRemoveUser) || ''}</strong> from the assignment selection?
+          </>
+        }
         confirmText="Remove"
         cancelText="Cancel"
         confirmColor="error"
@@ -590,6 +611,22 @@ const AssignReviewForm = () => {
           if (!pendingRemoveUser) return;
           syncSelection(selectedUsers.filter((u) => u.id !== pendingRemoveUser.id));
           setPendingRemoveUser(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingClearAllUsers}
+        title="Clear all selected users"
+        message="Remove all selected users from this assignment?"
+        confirmText="Clear all"
+        cancelText="Cancel"
+        confirmColor="error"
+        onClose={() => setPendingClearAllUsers(false)}
+        onConfirm={() => {
+          syncSelection([]);
+          setUserSearchInput('');
+          setDebouncedSearch('');
+          setPendingClearAllUsers(false);
         }}
       />
     </Box>

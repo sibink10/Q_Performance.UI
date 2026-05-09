@@ -37,7 +37,7 @@ const AppRoutes = () => (
     {/* Public Routes */}
     <Route path="/login" element={<Login />} />
 
-    {/* Protected Routes — All Authenticated Users */}
+    {/* Protected Routes - All Authenticated Users */}
     <Route
       path="/"
       element={
@@ -57,7 +57,7 @@ const AppRoutes = () => (
         <Route path="results/:assignmentId" element={<EmployeeGuard><MyResults /></EmployeeGuard>} />
       </Route>
 
-      {/* Operations Module — Admin Only */}
+      {/* Operations Module - Admin Only */}
       <Route
         path="operations/performance"
         element={<AdminGuard><OperationsPerformance /></AdminGuard>}
@@ -75,7 +75,7 @@ const AppRoutes = () => (
         element={<AdminGuard><AssignedReviewFormEmployees /></AdminGuard>}
       />
 
-      {/* Config Module — Admin Only */}
+      {/* Config Module - Admin Only */}
       <Route path="config/performance" element={<Navigate to="/config/performance/appraisal-config" replace />} />
       <Route
         path="config/performance/financial-years"

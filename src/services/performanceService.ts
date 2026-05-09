@@ -90,7 +90,7 @@ const performanceService = {
     api.get('/performance/my-results', {
       params: { ...(financialYearId ? { financialYearId } : {}) },
     }),
-  /** GET /performance/my-results/:assignmentId — published result detail for current user */
+  /** GET /performance/my-results/:assignmentId - published result detail for current user */
   getMyResultByAssignmentId: (assignmentId) =>
     api.get(`/performance/my-results/${assignmentId}`),
 
@@ -98,6 +98,9 @@ const performanceService = {
   getManagedAssignments: (params = {}) => api.get('/performance/managed-assignments', { params }),
   getEmployeeSelfEvaluation: (employeeId, reviewId) =>
     api.get(`/performance/manager/team/${employeeId}/review/${reviewId}`),
+  /** PATCH draft answers for manager evaluation (does not submit). */
+  saveManagerEvaluationDraft: (employeeId, reviewId, body) =>
+    api.patch(`/performance/manager/team/${employeeId}/review/${reviewId}/draft`, body),
   submitManagerEvaluation: (employeeId, reviewId, body) =>
     api.post(`/performance/manager/team/${employeeId}/review/${reviewId}/submit`, body),
   submitHrReview: (assignmentId, body) =>

@@ -119,6 +119,7 @@ const readRow = (row) => ({
   selfOverallScore: row?.selfOverallScore ?? row?.SelfOverallScore,
   managerOverallScore: row?.managerOverallScore ?? row?.ManagerOverallScore,
   hrOverallScore: row?.hrOverallScore ?? row?.HrOverallScore,
+  overallRating: row?.overallRating ?? row?.OverallRating,
   employee: row?.employee ?? row?.Employee ?? null,
 });
 
@@ -157,8 +158,8 @@ const phaseStatusChipColor = (status) => {
 };
 
 const PhaseStatusChip = ({ status, score }) => {
-  const labelText = String(status ?? '').trim() || '—';
-  const scoreText = formatOverallScore(score);
+  const labelText = String(status ?? '').trim() || '-';
+  const scoreText = isPhaseFinal(status) ? formatOverallScore(score) : null;
   const label = scoreText != null ? `${labelText} · ${scoreText}` : labelText;
   return (
     <Chip
@@ -172,7 +173,7 @@ const PhaseStatusChip = ({ status, score }) => {
 };
 
 const PublishedStatusChip = ({ status }) => {
-  const label = String(status ?? '').trim() || '—';
+  const label = String(status ?? '').trim() || '-';
   const published = isAssignmentResultsPublishedToEmployee(status);
   return (
     <Chip
@@ -400,7 +401,7 @@ const AssignedReviewFormEmployees = () => {
       await performanceService.publishRatings(id);
       setBulkSnack({
         severity: 'success',
-        message: 'Results published — visible to the employee.',
+        message: 'Results published - visible to the employee.',
       });
       await fetchPage();
     } catch (e) {
@@ -418,7 +419,7 @@ const AssignedReviewFormEmployees = () => {
       await performanceService.unpublishAssignmentResults(id);
       setBulkSnack({
         severity: 'success',
-        message: 'Results unpublished — employee will no longer see this result.',
+        message: 'Results unpublished - employee will no longer see this result.',
       });
       await fetchPage();
     } catch (e) {
@@ -590,6 +591,7 @@ const AssignedReviewFormEmployees = () => {
                   <TableCell>Self</TableCell>
                   <TableCell>Manager</TableCell>
                   <TableCell>HR</TableCell>
+                  <TableCell>Overall rating</TableCell>
                   <TableCell align="right">Actions</TableCell>
                   <TableCell>Published</TableCell>
                 </TableRow>
@@ -597,7 +599,7 @@ const AssignedReviewFormEmployees = () => {
               <TableBody>
                 {!missingParams && rows.length === 0 && !loading ? (
                   <TableRow>
-                    <TableCell colSpan={13}>
+                    <TableCell colSpan={14}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
                         No employees match the current search.
                       </Typography>
@@ -606,7 +608,7 @@ const AssignedReviewFormEmployees = () => {
                 ) : (
                   rows.map((r) => {
                     const emp = readEmployee(r.employee);
-                    const employeeName = emp?.name || '—';
+                    const employeeName = emp?.name || '-';
                     const rowPublished = isAssignmentResultsPublishedToEmployee(r.publishedStatus);
                     const hrDone = isPhaseFinal(r.hrReviewStatus);
                     const sid = r.id ? String(r.id) : '';
@@ -636,26 +638,26 @@ const AssignedReviewFormEmployees = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="caption" display="block" sx={{ lineHeight: 1.2 }}>
-                            {formatDate(r.selfEvalStart, 'MMM D, YYYY HH:mm')}
+                            {formatDate(r.selfEvalStart, 'DD/MM/YYYY HH:mm')}
                           </Typography>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {formatDate(r.selfEvalEnd, 'MMM D, YYYY HH:mm')}
+                            {formatDate(r.selfEvalEnd, 'DD/MM/YYYY HH:mm')}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="caption" display="block" sx={{ lineHeight: 1.2 }}>
-                            {formatDate(r.managerEvalStart, 'MMM D, YYYY HH:mm')}
+                            {formatDate(r.managerEvalStart, 'DD/MM/YYYY HH:mm')}
                           </Typography>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {formatDate(r.managerEvalEnd, 'MMM D, YYYY HH:mm')}
+                            {formatDate(r.managerEvalEnd, 'DD/MM/YYYY HH:mm')}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="caption" display="block" sx={{ lineHeight: 1.2 }}>
-                            {formatDate(r.hrReviewStart, 'MMM D, YYYY HH:mm')}
+                            {formatDate(r.hrReviewStart, 'DD/MM/YYYY HH:mm')}
                           </Typography>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {formatDate(r.hrReviewEnd, 'MMM D, YYYY HH:mm')}
+                            {formatDate(r.hrReviewEnd, 'DD/MM/YYYY HH:mm')}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -666,6 +668,11 @@ const AssignedReviewFormEmployees = () => {
                         </TableCell>
                         <TableCell>
                           <PhaseStatusChip status={r.hrReviewStatus} score={r.hrOverallScore} />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={700}>
+                            {formatOverallScore(r.overallRating) ?? '-'}
+                          </Typography>
                         </TableCell>
                        
                         <TableCell align="right">
@@ -703,7 +710,7 @@ const AssignedReviewFormEmployees = () => {
                               </span>
                             </Tooltip>
                             {hrDone && rowPublished ? (
-                              <Tooltip title="Unpublish — employee will no longer see this result">
+                              <Tooltip title="Unpublish - employee will no longer see this result">
                                 <span>
                                   <IconButton
                                     size="small"
@@ -726,7 +733,7 @@ const AssignedReviewFormEmployees = () => {
                               <Tooltip
                                 title={
                                   hrDone
-                                    ? 'Publish results — visible to employee'
+                                    ? 'Publish results - visible to employee'
                                     : 'Complete HR review before publishing'
                                 }
                               >

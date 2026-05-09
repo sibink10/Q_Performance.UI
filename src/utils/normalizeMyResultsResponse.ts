@@ -28,7 +28,7 @@ export function mapMyResultListItem(raw) {
     raw.financialYear ??
     raw.fiscalYear ??
     raw.appraisalCycleName ??
-    '—';
+    '-';
 
   const publishedDate =
     raw.publishedDate ??
@@ -44,7 +44,7 @@ export function mapMyResultListItem(raw) {
     raw.managerName ??
     raw.reviewerName ??
     raw.reportingManagerName ??
-    '—';
+    '-';
 
   return {
     assignmentId: String(assignmentId),
@@ -145,7 +145,7 @@ export function normalizeMyResultDetailPayload(raw) {
     e.period ??
     e.fiscalYear ??
     e.appraisalCycleName ??
-    '—';
+    '-';
 
   const ratingScale = Number(e.ratingScale ?? e.scale ?? e.maxRating ?? 5) || 5;
 
@@ -163,7 +163,7 @@ export function normalizeMyResultDetailPayload(raw) {
     e.publishedDate ?? e.publishedAt ?? e.finalizedDate ?? e.completedAt ?? null;
 
   const managerName =
-    e.managerName ?? e.reviewerName ?? e.reportingManagerName ?? '—';
+    e.managerName ?? e.reviewerName ?? e.reportingManagerName ?? '-';
 
   const hrName = e.hrName ?? e.hrRepresentativeName ?? e.hrContactName ?? 'HR Team';
 
@@ -171,7 +171,7 @@ export function normalizeMyResultDetailPayload(raw) {
   const hrComments =
     hrCommentsRaw != null && String(hrCommentsRaw).trim() !== ''
       ? String(hrCommentsRaw).trim()
-      : '—';
+      : '-';
 
   const focusSource =
     (Array.isArray(e.focusAreaResults) && e.focusAreaResults) ||

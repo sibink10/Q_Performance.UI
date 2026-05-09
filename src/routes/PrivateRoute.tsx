@@ -1,13 +1,13 @@
 // @ts-nocheck
 // src/routes/PrivateRoute
-// Wraps protected pages — redirects to login if no valid JWT
+// Wraps protected pages - redirects to login if no valid JWT
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectIsAdmin } from '../app/state/slices/authSlice';
 
 /**
- * PrivateRoute — requires authentication.
+ * PrivateRoute - requires authentication.
  * Optionally requires admin role with requireAdmin prop.
  */
 const PrivateRoute = ({ children, requireAdmin = false }) => {

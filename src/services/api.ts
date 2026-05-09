@@ -46,12 +46,12 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     if (status === 401) {
-      // Token expired or invalid — clear session and go to login (SPA; avoids full reload)
+      // Token expired or invalid - clear session and go to login (SPA; avoids full reload)
       navigateToLoginAfterUnauthorized();
     }
 
     if (status === 403) {
-      // Forbidden — user doesn't have required role
+      // Forbidden - user doesn't have required role
       console.error('Access denied: insufficient permissions');
     }
 

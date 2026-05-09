@@ -58,7 +58,7 @@ const initialState = {
     submitted: [],
   },
   myReviewsLoading: false,
-  /** GET /performance/my-reviews/published — isolated from `myReviews` so lists do not overwrite each other */
+  /** GET /performance/my-reviews/published - isolated from `myReviews` so lists do not overwrite each other */
   myPublishedReviews: {
     pending: [],
     submitted: [],

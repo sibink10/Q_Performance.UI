@@ -138,7 +138,6 @@ const ReviewFormsList = () => {
               <TableRow sx={{ bgcolor: 'grey.50' }}>
                 <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Form Name</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Applicable Period</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Publish Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="right">Sections</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="right">Questions</TableCell>
@@ -159,7 +158,6 @@ const ReviewFormsList = () => {
                     <TableCell>
                       <Typography variant="body2" fontWeight={500}>{rf.name}</Typography>
                     </TableCell>
-                    <TableCell>{rf.period || '—'}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"
@@ -232,7 +230,12 @@ const ReviewFormsList = () => {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Review Form"
-        message={`Are you sure you want to delete "${deleteTarget?.name || 'this review form'}"? This action cannot be undone.`}
+        message={
+          <>
+            Are you sure you want to delete{' '}
+            <strong>{deleteTarget?.name || 'this review form'}</strong>? This action cannot be undone.
+          </>
+        }
         confirmText="Delete"
         cancelText="Cancel"
         confirmColor="error"
@@ -244,7 +247,12 @@ const ReviewFormsList = () => {
       <ConfirmDialog
         open={!!publishTarget}
         title="Publish Review Form"
-        message={`Publish assignments for "${publishTarget?.name || 'this review form'}" in selected review period? This may create or update assignments for employees.`}
+        message={
+          <>
+            Publish assignments for <strong>{publishTarget?.name || 'this review form'}</strong> in selected review
+            period? This may create or update assignments for employees.
+          </>
+        }
         confirmText="Publish"
         cancelText="Cancel"
         confirmColor="success"

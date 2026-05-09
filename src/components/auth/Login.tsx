@@ -1,6 +1,6 @@
 // @ts-nocheck
 // src/components/auth/Login
-// Public login page — authenticates with Microsoft SSO
+// Public login page - authenticates with Microsoft SSO
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

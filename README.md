@@ -1,4 +1,4 @@
-# QHRMS — Performance Module
+# QHRMS - Performance Module
 
 Production-ready React frontend for the QHRMS Performance Management module.
 
@@ -128,11 +128,11 @@ VITE_API_BASE_URL=http://localhost:5000/api
 
 ## Key Features
 
-- **JWT Auth** — Auto-attached via Axios interceptor; 401 → redirect to login
-- **Role Guards** — PrivateRoute with `requireAdmin` flag
-- **Redux Toolkit** — Normalized state with async thunks per API call
-- **Score Engine** — `helpers.js` calculates weighted question/focus area/overall scores
-- **Radar Chart** — Recharts-based spider chart for self vs manager vs final
-- **Timeline Extension** — Global and per-employee deadline management
-- **Draft Save** — Self-evaluations auto-persist before final submission
-- **3-Step Assignment Wizard** — Form → Employees → Timelines → Confirm
+- **JWT Auth** - Auto-attached via Axios interceptor; 401 → redirect to login
+- **Role Guards** - PrivateRoute with `requireAdmin` flag
+- **Redux Toolkit** - Normalized state with async thunks per API call
+- **Score Engine** - `helpers.js` calculates weighted question/focus area/overall scores
+- **Radar Chart** - Recharts-based spider chart for self vs manager vs final
+- **Timeline Extension** - Global and per-employee deadline management
+- **Draft Save** - Self-evaluations auto-persist before final submission
+- **3-Step Assignment Wizard** - Form → Employees → Timelines → Confirm

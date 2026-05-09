@@ -4,7 +4,7 @@
 import api from './api';
 
 /**
- * GET /performance/assignments — paged list. Optional query: financialYearId, reviewFormId.
+ * GET /performance/assignments - paged list. Optional query: financialYearId, reviewFormId.
  * Server returns PagedResult: { data, totalCount, page, pageSize } (camelCase or PascalCase).
  */
 export function getAssignmentsPaged(params: {
@@ -29,7 +29,7 @@ export function getAssignmentsPaged(params: {
 }
 
 /**
- * GET /performance/assignments/employees — employees for a review form + financial year.
+ * GET /performance/assignments/employees - employees for a review form + financial year.
  * Query: financialYearId, reviewFormId, page, pageSize, search (optional).
  */
 export function getAssignmentEmployeesPaged(params: {
@@ -54,7 +54,7 @@ export function getAssignmentEmployeesPaged(params: {
 }
 
 /**
- * GET /performance/assignments/employees/export — excel export (no pagination).
+ * GET /performance/assignments/employees/export - excel export (no pagination).
  * Query: financialYearId, reviewFormId, search (optional).
  *
  * Returns full Axios response (blob + headers) to read Content-Disposition filename.
@@ -78,7 +78,7 @@ export function exportAssignmentEmployeesExcel(params: {
 }
 
 /**
- * PATCH /performance/assignments/{assignmentId}/evaluation-windows — edit all 6 evaluation window dates.
+ * PATCH /performance/assignments/{assignmentId}/evaluation-windows - edit all 6 evaluation window dates.
  * Payload keys must be camelCase (ASP.NET Core default).
  */
 export function patchAssignmentEvaluationWindows(
@@ -97,7 +97,7 @@ export function patchAssignmentEvaluationWindows(
 }
 
 /**
- * PATCH /performance/timeline/extend — extend only one phase end date.
+ * PATCH /performance/timeline/extend - extend only one phase end date.
  * Frontend should always send assignmentId to avoid bulk updates.
  */
 export function patchExtendAssignmentTimeline(data: {

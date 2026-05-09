@@ -31,6 +31,7 @@ import useFinancialYears from '../../hooks/useFinancialYears';
 import { getApiErrorMessage } from '../../utils/helpers';
 
 const defaultFy = { name: '', startDate: null, endDate: null, isActive: false };
+const DATE_FORMAT = 'DD/MM/YYYY';
 
 const FinancialYearConfig = () => {
   const { financialYears, reloadFinancialYears } = useFinancialYears();
@@ -110,6 +111,7 @@ const FinancialYearConfig = () => {
                 label="Start date"
                 value={financialYearForm.startDate ? dayjs(financialYearForm.startDate) : null}
                 onChange={(v) => setFinancialYearForm((p) => ({ ...p, startDate: v?.toISOString() }))}
+                format={DATE_FORMAT}
                 slotProps={{
                   textField: {
                     size: 'small',
@@ -126,6 +128,7 @@ const FinancialYearConfig = () => {
                 label="End date"
                 value={financialYearForm.endDate ? dayjs(financialYearForm.endDate) : null}
                 onChange={(v) => setFinancialYearForm((p) => ({ ...p, endDate: v?.toISOString() }))}
+                format={DATE_FORMAT}
                 slotProps={{
                   textField: {
                     size: 'small',
@@ -153,7 +156,7 @@ const FinancialYearConfig = () => {
                 {financialYears.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.startDate ? dayjs(row.startDate).format('MMM D, YYYY') : '—'} - {row.endDate ? dayjs(row.endDate).format('MMM D, YYYY') : '—'}</TableCell>
+                    <TableCell>{row.startDate ? dayjs(row.startDate).format(DATE_FORMAT) : '-'} - {row.endDate ? dayjs(row.endDate).format(DATE_FORMAT) : '-'}</TableCell>
                     <TableCell><Chip size="small" label={row.isActive ? 'Active' : 'Inactive'} color={row.isActive ? 'success' : 'default'} /></TableCell>
                     <TableCell align="right">
                       <AppButton
@@ -179,7 +182,7 @@ const FinancialYearConfig = () => {
           <DialogTitle>Delete review period?</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              This will permanently delete the selected review period. This action cannot be undone.
+              This will permanently delete the selected <strong>review period</strong>. This action cannot be undone.
             </DialogContentText>
           </DialogContent>
           <DialogActions>

@@ -2,7 +2,7 @@
 // Employee: Performance dashboard with 3 tabs:
 //   - Pending Reviews (self-evaluation cards)
 //   - Submitted Reviews
-//   - Others' Reviews (managed assignments — GET /performance/managed-assignments)
+//   - Others' Reviews (managed assignments - GET /performance/managed-assignments)
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -61,7 +61,7 @@ const othersManagedReviewAction = (
   const hrDone = isAssignmentPhaseSubmitted(emp.hrReviewStatus);
   const hasReview = Boolean(emp.reviewId);
 
-  if (!hasReview) return { disabled: true as const, label: '—' as const, path: null as string | null };
+  if (!hasReview) return { disabled: true as const, label: '-' as const, path: null as string | null };
   if (!selfOk) return { disabled: true as const, label: 'Awaiting self-eval' as const, path: null };
   if (!managerDone) {
     return {
@@ -110,7 +110,7 @@ const ReviewCard = ({ review, onStart }) => {
 
         {/* Period */}
         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-          {formatDate(review.startDate)} — {formatDate(review.endDate)}
+          {formatDate(review.startDate)} - {formatDate(review.endDate)}
         </Typography>
 
         {/* Progress bar */}
@@ -405,7 +405,6 @@ const EmployeePerformance = () => {
                     <TableRow>
                       <TableCell>Review form</TableCell>
                       <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Period</TableCell>
-                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Submitted on</TableCell>
                       <TableCell>Self eval</TableCell>
                       <TableCell>Manager</TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>HR</TableCell>
@@ -421,14 +420,10 @@ const EmployeePerformance = () => {
                         </TableCell>
                         <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                           <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                            {formatDate(r.startDate)} — {formatDate(r.endDate)}
+                            {formatDate(r.startDate)} - {formatDate(r.endDate)}
                           </Typography>
                         </TableCell>
-                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                            {formatDate(r.submittedAt)}
-                          </Typography>
-                        </TableCell>
+                       
                         <TableCell>
                           <TableDotStatus label="Submitted" tone="positive" />
                         </TableCell>
@@ -448,7 +443,7 @@ const EmployeePerformance = () => {
         </Box>
       )}
 
-      {/* Tab 2: Others' Reviews — GET /performance/managed-assignments */}
+      {/* Tab 2: Others' Reviews - GET /performance/managed-assignments */}
       {tab === 2 && (
         <Box>
           <AppCard variant="table">
@@ -551,7 +546,7 @@ const EmployeePerformance = () => {
                                     {emp.name}
                                   </Typography>
                                   <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }} noWrap>
-                                    {emp.designation || '—'}
+                                    {emp.designation || '-'}
                                   </Typography>
                                 </Box>
                               </Stack>

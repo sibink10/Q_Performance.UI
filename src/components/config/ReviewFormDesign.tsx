@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Routes `review-forms` (list) vs `review-forms/:formId` (create/edit) entry — UI lives in subcomponents.
+// Routes `review-forms` (list) vs `review-forms/:formId` (create/edit) entry - UI lives in subcomponents.
 
 import { useParams } from 'react-router-dom';
 import ReviewFormEditor from './review-forms/ReviewFormEditor';
