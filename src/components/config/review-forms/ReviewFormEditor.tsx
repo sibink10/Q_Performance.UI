@@ -65,6 +65,8 @@ const ReviewFormEditor = () => {
   const [pendingScrollFocusAreaId, setPendingScrollFocusAreaId] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [focusAreaModalOpen, setFocusAreaModalOpen] = useState(false);
+  /** At most one focus-area accordion expanded; null = all closed by default */
+  const [expandedFocusAreaId, setExpandedFocusAreaId] = useState(null);
   const sectionRefs = useRef({});
 
   useEffect(() => {
@@ -144,8 +146,10 @@ const ReviewFormEditor = () => {
     const alreadySelected = !!currentSections.find((s) => s.focusAreaId === fa.id);
     toggleFocusArea(fa);
     if (alreadySelected) {
+      setExpandedFocusAreaId((prev) => (String(prev) === String(fa.id) ? null : prev));
       scrollToFocusAreaSection(fa.id);
     } else {
+      setExpandedFocusAreaId(fa.id);
       setPendingScrollFocusAreaId(fa.id);
     }
   };
@@ -171,6 +175,7 @@ const ReviewFormEditor = () => {
         if (exists) return p;
         return { ...p, sections: [...sections, newFocusAreaEntry(created)] };
       });
+      setExpandedFocusAreaId(created.id);
       setPendingScrollFocusAreaId(created.id);
     }
     return true;
@@ -187,6 +192,14 @@ const ReviewFormEditor = () => {
       setPendingScrollFocusAreaId(null);
     });
   }, [currentSections, pendingScrollFocusAreaId, scrollToFocusAreaSection]);
+
+  useEffect(() => {
+    if (expandedFocusAreaId == null) return;
+    const stillPresent = currentSections.some(
+      (s) => String(s.focusAreaId) === String(expandedFocusAreaId)
+    );
+    if (!stillPresent) setExpandedFocusAreaId(null);
+  }, [currentSections, expandedFocusAreaId]);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop((window.scrollY || 0) > 350);
@@ -444,7 +457,12 @@ const ReviewFormEditor = () => {
           sx={{ scrollMarginTop: 96 }}
         >
           <AppCard sx={{ mb: 2, overflow: 'hidden', p: 0 }}>
-            <Accordion defaultExpanded>
+            <Accordion
+              expanded={String(expandedFocusAreaId) === String(section.focusAreaId)}
+              onChange={(_, isExpanded) => {
+                setExpandedFocusAreaId(isExpanded ? section.focusAreaId : null);
+              }}
+            >
               <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: 'grey.50' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
                   <Typography fontWeight={600}>{section.focusAreaName}</Typography>

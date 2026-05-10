@@ -73,6 +73,38 @@ export const calculateOverallScore = (focusAreas, answers, ratingScale) => {
 };
 
 /**
+ * Weighted average of ratings by question weightage:
+ *   sum(rating × weightage) / sum(weightage)
+ * Questions without a rating are omitted. Missing or invalid weightage defaults to 1.
+ */
+export const calculateQuestionWeightedOverallRating = (questions, answers) => {
+  let totalWeightedScore = 0;
+  let totalWeight = 0;
+  for (const q of questions) {
+    const a = answers?.[q.id];
+    const r = a?.rating;
+    if (r == null || r === '') continue;
+    const rating = Number(r);
+    if (!Number.isFinite(rating)) continue;
+    const wRaw = q?.weightage ?? q?.Weightage;
+    const w =
+      wRaw != null && wRaw !== '' && Number.isFinite(Number(wRaw)) && Number(wRaw) > 0
+        ? Number(wRaw)
+        : 1;
+    totalWeightedScore += rating * w;
+    totalWeight += w;
+  }
+  if (totalWeight === 0) {
+    return { overall: null, totalWeightedScore: 0, totalWeight: 0 };
+  }
+  return {
+    overall: totalWeightedScore / totalWeight,
+    totalWeightedScore,
+    totalWeight,
+  };
+};
+
+/**
  * Format a date string for display.
  */
 export const formatDate = (date, format = 'DD/MM/YYYY') =>
@@ -243,6 +275,23 @@ export const parseRatingScaleMax = (raw) => {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 };
 
+/** Best-effort employee display string from assignment DTO / nested employee (matches assignments list conventions). */
+const resolveAssignmentEmployeeDisplayName = (assignLike, wrapperEmployee) => {
+  const base = assignLike && typeof assignLike === 'object' ? assignLike : {};
+  const emp =
+    (base.employee && typeof base.employee === 'object' ? base.employee : null) ??
+    (base.Employee && typeof base.Employee === 'object' ? base.Employee : null) ??
+    (wrapperEmployee && typeof wrapperEmployee === 'object' ? wrapperEmployee : null) ??
+    {};
+  const first = emp.firstName ?? emp.FirstName ?? base.firstName ?? base.FirstName ?? '';
+  const last = emp.lastName ?? emp.LastName ?? base.lastName ?? base.LastName ?? '';
+  const full = `${first} ${last}`.trim();
+  const explicit = base.employeeName ?? base.EmployeeName ?? '';
+  const ex =
+    explicit != null && String(explicit).trim() !== '' ? String(explicit).trim() : '';
+  return ex || full;
+};
+
 /**
  * Maps GET /performance/assignments/:id (and similar) into the self-eval review shape.
  * Merges assignment-level timelines/status with nested `reviewForm` when present.
@@ -359,6 +408,13 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
         ? rootSections
         : nestedSections ?? rootSections ?? [];
 
+  const wrapEmp = assignment.employee ?? assignment.Employee ?? null;
+  const assignmentEmployeeName =
+    resolveAssignmentEmployeeDisplayName(
+      siblingAssign && typeof siblingAssign === 'object' ? siblingAssign : null,
+      wrapEmp,
+    ) || resolveAssignmentEmployeeDisplayName(a, wrapEmp);
+
   const assignmentId = String(a.id ?? a._id ?? a.assignmentId ?? '');
   const formLike =
     nested && typeof nested === 'object'
@@ -424,6 +480,7 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
         '') ||
         ''
     ),
+    assignmentEmployeeName,
     selfOverallScore:
       a.selfOverallScore ??
       a.SelfOverallScore ??
@@ -553,6 +610,10 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
     null;
   const assignmentEmployeeId =
     typeof payload.assignmentEmployeeId === 'string' ? payload.assignmentEmployeeId : '';
+  const assignmentEmployeeName =
+    payload.assignmentEmployeeName != null && String(payload.assignmentEmployeeName).trim() !== ''
+      ? String(payload.assignmentEmployeeName).trim()
+      : '';
   const selfOverallScore =
     payload.selfOverallScore ?? payload.SelfOverallScore ?? null;
   const managerOverallScore =
@@ -595,6 +656,7 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
     managerEvalStatus,
     hrReviewStatus,
     assignmentEmployeeId,
+    assignmentEmployeeName,
     selfOverallScore,
     managerOverallScore,
     hrOverallScore,

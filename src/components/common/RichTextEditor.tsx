@@ -3,10 +3,21 @@ import { Box, FormHelperText, IconButton, Tooltip } from '@mui/material';
 import { useMemo } from 'react';
 import Quill from 'quill';
 import ImageResize from 'quill-image-resize-module-react';
+import { StyleAttributor } from 'parchment';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
 import { richTextHtmlToPlainText, sanitizeRichTextHtml } from '../../utils/richText';
+
+/**
+ * lodash defaultsDeep in quill-image-resize merges `parchment`; `Quill.import('parchment')` can be
+ * an ESM namespace (read-only Symbol.toStringTag). Map Quill 1's Attributor.Style to Parchment 3.
+ */
+const PARCHMENT_FOR_IMAGE_RESIZE = {
+  Attributor: {
+    Style: StyleAttributor,
+  },
+} as const;
 
 /** Persist resize output: Image blot’s internal whitelist is closure-scoped in Quill 1.3.x, so subclass. */
 type QuillImageFormat = {
@@ -53,7 +64,7 @@ if (typeof window !== 'undefined') {
     }
   }
 
-  Quill.register(RichTextImageEmbed as unknown as QuillImageFormat, true);
+  Quill.register(RichTextImageEmbed as unknown as QuillImageFormat as any, true);
 }
 
 type Props = {
@@ -102,7 +113,7 @@ export default function RichTextEditor({
   const modules = useMemo(
     () => ({
       imageResize: {
-        parchment: Quill.import('parchment'),
+        parchment: PARCHMENT_FOR_IMAGE_RESIZE,
         modules: ['Resize', 'DisplaySize', 'Toolbar'],
       },
       toolbar: {
@@ -154,6 +165,8 @@ export default function RichTextEditor({
             border: 'none',
             borderBottom: '1px solid',
             borderColor: showError ? 'error.main' : 'divider',
+            overflowX: 'auto',
+            maxWidth: '100%',
           },
           '& .ql-container.ql-snow': {
             border: 'none',
@@ -163,6 +176,9 @@ export default function RichTextEditor({
             fontFamily: 'inherit',
             fontSize: 14,
             lineHeight: 1.5,
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            maxWidth: '100%',
           },
           '& .ql-editor img': {
             maxWidth: '100%',

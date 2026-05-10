@@ -45,8 +45,8 @@ const Login = () => {
         <Stack spacing={3} alignItems="center" textAlign="center">
           <Box
             sx={{
-              width: 56,
-              height: 56,
+              width: 80,
+              height: 80,
               borderRadius: 2.5,
               overflow: 'hidden',
               background: alpha(theme.palette.primary.main, 0.12),

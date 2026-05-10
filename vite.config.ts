@@ -14,6 +14,13 @@ export default defineConfig({
   optimizeDeps: {
     include: ['quill', 'react-quill-new', 'lodash', 'quill-image-resize-module-react'],
   },
+  build: {
+    commonjsOptions: {
+      // Helps CJS deps (e.g. quill-image-resize-module-react) interoperate with ESM Quill without
+      // relying on mutable module namespaces in production.
+      transformMixedEsModules: true,
+    },
+  },
   server: {
     port: 3000,
     proxy: {

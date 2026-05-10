@@ -188,6 +188,13 @@ const PublishedStatusChip = ({ status }) => {
 const isPhaseFinal = (status) =>
   ['submitted', 'complete', 'completed'].includes(String(status ?? '').trim().toLowerCase());
 
+/** Bulk publish/unpublish selection only when self, manager, and HR phases are completed. */
+const allThreeEvaluationsComplete = (row) =>
+  !!row &&
+  isPhaseFinal(row.selfEvalStatus) &&
+  isPhaseFinal(row.managerEvalStatus) &&
+  isPhaseFinal(row.hrReviewStatus);
+
 const AssignedReviewFormEmployees = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -321,12 +328,29 @@ const AssignedReviewFormEmployees = () => {
     }
   };
 
-  const pageAssignmentIds = useMemo(() => rows.map((r) => r.id).filter(Boolean), [rows]);
-  const allPageSelected =
-    pageAssignmentIds.length > 0 && pageAssignmentIds.every((id) => selected.has(id));
+  const bulkSelectableIdsOnPage = useMemo(
+    () => rows.filter((r) => r?.id && allThreeEvaluationsComplete(r)).map((r) => r.id),
+    [rows]
+  );
 
-  const toggleRowSelected = (id) => {
-    if (!id) return;
+  useEffect(() => {
+    const eligible = new Set(bulkSelectableIdsOnPage);
+    setSelected((prev) => {
+      let changed = false;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (eligible.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed || next.size !== prev.size ? next : prev;
+    });
+  }, [bulkSelectableIdsOnPage]);
+
+  const allPageSelected =
+    bulkSelectableIdsOnPage.length > 0 && bulkSelectableIdsOnPage.every((id) => selected.has(id));
+
+  const toggleRowSelected = (id, row) => {
+    if (!id || !allThreeEvaluationsComplete(row)) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -339,9 +363,9 @@ const AssignedReviewFormEmployees = () => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (allPageSelected) {
-        pageAssignmentIds.forEach((id) => next.delete(id));
+        bulkSelectableIdsOnPage.forEach((id) => next.delete(id));
       } else {
-        pageAssignmentIds.forEach((id) => next.add(id));
+        bulkSelectableIdsOnPage.forEach((id) => next.add(id));
       }
       return next;
     });
@@ -576,11 +600,14 @@ const AssignedReviewFormEmployees = () => {
                   <TableCell padding="checkbox">
                     <Checkbox
                       size="small"
-                      indeterminate={selected.size > 0 && !allPageSelected}
-                      checked={allPageSelected && pageAssignmentIds.length > 0}
+                      indeterminate={
+                        selected.size > 0 &&
+                        !(allPageSelected && bulkSelectableIdsOnPage.length > 0)
+                      }
+                      checked={allPageSelected && bulkSelectableIdsOnPage.length > 0}
                       onChange={toggleSelectAllOnPage}
-                      disabled={!pageAssignmentIds.length}
-                      inputProps={{ 'aria-label': 'Select all on this page' }}
+                      disabled={!bulkSelectableIdsOnPage.length}
+                      inputProps={{ 'aria-label': 'Select all eligible on this page' }}
                     />
                   </TableCell>
                   <TableCell>Employee</TableCell>
@@ -610,20 +637,31 @@ const AssignedReviewFormEmployees = () => {
                     const employeeName = emp?.name || '-';
                     const rowPublished = isAssignmentResultsPublishedToEmployee(r.publishedStatus);
                     const hrDone = isPhaseFinal(r.hrReviewStatus);
+                    const canBulkSelect = Boolean(r.id && allThreeEvaluationsComplete(r));
                     const sid = r.id ? String(r.id) : '';
                     const rowBusyHere = sid && rowBusy.id === sid;
                     return (
                       <TableRow key={r.id || `${emp?.employeeId}-${r.selfEvalStatus}`} hover>
                         <TableCell padding="checkbox">
-                          <Checkbox
-                            size="small"
-                            checked={r.id ? selected.has(r.id) : false}
-                            onChange={() => toggleRowSelected(r.id)}
-                            disabled={!r.id}
-                            inputProps={{
-                              'aria-label': `Select ${emp?.name || 'employee'}`,
-                            }}
-                          />
+                          <Tooltip
+                            title={
+                              canBulkSelect
+                                ? 'Select for bulk publish or unpublish'
+                                : 'Bulk actions require Self, Manager, and HR evaluations to be completed'
+                            }
+                          >
+                            <span>
+                              <Checkbox
+                                size="small"
+                                checked={r.id ? selected.has(r.id) : false}
+                                onChange={() => toggleRowSelected(r.id, r)}
+                                disabled={!canBulkSelect}
+                                inputProps={{
+                                  'aria-label': `Select ${emp?.name || 'employee'} for bulk publish`,
+                                }}
+                              />
+                            </span>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>

@@ -24,7 +24,11 @@ import TableDotStatus from '../../components/common/TableDotStatus';
 import { modernTableSx } from '../../utils/floatingPanelSx';
 import { REVIEW_STATUSES } from '../../utils/constants';
 import { getRatingLabel, getRatingColor, formatDate } from '../../utils/helpers';
-import { normalizeQuestionTextToHtml, sanitizeRichTextHtml } from '../../utils/richText';
+import {
+  isProbablyHtml,
+  normalizeQuestionTextToHtml,
+  sanitizeRichTextHtml,
+} from '../../utils/richText';
 import useFinancialYears from '../../hooks/useFinancialYears';
 
 /** Self-eval lifecycle: typically no published ratings until submission. */
@@ -56,6 +60,48 @@ const accordionSummaryChipSx = {
   '& .MuiChip-label': { whiteSpace: 'nowrap' },
 };
 
+const richTextWrapRootSx = {
+  minWidth: 0,
+  maxWidth: '100%',
+  overflowWrap: 'anywhere',
+  wordBreak: 'break-word',
+} as const;
+
+const commentRichTextContentSx = {
+  ...richTextWrapRootSx,
+  '& p': { m: 0, ...richTextWrapRootSx },
+  '& ul, & ol': { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
+  '& li': { mt: 0.25, ...richTextWrapRootSx },
+  '& strong': { fontWeight: 700 },
+  '& img': { maxWidth: '100%', height: 'auto', verticalAlign: 'middle' },
+  '& a': { overflowWrap: 'anywhere', wordBreak: 'break-all' },
+} as const;
+
+function PublishedCommentBody({ comment }: { comment: string }) {
+  const raw = String(comment || '').trim();
+  if (!raw) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', ...richTextWrapRootSx }}>
+        -
+      </Typography>
+    );
+  }
+  if (isProbablyHtml(raw)) {
+    return (
+      <Box
+        sx={{ ...commentRichTextContentSx, typography: 'body2', color: 'text.secondary' }}
+        component="div"
+        dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(raw) }}
+      />
+    );
+  }
+  return (
+    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', ...richTextWrapRootSx }}>
+      {raw}
+    </Typography>
+  );
+}
+
 function PublishedPhaseReadout({
   label,
   snapshot,
@@ -71,7 +117,7 @@ function PublishedPhaseReadout({
     snapshot &&
     ((Number(snapshot.rating) || 0) > 0 || String(snapshot.comment || '').trim() !== '');
   return (
-    <Box>
+    <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
       {label ? (
         <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
           {label}
@@ -101,9 +147,7 @@ function PublishedPhaseReadout({
               {Number(snapshot.rating || 0).toFixed(1)} / {scale}
             </strong>
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-            {String(snapshot.comment || '').trim() || '-'}
-          </Typography>
+          <PublishedCommentBody comment={String(snapshot.comment || '').trim()} />
         </>
       )}
     </Box>
@@ -285,7 +329,15 @@ function PublishedResultPanels({ result }) {
           <AppCard sx={{ p: 3 }}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>HR / Admin Feedback</Typography>
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" sx={{ lineHeight: 1.8, fontStyle: result.hrComments !== '-' ? 'italic' : 'normal', color: 'text.secondary' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                lineHeight: 1.8,
+                fontStyle: result.hrComments !== '-' ? 'italic' : 'normal',
+                color: 'text.secondary',
+                ...richTextWrapRootSx,
+              }}
+            >
               {result.hrComments !== '-' ? `“${result.hrComments}”` : 'No overall HR comments for this result.'}
             </Typography>
             <Typography variant="caption" color="text.secondary" mt={1} display="block">
@@ -314,7 +366,15 @@ function PublishedResultPanels({ result }) {
       </Grid>
 
       <AppCard sx={{ mt: 3, overflow: 'hidden', p: 0 }}>
-        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'rgba(248,250,252,0.92)' }}>
+        <Box
+          sx={{
+            px: { xs: 2, sm: 2.5 },
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'rgba(248,250,252,0.92)',
+          }}
+        >
           <Typography variant="subtitle1" fontWeight={700}>Focus area breakdown</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Each focus area lists its evaluation questions with your answers, manager answers, and ratings (same layout as the review form editor).
@@ -325,7 +385,7 @@ function PublishedResultPanels({ result }) {
             <Typography variant="body2" color="text.secondary">No rows to display.</Typography>
           </Box>
         ) : (
-          <Box sx={{ px: 2, py: 2 }}>
+          <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 2 }}>
             {result.focusAreas.map((fa) => {
               const qs = Array.isArray(fa.questions) ? fa.questions : [];
               const w =
@@ -351,41 +411,75 @@ function PublishedResultPanels({ result }) {
                 >
                   <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
-                    sx={{ bgcolor: 'grey.50', px: 2 }}
+                    sx={{
+                      bgcolor: 'grey.50',
+                      px: { xs: 1.5, sm: 2 },
+                      '& .MuiAccordionSummary-content': { minWidth: 0, overflow: 'hidden', my: 1 },
+                    }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', flex: 1, pr: 1 }}>
-                      <Typography fontWeight={700}>{fa.name}</Typography>
-                      {qs.length > 0 ? (
-                        <Chip label={`${qs.length} questions`} size="small" sx={accordionSummaryChipSx} />
-                      ) : null}
-                      {w ? (
-                        <Chip label={w} size="small" variant="outlined" sx={weightChipSx} />
-                      ) : null}
-                      <Chip
-                        label={`Self (area): ${fa.selfScore} / ${scale}`}
-                        size="small"
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        gap: { xs: 1, sm: 1.5 },
+                        flexWrap: 'wrap',
+                        flex: 1,
+                        minWidth: 0,
+                        pr: 1,
+                      }}
+                    >
+                      <Typography
+                        fontWeight={700}
                         sx={{
-                          bgcolor: '#9c27b015',
-                          color: '#6a1b9a',
-                          fontWeight: 600,
-                          ...accordionSummaryChipSx,
+                          ...richTextWrapRootSx,
+                          flex: { sm: '1 1 auto' },
+                          width: { xs: '100%', sm: 'auto' },
                         }}
-                      />
-                      <Chip
-                        label={`Manager (area): ${fa.managerScore} / ${scale}`}
-                        size="small"
+                      >
+                        {fa.name}
+                      </Typography>
+                      <Box
                         sx={{
-                          bgcolor: '#1976d215',
-                          color: '#0d47a1',
-                          fontWeight: 600,
-                          ...accordionSummaryChipSx,
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 1,
+                          alignItems: 'center',
+                          width: { xs: '100%', sm: 'auto' },
                         }}
-                      />
+                      >
+                        {qs.length > 0 ? (
+                          <Chip label={`${qs.length} questions`} size="small" sx={accordionSummaryChipSx} />
+                        ) : null}
+                        {w ? (
+                          <Chip label={w} size="small" variant="outlined" sx={weightChipSx} />
+                        ) : null}
+                        <Chip
+                          label={`Self (area): ${fa.selfScore} / ${scale}`}
+                          size="small"
+                          sx={{
+                            bgcolor: '#9c27b015',
+                            color: '#6a1b9a',
+                            fontWeight: 600,
+                            ...accordionSummaryChipSx,
+                          }}
+                        />
+                        <Chip
+                          label={`Manager (area): ${fa.managerScore} / ${scale}`}
+                          size="small"
+                          sx={{
+                            bgcolor: '#1976d215',
+                            color: '#0d47a1',
+                            fontWeight: 600,
+                            ...accordionSummaryChipSx,
+                          }}
+                        />
+                      </Box>
                     </Box>
                   </AccordionSummary>
-                  <AccordionDetails sx={{ p: 2.5, pt: 0 }}>
+                  <AccordionDetails sx={{ p: { xs: 1.5, sm: 2, md: 2.5 }, pt: 0, overflow: 'hidden' }}>
                     {qs.length > 0 ? (
-                      <Stack spacing={2}>
+                      <Stack spacing={2} sx={{ minWidth: 0, maxWidth: '100%' }}>
                         {qs.map((q, qIdx) => {
                           const html = sanitizeRichTextHtml(
                             normalizeQuestionTextToHtml(q?.text ?? '')
@@ -401,38 +495,50 @@ function PublishedResultPanels({ result }) {
                             <Box
                               key={q.id || qIdx}
                               sx={{
-                                p: 2,
+                                p: { xs: 1.5, sm: 2 },
                                 borderRadius: 1.5,
                                 border: '1px solid',
                                 borderColor: 'divider',
+                                minWidth: 0,
+                                maxWidth: '100%',
                                 ...questionRowAltSx(qIdx),
                               }}
                             >
                               <Box
                                 sx={{
                                   display: 'flex',
-                                  alignItems: 'flex-start',
-                                  gap: 1.5,
+                                  flexDirection: { xs: 'column', sm: 'row' },
+                                  alignItems: { xs: 'flex-start', sm: 'flex-start' },
+                                  gap: { xs: 1.25, sm: 1.5 },
                                   mb: 2,
                                 }}
                               >
                                 <Chip label={`Q${qIdx + 1}`} size="small" sx={{ flexShrink: 0, mt: 0.2 }} />
                                 <Box
                                   sx={{
-                                    flex: 1,
+                                    flex: '1 1 auto',
                                     minWidth: 0,
-                                    '& p': { m: 0 },
-                                    '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
-                                    '& li': { mt: 0.25 },
+                                    typography: 'body2',
+                                    fontWeight: 500,
+                                    '& p': { m: 0, ...richTextWrapRootSx },
+                                    '& ul, & ol': { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
+                                    '& li': { mt: 0.25, ...richTextWrapRootSx },
+                                    '& strong': { fontWeight: 700 },
+                                    '& a': { overflowWrap: 'anywhere', wordBreak: 'break-all' },
                                   }}
                                   dangerouslySetInnerHTML={{ __html: html }}
                                 />
                                 {qw ? (
-                                  <Chip label={qw} size="small" variant="outlined" sx={{ ...weightChipSx, flexShrink: 0 }} />
+                                  <Chip
+                                    label={qw}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ ...weightChipSx, flexShrink: 0, alignSelf: 'flex-start', mt: { xs: 0, sm: 0.2 } }}
+                                  />
                                 ) : null}
                               </Box>
                               <Grid container spacing={2}>
-                                <Grid item xs={12} md={6}>
+                                <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
                                   <PublishedPhaseReadout
                                     label="Your response"
                                     snapshot={q.selfReview}
@@ -440,7 +546,7 @@ function PublishedResultPanels({ result }) {
                                     accentColor="#9c27b0"
                                   />
                                 </Grid>
-                                <Grid item xs={12} md={6}>
+                                <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
                                   <PublishedPhaseReadout
                                     label="Manager review"
                                     snapshot={q.managerReview}
@@ -459,7 +565,7 @@ function PublishedResultPanels({ result }) {
                           No per-question breakdown returned; showing focus area summary only.
                         </Typography>
                         <Grid container spacing={2}>
-                          <Grid item xs={12} md={6}>
+                          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
                             <PublishedPhaseReadout
                               label="Your response"
                               snapshot={
@@ -474,7 +580,7 @@ function PublishedResultPanels({ result }) {
                               accentColor="#9c27b0"
                             />
                           </Grid>
-                          <Grid item xs={12} md={6}>
+                          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
                             <PublishedPhaseReadout
                               label="Manager review"
                               snapshot={

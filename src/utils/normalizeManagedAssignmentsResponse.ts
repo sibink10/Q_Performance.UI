@@ -139,6 +139,14 @@ const mapManagedRowToTeamMember = (row) => {
       row?.hrOverallScore ?? row?.HrOverallScore ?? nestedA.hrOverallScore ?? nestedA.HrOverallScore
     ),
     overallRating: numOrNull(row?.overallRating ?? row?.OverallRating ?? nestedA.overallRating ?? nestedA.OverallRating),
+    publishedStatus:
+      row?.publishedStatus ??
+      row?.PublishedStatus ??
+      nestedA.publishedStatus ??
+      nestedA.PublishedStatus ??
+      null,
+    publishedDate:
+      row?.publishedDate ?? row?.PublishedDate ?? nestedA.publishedDate ?? nestedA.PublishedDate ?? null,
     reviewId:
       row?.reviewId ??
       row?.ReviewId ??
@@ -216,6 +224,18 @@ const mapEmployeeAssignmentToTeamMember = (employee, bundle) => {
       bundle?.hrOverallScore ?? bundle?.HrOverallScore ?? a.hrOverallScore ?? a.HrOverallScore
     ),
     overallRating: numOrNull(bundle?.overallRating ?? bundle?.OverallRating ?? a.overallRating ?? a.OverallRating),
+    publishedStatus:
+      a.publishedStatus ??
+      a.PublishedStatus ??
+      bundle?.publishedStatus ??
+      bundle?.PublishedStatus ??
+      null,
+    publishedDate:
+      a.publishedDate ??
+      a.PublishedDate ??
+      bundle?.publishedDate ??
+      bundle?.PublishedDate ??
+      null,
     reviewId: a.id ?? a.Id ?? bundle?.assignmentId ?? bundle?.AssignmentId,
   };
 };

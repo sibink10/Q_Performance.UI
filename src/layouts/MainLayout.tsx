@@ -244,8 +244,8 @@ const MainLayout = () => {
       >
         <Box
           sx={{
-            width: 40,
-            height: 40,
+            width: 56,
+            height: 56,
             borderRadius: 2,
             overflow: "hidden",
             background: alpha(theme.palette.primary.main, 0.12),
@@ -265,8 +265,8 @@ const MainLayout = () => {
         {branding.companyLogoUrl?.trim() ? (
           <Box
             sx={{
-              maxHeight: 36,
-              maxWidth: 120,
+              maxHeight: 44,
+              maxWidth: 140,
               minWidth: 0,
               display: "flex",
               alignItems: "center",
@@ -278,8 +278,8 @@ const MainLayout = () => {
               src={branding.companyLogoUrl.trim()}
               alt=""
               sx={{
-                maxHeight: 36,
-                maxWidth: 120,
+                maxHeight: 44,
+                maxWidth: 140,
                 width: "auto",
                 height: "auto",
                 objectFit: "contain",

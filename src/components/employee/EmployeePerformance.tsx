@@ -4,7 +4,7 @@
 //   - Submitted Reviews
 //   - Others' Reviews (managed assignments - GET /performance/managed-assignments)
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -35,6 +35,13 @@ import {
   useMediaQuery,
   Avatar,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tooltip,
+  IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
@@ -43,16 +50,29 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PeopleIcon from '@mui/icons-material/People';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined';
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
+import CloudOffOutlinedIcon from '@mui/icons-material/CloudOffOutlined';
 import usePerformance from '../../hooks/usePerformance';
+import usePerformanceApi from '../../hooks/usePerformanceApi';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
-import { AppLoader, EmptyState, StatusChip } from '../../components/common';
+import { AppLoader, AppSnackbar, EmptyState, StatusChip } from '../../components/common';
 import AppCard from '../../components/common/AppCard';
 import TableDotStatus from '../../components/common/TableDotStatus';
 import { mainLayoutStickySubheaderBandSx } from '../../components/common/PageHeader';
 import { modernTableSx } from '../../utils/floatingPanelSx';
-import { getDaysRemaining, getDeadlineColor, formatDate, isAssignmentPhaseSubmitted } from '../../utils/helpers';
+import {
+  getDaysRemaining,
+  getDeadlineColor,
+  formatDate,
+  isAssignmentPhaseSubmitted,
+  isAssignmentResultsPublishedToEmployee,
+  getApiErrorMessage,
+} from '../../utils/helpers';
 import useFinancialYears from '../../hooks/useFinancialYears';
 
 /** Single action for "Others' Reviews": manager phase first, then HR for admins when manager is done. */
@@ -86,6 +106,16 @@ const othersManagedReviewAction = (
     : `/performance/review/${emp.reviewId}?mode=manager&employeeId=${emp.id}`;
   return { disabled: false as const, label: 'View' as const, path: viewPath };
 };
+
+/** Self, manager, and HR phases finalized — required before publishing results to the employee. */
+const othersRowAllReviewsComplete = (emp: {
+  selfEvalStatus?: string;
+  managerReviewStatus?: string;
+  hrReviewStatus?: string;
+}) =>
+  isAssignmentPhaseSubmitted(emp.selfEvalStatus) &&
+  isAssignmentPhaseSubmitted(emp.managerReviewStatus) &&
+  isAssignmentPhaseSubmitted(emp.hrReviewStatus);
 
 const managedScoreLabel = (value: number | null | undefined): string | null => {
   if (value == null) return null;
@@ -222,7 +252,8 @@ const ReviewCard = ({ review, onStart }) => {
         <AppButton
           startIcon={null}
           fullWidth
-          variant={review.status === 'Not Started' ? 'contained' : 'outlined'}
+          variant="contained"
+          color={review.status === 'Not Started' ? 'primary' : 'success'}
           onClick={() => onStart(review.id)}
           disabled={isOverdue && review.status === 'Not Started'}
         >
@@ -245,12 +276,15 @@ const EmployeePerformance = () => {
     managerTeamLoading,
     reviewForms,
     error,
+    successMessage,
+    clearSuccess,
     loadMyReviews,
     loadManagerTeam,
     loadReviewForms,
   } = usePerformance();
   const { financialYears, activeFinancialYear, financialYearsLoading } = useFinancialYears();
   const { isAdmin } = useAuth();
+  const { publishRatings, unpublishAssignmentResults } = usePerformanceApi();
 
   const hasMyReviews =
     (Array.isArray(myReviews?.pending) && myReviews.pending.length > 0) ||
@@ -263,6 +297,33 @@ const EmployeePerformance = () => {
   const [othersSearchInput, setOthersSearchInput] = useState('');
   const [debouncedOthersSearch, setDebouncedOthersSearch] = useState('');
   const [othersReviewFormId, setOthersReviewFormId] = useState('');
+  const [othersPublishSnack, setOthersPublishSnack] = useState<{
+    severity: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  /** `{ id, mode }` while publish/unpublish runs for one managed-assignment row */
+  const [rowPublishBusy, setRowPublishBusy] = useState<{ id: string; mode: 'publish' | 'unpublish' } | null>(
+    null
+  );
+  const [singleUnpublishAssignmentId, setSingleUnpublishAssignmentId] = useState<string | null>(null);
+
+  const refetchManagedAssignments = useCallback(() => {
+    if (!financialYearId) return;
+    loadManagerTeam({
+      financialYearId,
+      page: othersPage + 1,
+      pageSize: othersRowsPerPage,
+      search: debouncedOthersSearch,
+      reviewFormId: othersReviewFormId || undefined,
+    });
+  }, [
+    financialYearId,
+    othersPage,
+    othersRowsPerPage,
+    debouncedOthersSearch,
+    othersReviewFormId,
+    loadManagerTeam,
+  ]);
 
   /** Avoid empty UI before FY list + default year are ready, then avoid empty → full-screen loader when fetch starts. */
   const fyBootstrapPending =
@@ -311,6 +372,43 @@ const EmployeePerformance = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [financialYearId, othersPage, othersRowsPerPage, debouncedOthersSearch, othersReviewFormId]);
+
+  const runOthersRowPublish = async (assignmentId: string) => {
+    if (!assignmentId) return;
+    const sid = String(assignmentId);
+    setRowPublishBusy({ id: sid, mode: 'publish' });
+    try {
+      await publishRatings(sid);
+      setOthersPublishSnack({
+        severity: 'success',
+        message: 'Results published - visible to the employee.',
+      });
+      refetchManagedAssignments();
+    } catch (e) {
+      setOthersPublishSnack({ severity: 'error', message: getApiErrorMessage(e) });
+    } finally {
+      setRowPublishBusy(null);
+    }
+  };
+
+  const runOthersRowUnpublish = async (assignmentId: string) => {
+    if (!assignmentId) return;
+    const sid = String(assignmentId);
+    setSingleUnpublishAssignmentId(null);
+    setRowPublishBusy({ id: sid, mode: 'unpublish' });
+    try {
+      await unpublishAssignmentResults(sid);
+      setOthersPublishSnack({
+        severity: 'success',
+        message: 'Results unpublished - employee will no longer see this result.',
+      });
+      refetchManagedAssignments();
+    } catch (e) {
+      setOthersPublishSnack({ severity: 'error', message: getApiErrorMessage(e) });
+    } finally {
+      setRowPublishBusy(null);
+    }
+  };
 
   if (pageLoading) return <AppLoader message="Loading your reviews..." />;
 
@@ -569,14 +667,16 @@ const EmployeePerformance = () => {
                             <TableDotStatus label={r.hrStatus || 'Pending'} />
                           </TableCell>
                           <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                            <AppButton
-                              size="small"
-                              variant="outlined"
-                              startIcon={<VisibilityOutlinedIcon sx={{ fontSize: 18 }} />}
-                              onClick={() => navigate(`/performance/review/${assignmentId}`)}
-                            >
-                              View
-                            </AppButton>
+                            <Tooltip title="View review">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                aria-label="View review"
+                                onClick={() => navigate(`/performance/review/${assignmentId}`)}
+                              >
+                                <VisibilityOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       );
@@ -667,12 +767,19 @@ const EmployeePerformance = () => {
                         <TableCell>Manager review</TableCell>
                         <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>HR review</TableCell>
                         <TableCell align="center">Overall rating</TableCell>
-                        <TableCell align="right">Action</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Published</TableCell>
+                        <TableCell align="right">Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {managerTeam.map((emp) => {
                         const rowAction = othersManagedReviewAction(emp, isAdmin);
+                        const assignmentIdStr = emp.reviewId != null ? String(emp.reviewId) : '';
+                        const rowBusyHere =
+                          assignmentIdStr !== '' &&
+                          !!rowPublishBusy &&
+                          rowPublishBusy.id === assignmentIdStr;
+                        const rowPublished = isAssignmentResultsPublishedToEmployee(emp.publishedStatus);
                         return (
                           <TableRow key={`${emp.id}-${emp.reviewId}`} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
                             <TableCell>
@@ -745,20 +852,115 @@ const EmployeePerformance = () => {
                                 <ManagedRatingChip score={emp.overallRating ?? null} />
                               </Box>
                             </TableCell>
+                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                              <Stack spacing={0.25} alignItems="flex-start">
+                                <Chip
+                                  label={rowPublished ? 'Published' : 'Pending'}
+                                  size="small"
+                                  color={rowPublished ? 'success' : 'default'}
+                                  sx={{ fontSize: 11, height: 24 }}
+                                />
+                                {emp.publishedDate ? (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    display="block"
+                                    sx={{ whiteSpace: 'normal', maxWidth: 140 }}
+                                  >
+                                    {formatDate(emp.publishedDate)}
+                                  </Typography>
+                                ) : null}
+                              </Stack>
+                            </TableCell>
                             <TableCell align="right">
-                              <AppButton
-                                startIcon={
-                                  rowAction.label === 'View' ? (
-                                    <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
-                                  ) : null
-                                }
-                                size="small"
-                                variant="outlined"
-                                disabled={rowAction.disabled}
-                                onClick={() => rowAction.path && navigate(rowAction.path)}
-                              >
-                                {rowAction.label}
-                              </AppButton>
+                              <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
+                                <Tooltip
+                                  title={
+                                    rowAction.label === 'View'
+                                      ? 'View review'
+                                      : rowAction.label === 'Open review'
+                                        ? 'Open review'
+                                        : rowAction.label === 'Awaiting self-eval'
+                                          ? 'Awaiting employee self-evaluation'
+                                          : 'No assignment'
+                                  }
+                                >
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="primary"
+                                      aria-label={
+                                        rowAction.label === 'View'
+                                          ? 'View review'
+                                          : rowAction.label === 'Open review'
+                                            ? 'Open review'
+                                            : String(rowAction.label)
+                                      }
+                                      disabled={rowAction.disabled}
+                                      onClick={() => rowAction.path && navigate(rowAction.path)}
+                                    >
+                                      {rowAction.label === 'View' ? (
+                                        <VisibilityOutlinedIcon fontSize="small" />
+                                      ) : rowAction.label === 'Open review' ? (
+                                        <RateReviewOutlinedIcon fontSize="small" />
+                                      ) : rowAction.label === 'Awaiting self-eval' ? (
+                                        <HourglassEmptyOutlinedIcon fontSize="small" />
+                                      ) : (
+                                        <BlockOutlinedIcon fontSize="small" />
+                                      )}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                                {isAdmin && assignmentIdStr ? (
+                                  rowPublished ? (
+                                    <Tooltip title="Unpublish - employee will no longer see this result">
+                                      <span>
+                                        <IconButton
+                                          size="small"
+                                          color="warning"
+                                          aria-label="Unpublish results"
+                                          disabled={!assignmentIdStr || rowBusyHere}
+                                          onClick={() => setSingleUnpublishAssignmentId(assignmentIdStr)}
+                                        >
+                                          {rowBusyHere && rowPublishBusy?.mode === 'unpublish' ? (
+                                            <CircularProgress color="inherit" size={18} thickness={5} />
+                                          ) : (
+                                            <CloudOffOutlinedIcon fontSize="small" />
+                                          )}
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  ) : (
+                                    <Tooltip
+                                      title={
+                                        othersRowAllReviewsComplete(emp)
+                                          ? 'Publish results - visible to employee'
+                                          : 'Complete self, manager, and HR reviews before publishing'
+                                      }
+                                    >
+                                      <span>
+                                        <IconButton
+                                          size="small"
+                                          color="primary"
+                                          aria-label="Publish results"
+                                          disabled={
+                                            !assignmentIdStr ||
+                                            rowBusyHere ||
+                                            !othersRowAllReviewsComplete(emp)
+                                          }
+                                          onClick={() => void runOthersRowPublish(assignmentIdStr)}
+                                        >
+                                          {rowBusyHere && rowPublishBusy?.mode === 'publish' ? (
+                                            <CircularProgress color="inherit" size={18} thickness={5} />
+                                          ) : (
+                                            <CloudUploadOutlinedIcon fontSize="small" />
+                                          )}
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  )
+                                ) : null}
+                              </Stack>
                             </TableCell>
                           </TableRow>
                         );
@@ -784,6 +986,49 @@ const EmployeePerformance = () => {
           </AppCard>
         </Box>
       )}
+      <AppSnackbar open={!!successMessage} onClose={clearSuccess} message={successMessage} />
+      <AppSnackbar
+        open={!!othersPublishSnack}
+        onClose={() => setOthersPublishSnack(null)}
+        message={othersPublishSnack?.message}
+        severity={othersPublishSnack?.severity || 'success'}
+        autoHideDuration={5000}
+      />
+      <Dialog
+        open={singleUnpublishAssignmentId != null}
+        onClose={() => !rowPublishBusy && setSingleUnpublishAssignmentId(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Unpublish results?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            The employee will no longer see this result in Published reviews. You can publish again later.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <AppButton
+            variant="outlined"
+            startIcon={null}
+            onClick={() => !rowPublishBusy && setSingleUnpublishAssignmentId(null)}
+            disabled={!!rowPublishBusy}
+          >
+            Cancel
+          </AppButton>
+          <AppButton
+            color="warning"
+            startIcon={null}
+            onClick={() => {
+              const id = singleUnpublishAssignmentId;
+              if (id) void runOthersRowUnpublish(id);
+            }}
+            loading={Boolean(rowPublishBusy?.mode === 'unpublish')}
+            disabled={Boolean(rowPublishBusy)}
+          >
+            Unpublish
+          </AppButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

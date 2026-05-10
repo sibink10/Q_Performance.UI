@@ -18,13 +18,10 @@ import {
     Alert,
     Chip,
     Stack,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     IconButton,
     Rating,
     FormHelperText,
+    Divider,
   } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -39,6 +36,7 @@ import { AppCard, AppSnackbar } from '../../components/common';
 import { AppLoader, PageHeader } from '../../components/common/index.jsx';
 import {
   calculateCompletionPercentage,
+  calculateQuestionWeightedOverallRating,
   isFormComplete,
   mapAssignmentForSelfEvaluation,
   isAssignmentPhaseSubmitted,
@@ -52,8 +50,12 @@ import {
   submitManagerEvaluation,
   submitHrReview,
 } from '../../app/state/slices/performanceThunks';
-import { clearError as clearPerformanceError } from '../../app/state/slices/performanceSlice';
+import {
+  clearError as clearPerformanceError,
+  setPerfSuccessMessage,
+} from '../../app/state/slices/performanceSlice';
 import EvaluationQuestionCard from './self-evaluation/EvaluationQuestionCard';
+import SubmitConfirmationDialog from './self-evaluation/SubmitConfirmationDialog';
 
 const SELF_EVAL_MIN_ANSWER_LEN = 50;
 const getTextLen = (value) => richTextHtmlToPlainText(String(value ?? '')).length;
@@ -63,7 +65,7 @@ const SelfEvaluationForm = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const {
     getAssignmentById,
     publishRatings,
@@ -161,12 +163,10 @@ const SelfEvaluationForm = () => {
     if (!review) return;
     setAnswers(pickInitialAnswers(review));
     setAnswersHydrationKey((k) => k + 1);
-    setExpandedFocusAreaId((prev) => {
-      const firstId = review?.sections?.[0]?.focusAreaId;
-      if (!firstId) return false;
-      // If current expanded panel is still valid, keep it; otherwise expand the first section.
-      return prev && review.sections.some((s) => s.focusAreaId === prev) ? prev : firstId;
-    });
+    setExpandedFocusAreaId((prev) =>
+      // Default: all sections collapsed. If a panel was expanded and still exists after refresh, keep it.
+      prev && review.sections.some((s) => s.focusAreaId === prev) ? prev : false,
+    );
     setHrOverallRating(
       review.hrOverallScore != null && review.hrOverallScore !== ''
         ? String(review.hrOverallScore)
@@ -197,6 +197,50 @@ const SelfEvaluationForm = () => {
     Number.isFinite(Number(review?.ratingScale)) && Number(review?.ratingScale) > 0
       ? Number(review.ratingScale)
       : 5;
+
+  const submitConfirmPreview = useMemo(() => {
+    if (!review?.sections || !confirmOpen || isHrMode) return null;
+    const { overall, totalWeightedScore, totalWeight } = calculateQuestionWeightedOverallRating(
+      allQuestions,
+      answers,
+    );
+    const rows = [];
+    for (const section of review.sections) {
+      for (const q of section.questions) {
+        const a = answers[q.id] || {};
+        const ratingRaw = a.rating;
+        if (ratingRaw == null || ratingRaw === '') continue;
+        const rating = Number(ratingRaw);
+        if (!Number.isFinite(rating)) continue;
+        const wRaw = q.weightage ?? q.Weightage;
+        const w =
+          wRaw != null && wRaw !== '' && Number.isFinite(Number(wRaw)) && Number(wRaw) > 0
+            ? Number(wRaw)
+            : 1;
+        const questionText = richTextHtmlToPlainText(
+          sanitizeRichTextHtml(normalizeQuestionTextToHtml(q?.text)),
+        );
+        const commentPlain = richTextHtmlToPlainText(String(a.comment ?? ''));
+        rows.push({
+          id: q.id,
+          sectionTitle: section.focusAreaName || '',
+          questionText: questionText || '—',
+          rating,
+          weight: w,
+          weighted: rating * w,
+          commentPlain,
+        });
+      }
+    }
+    return {
+      rows,
+      overall,
+      totalWeightedScore,
+      totalWeight,
+      scale: hrRatingScale,
+    };
+  }, [review, confirmOpen, isHrMode, allQuestions, answers, hrRatingScale]);
+
   const selfAnsweredCountMinLen = allQuestions.filter((q) => {
     const a = answers[q.id] || {};
     return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
@@ -267,6 +311,23 @@ const weightageChipSx = {
   },
 };
 
+/** Assignment employee name in PageHeader (maps from API `assignment.employeeName`). */
+const titleCardEmployeeChipSx = (theme) => ({
+  fontWeight: 600,
+  height: 'auto',
+  '& .MuiChip-label': { px: 1.25, py: 0.5, lineHeight: 1.5 },
+  bgcolor:
+    theme.palette.mode === 'dark'
+      ? alpha(theme.palette.success.main, 0.28)
+      : '#E8F5E9',
+  color: theme.palette.mode === 'dark' ? theme.palette.success.light : theme.palette.success.dark,
+  border: '1px solid',
+  borderColor:
+    theme.palette.mode === 'dark'
+      ? alpha(theme.palette.success.main, 0.45)
+      : alpha(theme.palette.success.main, 0.4),
+});
+
 /** Progress summary row chips: tinted fills; `height: auto` avoids MUI small chip’s fixed 24px clipping cramped label type. */
 const progressCardChipShell = (theme) => ({
   height: 'auto',
@@ -300,6 +361,17 @@ const progressCardChipShell = (theme) => ({
   /** Employees see HR overall only after publication; managers/HR see based on assignment data. */
   const showHrOverallSummary =
     (hasHrOverall || hasHrOverallComments) && (isHrMode || isManagerMode || hrResultsVisible);
+
+  const isPhaseSnapshotComplete = (snapshot) =>
+    Boolean(snapshot?.rating) && getTextLen(snapshot?.comment) > 0;
+
+  const isQuestionCompleteForSectionHeader = (question) => {
+    if (isHrMode) {
+      return isPhaseSnapshotComplete(question.selfReview) && isPhaseSnapshotComplete(question.managerReview);
+    }
+    const answer = answers[question.id] || {};
+    return Boolean(answer?.rating) && getTextLen(answer?.comment) > 0;
+  };
 
   const reloadAssignment = useCallback(async () => {
     if (!reviewId) return;
@@ -359,7 +431,11 @@ const progressCardChipShell = (theme) => ({
           assignmentId: reviewId,
           answers: mergedAnswers,
         });
-        if (managerDraftSaveSeqRef.current === seq) setManagerDraftSaveStatus('saved');
+        if (managerDraftSaveSeqRef.current === seq) {
+          setManagerDraftSaveStatus('saved');
+          dispatch(setPerfSuccessMessage('Manager evaluation draft saved.'));
+          navigate('/performance');
+        }
       } catch (e) {
         const status = e?.status;
         if (managerDraftSaveSeqRef.current === seq) setManagerDraftSaveStatus('failed');
@@ -369,7 +445,16 @@ const progressCardChipShell = (theme) => ({
         if (status === 409) setPhaseConflict((p) => ({ ...p, manager: true }));
       }
     },
-    [clearError, effectiveEmployeeId, flushCommentDraftsToAnswers, reviewId, saveManagerEvaluationDraft, showManagerSaveDraft]
+    [
+      clearError,
+      dispatch,
+      effectiveEmployeeId,
+      flushCommentDraftsToAnswers,
+      navigate,
+      reviewId,
+      saveManagerEvaluationDraft,
+      showManagerSaveDraft,
+    ]
   );
 
   const handleSaveDraft = async () => {
@@ -378,6 +463,7 @@ const progressCardChipShell = (theme) => ({
     const mergedAnswers = flushCommentDraftsToAnswers();
     try {
       await dispatch(saveEvaluation({ reviewId, answers: mergedAnswers })).unwrap();
+      navigate('/performance');
     } catch (e) {
       const status = e?.status;
       const msg = e?.message ?? 'Could not save draft.';
@@ -551,20 +637,6 @@ const progressCardChipShell = (theme) => ({
     );
   }
 
-  if (!review.sections.length) {
-    return (
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <IconButton size="small" onClick={() => navigate(-1)}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6">{review.formName}</Typography>
-        </Box>
-        <Alert severity="info">This review form has no focus areas or questions yet.</Alert>
-      </Box>
-    );
-  }
-
   const pageTitle = isHrMode
     ? 'HR Review'
     : isManagerMode
@@ -578,6 +650,38 @@ const progressCardChipShell = (theme) => ({
       isHrMode ? ' - Record HR evaluation for this assignment' : ''
     }`;
 
+  const titleCardEmployeeName =
+    String(review?.assignmentEmployeeName ?? '').trim() ||
+    ((!isManagerMode && !isHrMode && user?.name) ? String(user.name).trim() : '');
+
+  const titleCardEmployeeChip =
+    titleCardEmployeeName ? (
+      <Chip
+        label={titleCardEmployeeName}
+        size="small"
+        variant="filled"
+        sx={titleCardEmployeeChipSx}
+      />
+    ) : undefined;
+
+  if (!review.sections.length) {
+    return (
+      <Box>
+        <PageHeader
+          title={pageTitle}
+          subtitle={subtitleExtra}
+          startAdornment={
+            <IconButton size="small" onClick={() => navigate(-1)} aria-label="Back">
+              <ArrowBackIcon />
+            </IconButton>
+          }
+          actions={titleCardEmployeeChip}
+        />
+        <Alert severity="info">This review form has no focus areas or questions yet.</Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <PageHeader
@@ -588,12 +692,26 @@ const progressCardChipShell = (theme) => ({
             <ArrowBackIcon />
           </IconButton>
         }
+        actions={titleCardEmployeeChip}
       />
       
 
-      <AppCard sx={{ p: 2.5, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-          <Typography variant="body2" fontWeight={500}>
+      <AppCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 3 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            justifyContent: 'space-between',
+            gap: { xs: 1.5, sm: 2 },
+            mb: 1.5,
+          }}
+        >
+          <Typography
+            variant="body2"
+            fontWeight={500}
+            sx={{ minWidth: 0, flex: { sm: '1 1 auto' }, pr: { sm: 1 } }}
+          >
             {isHrMode
               ? `Progress: ${hrCompletionPct === 100 ? 'Overall rating provided' : 'Overall rating pending'}`
               : `Progress: ${
@@ -604,7 +722,13 @@ const progressCardChipShell = (theme) => ({
                     : selfAnsweredCountMinLen
                 } of ${allQuestions.length} questions answered`}
           </Typography>
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction="row"
+            useFlexGap
+            flexWrap="wrap"
+            spacing={1}
+            sx={{ justifyContent: { xs: 'flex-start', sm: 'flex-end' }, alignItems: 'center' }}
+          >
             {isManagerMode && showManagerSaveDraft && (
               <Chip
                 label={
@@ -718,9 +842,9 @@ const progressCardChipShell = (theme) => ({
       )}
 
       {isHrMode && !hrFieldsReadOnly && (
-        <AppCard sx={{ p: 2.5, mb: 2 }}>
+        <AppCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
           <Stack spacing={2}>
-            <Box>
+            <Box sx={{ minWidth: 0 }}>
               <Typography variant="caption" color="text.secondary" component="label" display="block" sx={{ mb: 0.5 }}>
                 HR Overall Rating (0–{hrRatingScale})
                 <Box component="span" sx={{ color: 'error.main', ml: 0.25 }} aria-hidden>
@@ -744,11 +868,17 @@ const progressCardChipShell = (theme) => ({
                 max={hrRatingScale}
                 precision={0.1}
                 size="large"
-                sx={{
+                sx={(theme) => ({
+                  maxWidth: '100%',
                   '& .MuiRating-iconFilled': {
                     filter: 'drop-shadow(0 2px 4px rgba(79, 70, 229, 0.25))',
                   },
-                }}
+                  [theme.breakpoints.down('sm')]: {
+                    '& .MuiRating-icon': {
+                      fontSize: hrRatingScale > 7 ? '1.05rem' : '1.4rem',
+                    },
+                  },
+                })}
               />
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                 {hrOverallRatingStarCaption}
@@ -784,11 +914,11 @@ const progressCardChipShell = (theme) => ({
       )}
 
       {showHrOverallSummary && (!isHrMode || hrFieldsReadOnly) && (
-        <AppCard sx={{ p: 2.5, mb: 2 }}>
+        <AppCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
           <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             HR Overall
           </Typography>
-          <Stack spacing={1}>
+          <Stack spacing={1} sx={{ minWidth: 0 }}>
             {hasHrOverall && (
               <Rating
                 name="hr-overall-summary-rating"
@@ -800,11 +930,17 @@ const progressCardChipShell = (theme) => ({
                 readOnly
                 precision={0.1}
                 size="large"
-                sx={{
+                sx={(theme) => ({
+                  maxWidth: '100%',
                   '& .MuiRating-iconFilled': {
                     filter: 'drop-shadow(0 2px 4px rgba(79, 70, 229, 0.25))',
                   },
-                }}
+                  [theme.breakpoints.down('sm')]: {
+                    '& .MuiRating-icon': {
+                      fontSize: hrRatingScale > 7 ? '1.05rem' : '1.4rem',
+                    },
+                  },
+                })}
               />
             )}
             <Typography variant="body2">
@@ -877,9 +1013,7 @@ const progressCardChipShell = (theme) => ({
         </Alert>
       )}
       {review.sections.map((section, sIdx) => {
-        const sectionAnswered = section.questions.filter(
-          (q) => answers[q.id]?.rating && getTextLen(answers[q.id]?.comment) > 0,
-        ).length;
+        const sectionAnswered = section.questions.filter(isQuestionCompleteForSectionHeader).length;
         const sectionWeight = formatWeightage(section.weightage);
 
         return (
@@ -900,21 +1034,34 @@ const progressCardChipShell = (theme) => ({
           >
             <AccordionSummary
               expandIcon={<ExpandMoreIcon />}
-              sx={{ bgcolor: 'grey.50', borderRadius: '8px 8px 0 0' }}
+              sx={{
+                bgcolor: 'grey.50',
+                borderRadius: '8px 8px 0 0',
+                '& .MuiAccordionSummary-content': { minWidth: 0, overflow: 'hidden' },
+              }}
             >
               <Box
                 sx={{
                   display: 'flex',
-                  alignItems: 'flex-start',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'stretch', sm: 'flex-start' },
                   justifyContent: 'space-between',
-                  gap: 2,
+                  gap: { xs: 1, sm: 2 },
                   flex: 1,
                   minWidth: 0,
                   pr: 1,
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                  <Typography fontWeight={600} sx={{ wordBreak: 'break-word' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: { xs: 1, sm: 2 },
+                    minWidth: 0,
+                  }}
+                >
+                  <Typography fontWeight={600} sx={{ wordBreak: 'break-word', minWidth: 0 }}>
                     {section.focusAreaName}
                   </Typography>
                   <Chip
@@ -929,18 +1076,18 @@ const progressCardChipShell = (theme) => ({
                     label={`Weightage: ${sectionWeight} x`}
                     size="small"
                     variant="outlined"
-                    sx={weightageChipSx}
+                    sx={{ ...weightageChipSx, alignSelf: { xs: 'flex-start', sm: 'auto' }, flexShrink: 0 }}
                   />
                 )}
               </Box>
             </AccordionSummary>
-            <AccordionDetails sx={{ p: 3 }}>
+            <AccordionDetails sx={{ p: { xs: 1.5, sm: 2, md: 3 }, overflow: 'hidden' }}>
               {section.description && (
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
                   {section.description}
                 </Typography>
               )}
-              <Stack spacing={3}>
+              <Stack spacing={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
                 {section.questions.map((question, qIdx) => (
                   <EvaluationQuestionCard
                     key={question.id}
@@ -972,13 +1119,17 @@ const progressCardChipShell = (theme) => ({
           bottom: 0,
           zIndex: 2,
           display: 'flex',
-          justifyContent: 'flex-end',
-          gap: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          justifyContent: { xs: 'stretch', sm: 'flex-end' },
+          flexWrap: 'wrap',
+          gap: { xs: 1.5, sm: 2 },
           mt: 3,
           py: 2,
           bgcolor: 'background.default',
           borderTop: '1px solid',
           borderColor: 'divider',
+          '& .MuiButton-root': { width: { xs: '100%', sm: 'auto' } },
         }}
       >
         {showManagerSaveDraft && (
@@ -1012,35 +1163,17 @@ const progressCardChipShell = (theme) => ({
         </AppButton>
       </Box>
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Confirm Submission</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            {isHrMode ? (
-              <>
-                Submit the <strong>HR Review</strong> for this assignment? This action cannot be undone.
-              </>
-            ) : isManagerMode ? (
-              <>
-                Are you sure you want to submit your <strong>Manager Evaluation</strong>? This action cannot be undone.
-              </>
-            ) : (
-              <>
-                Are you sure you want to submit your <strong>Self Evaluation</strong>? Once submitted, you will not be
-                able to make changes.
-              </>
-            )}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <AppButton variant="outlined" startIcon={null} onClick={() => setConfirmOpen(false)}>
-            Cancel
-          </AppButton>
-          <AppButton startIcon={null} onClick={confirmSubmit} loading={isSaving}>
-            Yes, Submit
-          </AppButton>
-        </DialogActions>
-      </Dialog>
+      <SubmitConfirmationDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmSubmit}
+        isSaving={isSaving}
+        isHrMode={isHrMode}
+        isManagerMode={isManagerMode}
+        preview={submitConfirmPreview}
+        hrOverallRatingCaption={hrOverallRatingStarCaption}
+        hrCommentsPlain={richTextHtmlToPlainText(String(hrComments))}
+      />
 
       <AppSnackbar
         open={!!successMessage}

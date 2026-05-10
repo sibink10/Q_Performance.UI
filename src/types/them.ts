@@ -198,7 +198,11 @@ export function createAppTheme(primaryHex?: string | null) {
       MuiTableHead: {
         styleOverrides: {
           root: {
-            '& .MuiTableCell-root': { fontWeight: 700, fontSize: '0.8125rem' },
+            '& .MuiTableCell-root': {
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              whiteSpace: 'nowrap',
+            },
           },
         },
       },

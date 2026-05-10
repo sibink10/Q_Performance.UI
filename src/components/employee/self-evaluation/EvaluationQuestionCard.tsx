@@ -7,19 +7,33 @@ import { isProbablyHtml, richTextHtmlToPlainText, sanitizeRichTextHtml } from '.
 const SELF_EVAL_MIN_ANSWER_LEN = 50;
 const getTextLen = (value: unknown) => richTextHtmlToPlainText(String(value ?? '')).length;
 
+/** Long URLs / unbroken strings + nested HTML need explicit wrap in flex layouts. */
+const richTextWrapRootSx = {
+  minWidth: 0,
+  maxWidth: '100%',
+  overflowWrap: 'anywhere',
+  wordBreak: 'break-word',
+} as const;
+
 const commentRichTextContentSx = {
-  '& p': { m: 0 },
-  '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
-  '& li': { mt: 0.25 },
+  ...richTextWrapRootSx,
+  '& p': { m: 0, ...richTextWrapRootSx },
+  '& ul, & ol': { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
+  '& li': { mt: 0.25, ...richTextWrapRootSx },
   '& strong': { fontWeight: 700 },
   '& img': { maxWidth: '100%', height: 'auto', verticalAlign: 'middle' },
+  '& a': { overflowWrap: 'anywhere', wordBreak: 'break-all' },
 } as const;
 
 function SnapshotCommentBody({ comment }: { comment: string }) {
   const raw = String(comment || '').trim();
   if (!raw || getTextLen(raw) === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ whiteSpace: 'pre-wrap', ...richTextWrapRootSx }}
+      >
         -
       </Typography>
     );
@@ -34,7 +48,7 @@ function SnapshotCommentBody({ comment }: { comment: string }) {
     );
   }
   return (
-    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', ...richTextWrapRootSx }}>
       {raw}
     </Typography>
   );
@@ -93,7 +107,7 @@ function SnapshotRatingStars({ value, scale }: { value: number; scale: number })
 function PhaseSnapshotDisplay({ label, snapshot, ratingScale }: { label: string; snapshot: any; ratingScale: number }) {
   if (!snapshot) return null;
   return (
-    <Box sx={{ pt: 0.5 }}>
+    <Box sx={{ pt: 0.5, minWidth: 0, maxWidth: '100%' }}>
       {label ? (
         <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
           {label}
@@ -316,23 +330,26 @@ function EvaluationQuestionCardInner({
   return (
     <Box
       sx={{
-        p: 2.5,
+        p: { xs: 1.5, sm: 2.5 },
         borderRadius: 2,
         border: '1px solid',
         borderColor: isAnswered ? 'success.light' : 'divider',
+        maxWidth: '100%',
+        minWidth: 0,
         ...(isAnswered ? { bgcolor: 'success.50' } : questionAltSx(qIdx)),
       }}
     >
       <Box
         sx={{
           display: 'flex',
-          alignItems: 'flex-start',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'flex-start' },
           justifyContent: 'space-between',
-          gap: 2,
+          gap: { xs: 1.25, sm: 2 },
           mb: 2,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0, flex: '1 1 auto' }}>
           <Chip
             label={`Q${qIdx + 1}`}
             size="small"
@@ -341,30 +358,46 @@ function EvaluationQuestionCardInner({
           />
           <Box
             sx={{
-              minWidth: 0,
-              wordBreak: 'break-word',
-              '& p': { m: 0 },
-              '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
-              '& li': { mt: 0.25 },
+              ...richTextWrapRootSx,
+              '& p': { m: 0, ...richTextWrapRootSx },
+              '& ul, & ol': { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
+              '& li': { mt: 0.25, ...richTextWrapRootSx },
               '& strong': { fontWeight: 700 },
+              '& a': { overflowWrap: 'anywhere', wordBreak: 'break-all' },
             }}
           >
-            <Typography variant="body2" fontWeight={500} component="div" dangerouslySetInnerHTML={{ __html: questionHtml }} />
+            <Typography
+              variant="body2"
+              fontWeight={500}
+              component="div"
+              sx={richTextWrapRootSx}
+              dangerouslySetInnerHTML={{ __html: questionHtml }}
+            />
           </Box>
         </Box>
         {questionWeight != null && (
-          <Chip label={`${questionWeight} x`} size="small" variant="outlined" sx={{ ...weightageChipSx, mt: 0.3 }} />
+          <Chip
+            label={`${questionWeight} x`}
+            size="small"
+            variant="outlined"
+            sx={{
+              ...weightageChipSx,
+              mt: { xs: 0, sm: 0.3 },
+              flexShrink: 0,
+              alignSelf: 'flex-start',
+            }}
+          />
         )}
       </Box>
 
-      <Stack spacing={0} divider={<Divider flexItem sx={{ borderColor: 'divider' }} />}>
-        <Box sx={{ pt: 0, pb: 2 }}>
+      <Stack spacing={0} divider={<Divider flexItem sx={{ borderColor: 'divider' }} />} sx={{ minWidth: 0, maxWidth: '100%' }}>
+        <Box sx={{ pt: 0, pb: 2, minWidth: 0, maxWidth: '100%' }}>
           <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             Self
           </Typography>
           {renderSelfColumn()}
         </Box>
-        <Box sx={{ py: 2 }}>
+        <Box sx={{ py: 2, minWidth: 0, maxWidth: '100%' }}>
           <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             Manager
           </Typography>

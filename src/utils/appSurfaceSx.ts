@@ -68,6 +68,7 @@ export const modernTableHeadCellSx = {
   py: 2.25,
   px: 2,
   bgcolor: 'transparent',
+  whiteSpace: 'nowrap',
 } as const;
 
 export const modernTableBodyCellSx = {

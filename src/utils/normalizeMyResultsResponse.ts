@@ -26,7 +26,18 @@ function ratingScaleFromPayloadEntity(e) {
 function mapFocusAreaQuestion(q, qIdx) {
   if (!q || typeof q !== 'object') return null;
   const id = String(q.id ?? q.questionId ?? `q-${qIdx}`);
-  const text = q.text ?? q.questionText ?? q.prompt ?? q.question ?? '';
+  const text =
+    q.text ??
+    q.questionText ??
+    q.QuestionText ??
+    q.prompt ??
+    q.question ??
+    q.Question ??
+    q.description ??
+    q.questionDescription ??
+    q.html ??
+    q.questionHtml ??
+    '';
   const weightage = q.weightage ?? q.Weightage ?? null;
 
   let selfReview = normalizePhaseSnapshot(q.selfReview ?? q.SelfReview);

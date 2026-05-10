@@ -110,6 +110,10 @@ const performanceSlice = createSlice({
     clearSuccessMessage: (state) => {
       state.successMessage = null;
     },
+    /** One-off UX message (e.g. manager draft saved) before navigating away from the form. */
+    setPerfSuccessMessage: (state, action) => {
+      state.successMessage = action.payload ?? null;
+    },
     clearMyResultDetail: (state) => {
       state.myResultDetail = null;
       state.myResultDetailLoading = false;
@@ -464,6 +468,7 @@ export const {
   updateEvaluationAnswer,
   clearError,
   clearSuccessMessage,
+  setPerfSuccessMessage,
   clearMyResultDetail,
 } = performanceSlice.actions;
 

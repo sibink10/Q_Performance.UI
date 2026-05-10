@@ -59,6 +59,7 @@ const AppraisalConfigModal = ({
   onSave,
   clearError,
 }: Props) => {
+  const isEditing = Boolean(editId);
   const canSave =
     Boolean(configForm?.financialYearId) &&
     PHASE_FIELDS.every(([key]) => Boolean(configForm?.[key]));
@@ -87,6 +88,7 @@ const AppraisalConfigModal = ({
               <Select
                 label="Review period"
                 value={configForm.financialYearId}
+                disabled={isEditing}
                 onChange={(e) => setConfigForm((p: any) => ({ ...p, financialYearId: e.target.value }))}
               >
                 {financialYears.map((y: any) => (
@@ -104,6 +106,7 @@ const AppraisalConfigModal = ({
               <Select
                 label="Cycle Type"
                 value={configForm.cycleType}
+                disabled={isEditing}
                 onChange={(e) => setConfigForm((p: any) => ({ ...p, cycleType: e.target.value }))}
               >
                 {APPRAISAL_CYCLE_TYPES.map((c: any) => (
@@ -121,6 +124,7 @@ const AppraisalConfigModal = ({
               <Select
                 label="Start Month"
                 value={configForm.startMonth}
+                disabled={isEditing}
                 onChange={(e) => setConfigForm((p: any) => ({ ...p, startMonth: e.target.value }))}
               >
                 {APPRAISAL_START_MONTHS.map((m: any) => (
@@ -138,6 +142,7 @@ const AppraisalConfigModal = ({
               <Select
                 label="Rating Scale"
                 value={configForm.ratingScale}
+                disabled={isEditing}
                 onChange={(e) => setConfigForm((p: any) => ({ ...p, ratingScale: e.target.value }))}
               >
                 {Object.values(RATING_SCALES).map((s: any) => (
