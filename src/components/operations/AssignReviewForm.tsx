@@ -291,12 +291,18 @@ const AssignReviewForm = () => {
         title="Assign Review Form"
         subtitle="Choose review period, select a review form, and assign it to users."
         actions={
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
             <AppButton
               variant="outlined"
               startIcon={<SyncIcon />}
               loading={syncingUsers}
               onClick={handleSyncUsers}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
             >
               Sync Entra users
             </AppButton>
@@ -304,6 +310,7 @@ const AssignReviewForm = () => {
               variant="outlined"
               startIcon={<ListAltIcon />}
               onClick={() => navigate('/operations/performance/assignments')}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
             >
               View all assigned forms
             </AppButton>
