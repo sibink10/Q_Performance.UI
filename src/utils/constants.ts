@@ -70,6 +70,10 @@ export const FINANCIAL_YEARS = (() => {
 })();
 
 export const FOCUS_AREA_SUGGESTIONS = [
+  'Delivery Excellence',
+  'Collaboration & Leadership',
+  'Learning & Growth Mindset',
+  'Process Compliance & Governance',
   'Technical Skills',
   'Communication',
   'Leadership',

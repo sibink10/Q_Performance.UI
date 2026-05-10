@@ -470,9 +470,19 @@ const ReviewFormEditor = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Typography variant="body2" fontWeight={500}>Focus Area Weightage:</Typography>
-                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
+                    gap: { xs: 1.5, sm: 2 },
+                    mb: 3,
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={500} sx={{ flexShrink: 0 }}>
+                    Focus Area Weightage:
+                  </Typography>
+                  <FormControl size="small" sx={{ minWidth: { sm: 100 }, width: { xs: '100%', sm: 'auto' } }}>
                     <Select
                       value={section.weightage}
                       onChange={(e) => updateSection(sIdx, 'weightage', e.target.value)}
@@ -492,32 +502,55 @@ const ReviewFormEditor = () => {
                     <Box
                       key={q.id}
                       sx={{
-                        display: 'flex', gap: 2, alignItems: 'flex-start',
-                        p: 2, borderRadius: 1.5, border: '1px solid',
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: 2,
+                        alignItems: { xs: 'stretch', sm: 'flex-start' },
+                        width: '100%',
+                        p: 2,
+                        borderRadius: 1.5,
+                        border: '1px solid',
                         borderColor: errors[`q_${sIdx}_${qIdx}`] ? 'error.main' : 'divider',
                         ...questionAltSx(qIdx),
                       }}
                     >
-                      <Typography
-                        variant="caption"
-                        sx={{ mt: 1.2, minWidth: 20, color: 'text.secondary', fontWeight: 700 }}
-                      >
-                        Q{qIdx + 1}
-                      </Typography>
-                      <RichTextEditor
-                        value={q.text}
-                        onChange={(nextHtml) => {
-                          updateQuestion(sIdx, qIdx, 'text', nextHtml);
-                          setErrors((p) => ({ ...p, [`q_${sIdx}_${qIdx}`]: '' }));
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: { xs: 'space-between', sm: 'flex-start' },
+                          gap: 1,
+                          flexShrink: 0,
+                          width: { xs: '100%', sm: 'auto' },
+                          order: { xs: 1, sm: 1 },
                         }}
-                        placeholder="Enter evaluation question..."
-                        error={!!errors[`q_${sIdx}_${qIdx}`]}
-                        helperText={errors[`q_${sIdx}_${qIdx}`]}
-                        minHeight={84}
-                      />
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{ mt: { sm: 1.2 }, minWidth: 20, color: 'text.secondary', fontWeight: 700 }}
+                        >
+                          Q{qIdx + 1}
+                        </Typography>
+                        <Tooltip title="Remove question">
+                          <IconButton
+                            size="small"
+                            onClick={() => setQuestionDelete({ sIdx, qIdx })}
+                            disabled={section.questions.length === 1}
+                            color="error"
+                            sx={{ display: { xs: 'inline-flex', sm: 'none' }, mt: 0.3 }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                       <FormControl
                         size="small"
-                        sx={{ minWidth: 90, flexShrink: 0 }}
+                        sx={{
+                          width: { xs: '100%', sm: 'auto' },
+                          minWidth: { sm: 90 },
+                          flexShrink: 0,
+                          order: { xs: 2, sm: 3 },
+                        }}
                         error={!!errors[`qw_${sIdx}_${qIdx}`]}
                       >
                         <InputLabel
@@ -548,13 +581,34 @@ const ReviewFormEditor = () => {
                           </Typography>
                         )}
                       </FormControl>
+                      <Box
+                        sx={{
+                          flex: { sm: 1 },
+                          minWidth: 0,
+                          width: { xs: '100%', sm: 'auto' },
+                          alignSelf: { xs: 'stretch', sm: 'flex-start' },
+                          order: { xs: 3, sm: 2 },
+                        }}
+                      >
+                        <RichTextEditor
+                          value={q.text}
+                          onChange={(nextHtml) => {
+                            updateQuestion(sIdx, qIdx, 'text', nextHtml);
+                            setErrors((p) => ({ ...p, [`q_${sIdx}_${qIdx}`]: '' }));
+                          }}
+                          placeholder="Enter evaluation question..."
+                          error={!!errors[`q_${sIdx}_${qIdx}`]}
+                          helperText={errors[`q_${sIdx}_${qIdx}`]}
+                          minHeight={84}
+                        />
+                      </Box>
                       <Tooltip title="Remove question">
                         <IconButton
                           size="small"
                           onClick={() => setQuestionDelete({ sIdx, qIdx })}
                           disabled={section.questions.length === 1}
                           color="error"
-                          sx={{ mt: 0.3 }}
+                          sx={{ display: { xs: 'none', sm: 'inline-flex' }, mt: 0.3, order: { sm: 4 } }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
