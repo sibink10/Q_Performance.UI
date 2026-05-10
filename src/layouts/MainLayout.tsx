@@ -6,6 +6,7 @@
 //   - Content outlet
 
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   AppBar,
@@ -22,9 +23,9 @@ import {
   Typography,
   Divider,
   Avatar,
+  Link,
   Menu,
   MenuItem,
-  Chip,
   Tooltip,
   useMediaQuery,
   useTheme,
@@ -33,14 +34,19 @@ import { alpha } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SettingsIcon from "@mui/icons-material/Settings";
+import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
 import StarIcon from "@mui/icons-material/Star";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LogoutIcon from "@mui/icons-material/Logout";
 import useAuth from "../hooks/useAuth";
 import { MAIN_LAYOUT_APP_BAR_HEIGHT } from "../components/common/PageHeader";
 import { getAppBarTitle } from "../utils/appBarTitle";
-import productLogo from "../assets/qubiqon_logo.jpg";
+import { selectOrgBranding } from "../app/state/slices/orgBrandingSlice";
+import { DEFAULT_ORG_BRANDING } from "../utils/orgBrandingDefaults";
+import appSidebarLogo from "../assets/logo.png";
+import qubiqonFooterLogo from "../assets/qubiqon_logo.png";
 
 const DRAWER_WIDTH = 272;
 
@@ -51,22 +57,13 @@ const EMPLOYEE_NAV = [
 
 const ADMIN_NAV = [
   {
-    section: "Operations",
-    items: [
-      {
-        label: "Assign Review Forms",
-        icon: <AssignmentIcon />,
-        path: "/operations/performance/assign",
-        matchPaths: [
-          "/operations/performance/assignments",
-          "/operations/performance/assignments/employees",
-        ],
-      },
-    ],
-  },
-  {
     section: "Configuration",
     items: [
+      {
+        label: "Organization branding",
+        icon: <BusinessIcon />,
+        path: "/config/performance/org-branding",
+      },
       {
         label: "Review Periods",
         icon: <SettingsIcon />,
@@ -86,6 +83,20 @@ const ADMIN_NAV = [
         label: "Review Forms",
         icon: <AssignmentIcon />,
         path: "/config/performance/review-forms",
+      },
+    ],
+  },
+  {
+    section: "Operations",
+    items: [
+      {
+        label: "Assign Review Forms",
+        icon: <AssignmentIcon />,
+        path: "/operations/performance/assign",
+        matchPaths: [
+          "/operations/performance/assignments",
+          "/operations/performance/assignments/employees",
+        ],
       },
     ],
   },
@@ -132,6 +143,7 @@ const MainLayout = () => {
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
   const { user, isAdmin, logout } = useAuth();
+  const branding = useSelector(selectOrgBranding);
   const navigate = useNavigate();
   const location = useLocation();
   const headerTitle = getAppBarTitle(location.pathname, location.search);
@@ -146,6 +158,24 @@ const MainLayout = () => {
   useEffect(() => {
     if (!isMdUp) setDrawerOpen(false);
   }, [location.pathname, isMdUp]);
+
+  useEffect(() => {
+    if (branding.documentTitle) {
+      document.title = branding.documentTitle;
+    }
+    const fav = branding.faviconUrl?.trim();
+    if (fav) {
+      let link = document.querySelector(
+        "link[rel~='icon']",
+      ) as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = fav;
+    }
+  }, [branding.documentTitle, branding.faviconUrl]);
 
   const handleNavigate = (path) => {
     navigate(path);
@@ -225,24 +255,57 @@ const MainLayout = () => {
             boxShadow: `0 10px 26px -18px ${alpha(theme.palette.primary.main, 0.8)}`,
           }}
         >
-          <Box
-            component="img"
-            src={productLogo}
-            alt="Qubiqon logo"
-            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+        <Box
+          component="img"
+          src={appSidebarLogo}
+          alt=""
+          sx={{ width: "100%", height: "100%", objectFit: "contain", p: 0.5 }}
+        />
         </Box>
-        <Box>
+        {branding.companyLogoUrl?.trim() ? (
+          <Box
+            sx={{
+              maxHeight: 36,
+              maxWidth: 120,
+              minWidth: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-start",
+            }}
+          >
+            <Box
+              component="img"
+              src={branding.companyLogoUrl.trim()}
+              alt=""
+              sx={{
+                maxHeight: 36,
+                maxWidth: 120,
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+              }}
+            />
+          </Box>
+        ) : null}
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          {branding.organizationName?.trim() ? (
+            <Typography
+              variant="caption"
+              sx={{ color: drawerMuted, display: "block", mb: 0.25 }}
+            >
+              {branding.organizationName.trim()}
+            </Typography>
+          ) : null}
           <Typography
             variant="subtitle1"
             fontWeight={700}
             lineHeight={1}
             sx={{ color: theme.palette.text.primary }}
           >
-            QHRMS
+            {branding.moduleName}
           </Typography>
           <Typography variant="caption" sx={{ color: drawerMuted }}>
-            Performance
+            {branding.moduleSubtitle}
           </Typography>
         </Box>
       </Box>
@@ -387,51 +450,59 @@ const MainLayout = () => {
 
       <Box
         sx={{
-          p: 2,
+          px: 2,
+          py: 1.25,
+          flexShrink: 0,
           borderTop: `1px solid ${alpha(theme.palette.grey[900], 0.08)}`,
-          background: `linear-gradient(0deg, ${alpha(theme.palette.grey[900], 0.02)} 0%, transparent 100%)`,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              fontSize: 14,
-              fontWeight: 700,
-              background: alpha(theme.palette.primary.main, 0.14),
+        <Link
+          href={branding.supportUrl || DEFAULT_ORG_BRANDING.supportUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          underline="hover"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            fontSize: 13,
+            fontWeight: 500,
+            color: theme.palette.primary.main,
+            "&:hover": {
               color: theme.palette.primary.dark,
-            }}
-          >
-            {user?.name?.[0] || "U"}
-          </Avatar>
-          <Box flex={1} minWidth={0}>
-            <Typography
-              variant="body2"
-              fontWeight={700}
-              noWrap
-              sx={{ color: theme.palette.text.primary }}
-            >
-              {user?.name}
-            </Typography>
-            <Typography variant="caption" noWrap sx={{ color: drawerMuted }}>
-              {user?.email}
-            </Typography>
-          </Box>
-          {isAdmin && (
-            <Chip
-              label="Admin"
-              size="small"
-              sx={{
-                fontWeight: 700,
-                color: theme.palette.primary.dark,
-                borderColor: alpha(theme.palette.primary.main, 0.35),
-                background: alpha(theme.palette.primary.main, 0.12),
-              }}
-              variant="outlined"
-            />
-          )}
-        </Box>
+            },
+          }}
+        >
+          Performance Review Guide
+          <OpenInNewIcon sx={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+        </Link>
+      </Box>
+
+      <Box
+        sx={{
+          px: 2,
+          py: 1.75,
+          flexShrink: 0,
+          borderTop: `1px solid ${alpha(theme.palette.grey[900], 0.08)}`,
+          background: `linear-gradient(0deg, ${alpha(theme.palette.grey[900], 0.02)} 0%, transparent 100%)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Box
+          component="img"
+          src={qubiqonFooterLogo}
+          alt="Qubiqon"
+          sx={{
+            maxWidth: "100%",
+            width: 160,
+            height: "auto",
+            objectFit: "contain",
+            display: "block",
+            opacity: 0.92,
+          }}
+        />
       </Box>
     </Box>
   );
@@ -661,13 +732,36 @@ const MainLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 3 },
           mt: `${MAIN_LAYOUT_APP_BAR_HEIGHT}px`,
           bgcolor: "transparent",
           minHeight: `calc(100vh - ${MAIN_LAYOUT_APP_BAR_HEIGHT}px)`,
+          display: "flex",
+          flexDirection: "column",
+          p: 0,
         }}
       >
-        <Outlet />
+        {branding.bannerUrl?.trim() ? (
+          <Box
+            sx={{
+              width: "100%",
+              minHeight: { xs: 80, sm: 112 },
+              maxHeight: { xs: 120, sm: 160 },
+              flexShrink: 0,
+              backgroundImage: `url(${branding.bannerUrl.trim()})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              borderBottom: `1px solid ${alpha(theme.palette.divider, 1)}`,
+            }}
+          />
+        ) : null}
+        <Box
+          sx={{
+            flexGrow: 1,
+            p: { xs: 2, sm: 3 },
+          }}
+        >
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

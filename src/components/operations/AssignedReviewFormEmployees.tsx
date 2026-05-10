@@ -11,7 +11,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Snackbar,
   Stack,
   IconButton,
   CircularProgress,
@@ -32,7 +31,7 @@ import EditCalendarOutlinedIcon from '@mui/icons-material/EditCalendarOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppButton from '../common/AppButton';
-import { AppCard, AppLoader, PageHeader } from '../common';
+import { AppCard, AppLoader, AppSnackbar, PageHeader } from '../common';
 import {
   getAssignmentEmployeesPaged,
   exportAssignmentEmployeesExcel,
@@ -841,23 +840,17 @@ const AssignedReviewFormEmployees = () => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={!!bulkSnack}
-        autoHideDuration={bulkSnack?.message?.includes('\n') ? 12000 : 6000}
         onClose={() => setBulkSnack(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={bulkSnack?.severity || 'info'}
-          variant="filled"
-          onClose={() => setBulkSnack(null)}
-          sx={{ width: '100%', maxWidth: 560 }}
-        >
+        severity={bulkSnack?.severity || 'info'}
+        autoHideDuration={bulkSnack?.message?.includes('\n') ? 12000 : 6000}
+        message={
           <Typography component="div" sx={{ whiteSpace: 'pre-wrap', fontSize: 'inherit' }}>
             {bulkSnack?.message}
           </Typography>
-        </Alert>
-      </Snackbar>
+        }
+      />
 
       <EditEvaluationDatesModal
         open={editDatesOpen}

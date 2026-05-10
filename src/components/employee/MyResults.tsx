@@ -47,7 +47,13 @@ const weightChipSx = {
   bgcolor: 'rgba(2, 136, 209, 0.12)',
   borderColor: 'info.main',
   color: 'info.dark',
-  '& .MuiChip-label': { px: 1.25 },
+  '& .MuiChip-label': { px: 1.25, whiteSpace: 'nowrap' },
+};
+
+/** AccordionSummary is a flex row; chips default to shrinking and squash label text */
+const accordionSummaryChipSx = {
+  flexShrink: 0,
+  '& .MuiChip-label': { whiteSpace: 'nowrap' },
 };
 
 function PublishedPhaseReadout({
@@ -332,7 +338,7 @@ function PublishedResultPanels({ result }) {
               return (
                 <Accordion
                   key={fa.rowId || fa.name}
-                  defaultExpanded
+                  defaultExpanded={false}
                   disableGutters
                   sx={{
                     mb: 1.5,
@@ -350,7 +356,7 @@ function PublishedResultPanels({ result }) {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', flex: 1, pr: 1 }}>
                       <Typography fontWeight={700}>{fa.name}</Typography>
                       {qs.length > 0 ? (
-                        <Chip label={`${qs.length} questions`} size="small" />
+                        <Chip label={`${qs.length} questions`} size="small" sx={accordionSummaryChipSx} />
                       ) : null}
                       {w ? (
                         <Chip label={w} size="small" variant="outlined" sx={weightChipSx} />
@@ -358,12 +364,22 @@ function PublishedResultPanels({ result }) {
                       <Chip
                         label={`Self (area): ${fa.selfScore} / ${scale}`}
                         size="small"
-                        sx={{ bgcolor: '#9c27b015', color: '#6a1b9a', fontWeight: 600 }}
+                        sx={{
+                          bgcolor: '#9c27b015',
+                          color: '#6a1b9a',
+                          fontWeight: 600,
+                          ...accordionSummaryChipSx,
+                        }}
                       />
                       <Chip
                         label={`Manager (area): ${fa.managerScore} / ${scale}`}
                         size="small"
-                        sx={{ bgcolor: '#1976d215', color: '#0d47a1', fontWeight: 600 }}
+                        sx={{
+                          bgcolor: '#1976d215',
+                          color: '#0d47a1',
+                          fontWeight: 600,
+                          ...accordionSummaryChipSx,
+                        }}
                       />
                     </Box>
                   </AccordionSummary>
@@ -501,7 +517,7 @@ const MyResults = () => {
     resetMyResultDetail,
     clearError,
   } = usePerformance();
-  const { financialYears, activeFinancialYear } = useFinancialYears();
+  const { financialYears, activeFinancialYear, financialYearsLoading } = useFinancialYears();
 
   const [financialYearId, setFinancialYearId] = useState('');
 
@@ -509,6 +525,12 @@ const MyResults = () => {
     () => [...(myPublishedReviews.pending || []), ...(myPublishedReviews.submitted || [])],
     [myPublishedReviews.pending, myPublishedReviews.submitted]
   );
+
+  const fyBootstrapPending =
+    financialYearsLoading || (financialYears.length > 0 && !financialYearId);
+  const listViewInitialLoading =
+    fyBootstrapPending ||
+    (Boolean(financialYearId) && myPublishedReviewsLoading && assignmentRows.length === 0);
 
   useEffect(() => {
     if (activeFinancialYear?.id && !financialYearId) {
@@ -562,7 +584,7 @@ const MyResults = () => {
     );
   }
 
-  if (myPublishedReviewsLoading) return <AppLoader message="Loading your assignments..." />;
+  if (listViewInitialLoading) return <AppLoader message="Loading your assignments..." />;
 
   return (
     <Box>
@@ -598,7 +620,6 @@ const MyResults = () => {
                   <TableCell>Review form</TableCell>
                   <TableCell>Period</TableCell>
                   <TableCell>Your status</TableCell>
-                  <TableCell>Submitted</TableCell>
                   <TableCell>Manager</TableCell>
                   <TableCell>HR</TableCell>
                   <TableCell align="right">View</TableCell>
@@ -617,11 +638,6 @@ const MyResults = () => {
                     </TableCell>
                     <TableCell>
                       <TableDotStatus label={row.status} />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                        {row.submittedAt ? formatDate(row.submittedAt) : '-'}
-                      </Typography>
                     </TableCell>
                     <TableCell>
                       <TableDotStatus label={row.managerStatus || 'Pending'} />

@@ -22,11 +22,11 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Snackbar,
     IconButton,
     Rating,
     FormHelperText,
   } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
@@ -35,7 +35,7 @@ import usePerformance from '../../hooks/usePerformance';
 import usePerformanceApi from '../../hooks/usePerformanceApi';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
-import { AppCard } from '../../components/common';
+import { AppCard, AppSnackbar } from '../../components/common';
 import { AppLoader, PageHeader } from '../../components/common/index.jsx';
 import {
   calculateCompletionPercentage,
@@ -44,7 +44,7 @@ import {
   isAssignmentPhaseSubmitted,
   getApiErrorMessage,
 } from '../../utils/helpers';
-import { normalizeQuestionTextToHtml, sanitizeRichTextHtml } from '../../utils/richText';
+import { normalizeQuestionTextToHtml, richTextHtmlToPlainText, sanitizeRichTextHtml } from '../../utils/richText';
 import { validateHrSubmitInput } from '../../utils/performanceSubmission';
 import {
   saveEvaluation,
@@ -56,7 +56,7 @@ import { clearError as clearPerformanceError } from '../../app/state/slices/perf
 import EvaluationQuestionCard from './self-evaluation/EvaluationQuestionCard';
 
 const SELF_EVAL_MIN_ANSWER_LEN = 50;
-const getTextLen = (value) => String(value || '').trim().length;
+const getTextLen = (value) => richTextHtmlToPlainText(String(value ?? '')).length;
 
 const SelfEvaluationForm = () => {
   const { reviewId } = useParams();
@@ -196,7 +196,7 @@ const SelfEvaluationForm = () => {
   const hrRatingScale =
     Number.isFinite(Number(review?.ratingScale)) && Number(review?.ratingScale) > 0
       ? Number(review.ratingScale)
-      : 10;
+      : 5;
   const selfAnsweredCountMinLen = allQuestions.filter((q) => {
     const a = answers[q.id] || {};
     return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
@@ -267,6 +267,20 @@ const weightageChipSx = {
   },
 };
 
+/** Progress summary row chips: tinted fills; `height: auto` avoids MUI small chip’s fixed 24px clipping cramped label type. */
+const progressCardChipShell = (theme) => ({
+  height: 'auto',
+  fontWeight: 500,
+  borderRadius: 2,
+  '& .MuiChip-label': {
+    px: 1.25,
+    py: 0.5,
+    lineHeight: 1.5,
+    letterSpacing: '0.01em',
+  },
+  boxShadow: `0 1px 0 ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.2 : 0.04)}`,
+});
+
   const selfFieldsReadOnly =
     !isManagerMode && !isHrMode && (selfPhaseComplete || phaseConflict.self);
 
@@ -283,7 +297,9 @@ const weightageChipSx = {
     Number.isFinite(Number(review.hrOverallScore));
   const hasHrOverallComments =
     review?.hrComments != null && String(review.hrComments).trim() !== '';
-  const showHrOverallSummary = (hasHrOverall || hasHrOverallComments) && (review.allReviewsSubmitted || hrResultsVisible || isHrMode);
+  /** Employees see HR overall only after publication; managers/HR see based on assignment data. */
+  const showHrOverallSummary =
+    (hasHrOverall || hasHrOverallComments) && (isHrMode || isManagerMode || hrResultsVisible);
 
   const reloadAssignment = useCallback(async () => {
     if (!reviewId) return;
@@ -549,7 +565,13 @@ const weightageChipSx = {
     );
   }
 
-  const pageTitle = isHrMode ? 'HR Review' : isManagerMode ? 'Manager Evaluation' : 'Self Evaluation';
+  const pageTitle = isHrMode
+    ? 'HR Review'
+    : isManagerMode
+      ? 'Manager Evaluation'
+      : selfFieldsReadOnly
+        ? 'My submission'
+        : 'Self Evaluation';
 
   const subtitleExtra =
     `${review.formName}${isManagerMode ? ' - Provide your assessment for this team member' : ''}${
@@ -575,7 +597,11 @@ const weightageChipSx = {
             {isHrMode
               ? `Progress: ${hrCompletionPct === 100 ? 'Overall rating provided' : 'Overall rating pending'}`
               : `Progress: ${
-                  isManagerMode ? Object.keys(answers).filter((k) => answers[k]?.rating && answers[k]?.comment?.trim()).length : selfAnsweredCountMinLen
+                  isManagerMode
+                    ? Object.keys(answers).filter(
+                        (k) => answers[k]?.rating && getTextLen(answers[k]?.comment) > 0,
+                      ).length
+                    : selfAnsweredCountMinLen
                 } of ${allQuestions.length} questions answered`}
           </Typography>
           <Stack direction="row" spacing={1}>
@@ -590,32 +616,87 @@ const weightageChipSx = {
                         ? 'Save failed'
                         : 'Draft'
                 }
-                color={
-                  managerDraftSaveStatus === 'saved'
-                    ? 'success'
-                    : managerDraftSaveStatus === 'failed'
-                      ? 'error'
-                      : 'default'
-                }
                 size="small"
-                variant="outlined"
+                variant="filled"
+                sx={(theme) => ({
+                  ...progressCardChipShell(theme),
+                  ...(managerDraftSaveStatus === 'saved'
+                    ? {
+                        bgcolor: alpha(theme.palette.success.main, 0.16),
+                        color: theme.palette.success.dark,
+                        border: '1px solid',
+                        borderColor: alpha(theme.palette.success.main, 0.42),
+                      }
+                    : managerDraftSaveStatus === 'failed'
+                      ? {
+                          bgcolor: alpha(theme.palette.error.main, 0.12),
+                          color: theme.palette.error.dark,
+                          border: '1px solid',
+                          borderColor: alpha(theme.palette.error.main, 0.4),
+                        }
+                      : managerDraftSaveStatus === 'saving'
+                        ? {
+                            bgcolor: alpha(theme.palette.info.main, 0.14),
+                            color: theme.palette.info.dark,
+                            border: '1px solid',
+                            borderColor: alpha(theme.palette.info.main, 0.38),
+                          }
+                        : {
+                            bgcolor: alpha(theme.palette.grey[500], 0.12),
+                            color: theme.palette.text.secondary,
+                            border: '1px solid',
+                            borderColor: alpha(theme.palette.grey[500], theme.palette.mode === 'dark' ? 0.35 : 0.28),
+                          }),
+                })}
               />
             )}
-            {hasOverallRating && (
+            {hasOverallRating && (isHrMode || isManagerMode || hrResultsVisible) && (
               <Chip
                 label={`Overall rating: ${overallRatingNum.toFixed(2)}`}
-                color="secondary"
                 size="small"
-                variant="outlined"
+                variant="filled"
+                sx={(theme) => ({
+                  ...progressCardChipShell(theme),
+                  bgcolor: alpha(theme.palette.secondary.main, 0.15),
+                  color: theme.palette.secondary.dark,
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.secondary.main, 0.4),
+                })}
               />
             )}
             <Chip
               label={`${effectiveCompletionPct}% complete`}
-              color={effectiveCompletionPct === 100 ? 'success' : 'primary'}
               size="small"
-              variant="outlined"
+              variant="filled"
+              sx={(theme) => ({
+                ...progressCardChipShell(theme),
+                ...(effectiveCompletionPct === 100
+                  ? {
+                      bgcolor: alpha(theme.palette.success.main, 0.16),
+                      color: theme.palette.success.dark,
+                      border: '1px solid',
+                      borderColor: alpha(theme.palette.success.main, 0.42),
+                    }
+                  : {
+                      bgcolor: alpha(theme.palette.primary.main, 0.12),
+                      color: theme.palette.primary.dark,
+                      border: '1px solid',
+                      borderColor: alpha(theme.palette.primary.main, 0.38),
+                    }),
+              })}
             />
-            <Chip label={`Rating scale: ${review.ratingScale}-point`} size="small" variant="outlined" />
+            <Chip
+              label={`Rating scale: ${review.ratingScale}-point`}
+              size="small"
+              variant="filled"
+              sx={(theme) => ({
+                ...progressCardChipShell(theme),
+                bgcolor: alpha(theme.palette.primary.main, 0.06),
+                color: theme.palette.text.secondary,
+                border: '1px solid',
+                borderColor: alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.9 : 1),
+              })}
+            />
           </Stack>
         </Box>
         <LinearProgress
@@ -708,6 +789,24 @@ const weightageChipSx = {
             HR Overall
           </Typography>
           <Stack spacing={1}>
+            {hasHrOverall && (
+              <Rating
+                name="hr-overall-summary-rating"
+                value={Math.min(
+                  hrRatingScale,
+                  Math.max(0, Math.round(Number(review.hrOverallScore) * 10) / 10),
+                )}
+                max={hrRatingScale}
+                readOnly
+                precision={0.1}
+                size="large"
+                sx={{
+                  '& .MuiRating-iconFilled': {
+                    filter: 'drop-shadow(0 2px 4px rgba(79, 70, 229, 0.25))',
+                  },
+                }}
+              />
+            )}
             <Typography variant="body2">
               Score:{' '}
               <strong>
@@ -779,7 +878,7 @@ const weightageChipSx = {
       )}
       {review.sections.map((section, sIdx) => {
         const sectionAnswered = section.questions.filter(
-          (q) => answers[q.id]?.rating && answers[q.id]?.comment?.trim()
+          (q) => answers[q.id]?.rating && getTextLen(answers[q.id]?.comment) > 0,
         ).length;
         const sectionWeight = formatWeightage(section.weightage);
 
@@ -827,7 +926,7 @@ const weightageChipSx = {
                 </Box>
                 {sectionWeight != null && (
                   <Chip
-                    label={`Weightage: ${sectionWeight}`}
+                    label={`Weightage: ${sectionWeight} x`}
                     size="small"
                     variant="outlined"
                     sx={weightageChipSx}
@@ -909,7 +1008,7 @@ const weightageChipSx = {
           disabled={submitDisabled}
           loading={isSaving}
         >
-          {isHrMode ? 'Submit HR Review' : isManagerMode ? 'Submit Manager Evaluation' : 'Submit Self-Evaluation'}
+          {isHrMode ? 'Submit HR Review' : isManagerMode ? 'Submit Manager Evaluation' : 'Submit Self Evaluation'}
         </AppButton>
       </Box>
 
@@ -919,15 +1018,15 @@ const weightageChipSx = {
           <Typography variant="body2">
             {isHrMode ? (
               <>
-                Submit the <strong>HR review</strong> for this assignment? This action cannot be undone.
+                Submit the <strong>HR Review</strong> for this assignment? This action cannot be undone.
               </>
             ) : isManagerMode ? (
               <>
-                Are you sure you want to submit your <strong>manager evaluation</strong>? This action cannot be undone.
+                Are you sure you want to submit your <strong>Manager Evaluation</strong>? This action cannot be undone.
               </>
             ) : (
               <>
-                Are you sure you want to submit your <strong>self-evaluation</strong>? Once submitted, you will not be
+                Are you sure you want to submit your <strong>Self Evaluation</strong>? Once submitted, you will not be
                 able to make changes.
               </>
             )}
@@ -943,30 +1042,19 @@ const weightageChipSx = {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={!!successMessage}
-        autoHideDuration={4000}
         onClose={clearSuccess}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="success" onClose={clearSuccess}>
-          {successMessage}
-        </Alert>
-      </Snackbar>
+        message={successMessage}
+      />
 
-      <Snackbar
+      <AppSnackbar
         open={!!mutationToast}
-        autoHideDuration={5000}
         onClose={() => setMutationToast(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={mutationToast?.severity || 'info'}
-          onClose={() => setMutationToast(null)}
-        >
-          {mutationToast?.message}
-        </Alert>
-      </Snackbar>
+        message={mutationToast?.message}
+        severity={mutationToast?.severity || 'info'}
+        autoHideDuration={5000}
+      />
     </Box>
   );
 };

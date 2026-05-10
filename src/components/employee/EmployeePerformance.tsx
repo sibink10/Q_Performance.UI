@@ -4,7 +4,7 @@
 //   - Submitted Reviews
 //   - Others' Reviews (managed assignments - GET /performance/managed-assignments)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -35,11 +35,14 @@ import {
   Avatar,
   InputAdornment,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PeopleIcon from '@mui/icons-material/People';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import usePerformance from '../../hooks/usePerformance';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
@@ -77,8 +80,76 @@ const othersManagedReviewAction = (
       path: `/performance/review/${emp.reviewId}?mode=hr&employeeId=${emp.id}`,
     };
   }
-  return { disabled: true as const, label: 'Completed' as const, path: null };
+  const viewPath = isAdmin
+    ? `/performance/review/${emp.reviewId}?mode=hr&employeeId=${emp.id}`
+    : `/performance/review/${emp.reviewId}?mode=manager&employeeId=${emp.id}`;
+  return { disabled: false as const, label: 'View' as const, path: viewPath };
 };
+
+const managedScoreLabel = (value: number | null | undefined): string | null => {
+  if (value == null) return null;
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+};
+
+/** Compact green rating pill; renders nothing when score is absent. */
+const ManagedRatingChip = ({ score }: { score?: number | null }) => {
+  const theme = useTheme();
+  const label = managedScoreLabel(score);
+  if (!label) return null;
+  const green = theme.palette.success.main;
+  return (
+    <Chip
+      label={
+        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.35 }}>
+          {label}
+          <StarRoundedIcon sx={{ fontSize: '0.7rem', color: 'inherit', flexShrink: 0 }} />
+        </Box>
+      }
+      size="small"
+      sx={{
+        height: 19,
+        minWidth: 32,
+        fontWeight: 700,
+        fontSize: '0.6875rem',
+        lineHeight: 1,
+        bgcolor: alpha(green, 0.14),
+        color: theme.palette.success.dark,
+        border: `1px solid ${alpha(green, 0.32)}`,
+        boxShadow: 'none',
+        '& .MuiChip-label': { px: 0.65, py: 0, lineHeight: 1.15 },
+      }}
+    />
+  );
+};
+
+/** Status row and score sit on one horizontal line (parallel), email below. */
+const ManagedPhaseStatusWithScore = ({
+  statusLabel,
+  score,
+  subline,
+}: {
+  statusLabel: string;
+  score?: number | null;
+  subline?: ReactNode;
+}) => (
+  <Stack spacing={0.5} alignItems="flex-start">
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 0.75,
+        flexWrap: 'nowrap',
+      }}
+    >
+      <TableDotStatus label={statusLabel} />
+      <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        <ManagedRatingChip score={score} />
+      </Box>
+    </Box>
+    {subline}
+  </Stack>
+);
 
 // ── Review Card ───────────────────────────────────────────────────────────────
 const ReviewCard = ({ review, onStart }) => {
@@ -176,13 +247,12 @@ const EmployeePerformance = () => {
     loadManagerTeam,
     loadReviewForms,
   } = usePerformance();
-  const { financialYears, activeFinancialYear } = useFinancialYears();
+  const { financialYears, activeFinancialYear, financialYearsLoading } = useFinancialYears();
   const { isAdmin } = useAuth();
 
   const hasMyReviews =
     (Array.isArray(myReviews?.pending) && myReviews.pending.length > 0) ||
     (Array.isArray(myReviews?.submitted) && myReviews.submitted.length > 0);
-  const pageLoading = myReviewsLoading && !hasMyReviews;
 
   const [tab, setTab] = useState(0);
   const [financialYearId, setFinancialYearId] = useState('');
@@ -191,6 +261,12 @@ const EmployeePerformance = () => {
   const [othersSearchInput, setOthersSearchInput] = useState('');
   const [debouncedOthersSearch, setDebouncedOthersSearch] = useState('');
   const [othersReviewFormId, setOthersReviewFormId] = useState('');
+
+  /** Avoid empty UI before FY list + default year are ready, then avoid empty → full-screen loader when fetch starts. */
+  const fyBootstrapPending =
+    financialYearsLoading || (financialYears.length > 0 && !financialYearId);
+  const pageLoading =
+    fyBootstrapPending || (Boolean(financialYearId) && myReviewsLoading && !hasMyReviews);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedOthersSearch(othersSearchInput.trim()), 400);
@@ -408,33 +484,58 @@ const EmployeePerformance = () => {
                       <TableCell>Self eval</TableCell>
                       <TableCell>Manager</TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>HR</TableCell>
+                      <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {myReviews.submitted.map((r) => (
-                      <TableRow key={r.id} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={700} sx={{ color: 'text.primary' }}>
-                            {r.formName}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                            {formatDate(r.startDate)} - {formatDate(r.endDate)}
-                          </Typography>
-                        </TableCell>
-                       
-                        <TableCell>
-                          <TableDotStatus label="Submitted" tone="positive" />
-                        </TableCell>
-                        <TableCell>
-                          <TableDotStatus label={r.managerStatus || 'Pending'} />
-                        </TableCell>
-                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                          <TableDotStatus label={r.hrStatus || 'Pending'} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {myReviews.submitted.map((r) => {
+                      const assignmentId = r.assignmentId || r.id;
+                      return (
+                        <TableRow key={r.id} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={700} sx={{ color: 'text.primary' }}>
+                              {r.formName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                              {formatDate(r.startDate)} - {formatDate(r.endDate)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <TableDotStatus label="Submitted" tone="positive" />
+                          </TableCell>
+                          <TableCell>
+                            <Stack spacing={0.5} alignItems="flex-start">
+                              <TableDotStatus label={r.managerStatus || 'Pending'} />
+                              {r.managerEmail ? (
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}
+                                  noWrap
+                                  title={r.managerEmail}
+                                >
+                                  {r.managerEmail}
+                                </Typography>
+                              ) : null}
+                            </Stack>
+                          </TableCell>
+                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                            <TableDotStatus label={r.hrStatus || 'Pending'} />
+                          </TableCell>
+                          <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                            <AppButton
+                              size="small"
+                              variant="outlined"
+                              startIcon={<VisibilityOutlinedIcon sx={{ fontSize: 18 }} />}
+                              onClick={() => navigate(`/performance/review/${assignmentId}`)}
+                            >
+                              View
+                            </AppButton>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -520,6 +621,7 @@ const EmployeePerformance = () => {
                         <TableCell>Self eval</TableCell>
                         <TableCell>Manager review</TableCell>
                         <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>HR review</TableCell>
+                        <TableCell align="center">Overall rating</TableCell>
                         <TableCell align="right">Action</TableCell>
                       </TableRow>
                     </TableHead>
@@ -545,9 +647,16 @@ const EmployeePerformance = () => {
                                   <Typography variant="body2" fontWeight={700} noWrap sx={{ color: 'text.primary' }}>
                                     {emp.name}
                                   </Typography>
-                                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }} noWrap>
-                                    {emp.designation || '-'}
-                                  </Typography>
+                                  {emp.selfEmail ? (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}
+                                      noWrap
+                                      title={emp.selfEmail}
+                                    >
+                                      {emp.selfEmail}
+                                    </Typography>
+                                  ) : null}
                                 </Box>
                               </Stack>
                             </TableCell>
@@ -557,17 +666,47 @@ const EmployeePerformance = () => {
                               </Typography>
                             </TableCell>
                             <TableCell>
-                              <TableDotStatus label={emp.selfEvalStatus} />
+                              <ManagedPhaseStatusWithScore
+                                statusLabel={emp.selfEvalStatus}
+                                score={emp.selfOverallScore ?? null}
+                              />
                             </TableCell>
                             <TableCell>
-                              <TableDotStatus label={emp.managerReviewStatus || 'Pending'} />
+                              <ManagedPhaseStatusWithScore
+                                statusLabel={emp.managerReviewStatus || 'Pending'}
+                                score={emp.managerOverallScore ?? null}
+                                subline={
+                                  emp.managerEmail ? (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}
+                                      noWrap
+                                      title={emp.managerEmail}
+                                    >
+                                      {emp.managerEmail}
+                                    </Typography>
+                                  ) : undefined
+                                }
+                              />
                             </TableCell>
                             <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                              <TableDotStatus label={emp.hrReviewStatus || 'Pending'} />
+                              <ManagedPhaseStatusWithScore
+                                statusLabel={emp.hrReviewStatus || 'Pending'}
+                                score={emp.hrOverallScore ?? null}
+                              />
+                            </TableCell>
+                            <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <ManagedRatingChip score={emp.overallRating ?? null} />
+                              </Box>
                             </TableCell>
                             <TableCell align="right">
                               <AppButton
-                                startIcon={null}
+                                startIcon={
+                                  rowAction.label === 'View' ? (
+                                    <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
+                                  ) : null
+                                }
                                 size="small"
                                 variant="outlined"
                                 disabled={rowAction.disabled}

@@ -13,7 +13,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -33,7 +32,7 @@ import {
 } from '../../services/usersService';
 import { formatDate, getApiErrorMessage } from '../../utils/helpers';
 import AppButton from '../common/AppButton';
-import { AppLoader, AppCard, ConfirmDialog, StatusChip, PageHeader } from '../common';
+import { AppLoader, AppCard, AppSnackbar, ConfirmDialog, StatusChip, PageHeader } from '../common';
 import useFinancialYears from '../../hooks/useFinancialYears';
 import SyncIcon from '@mui/icons-material/Sync';
 
@@ -584,16 +583,13 @@ const AssignReviewForm = () => {
         </Stack>
       </AppCard>
 
-      <Snackbar
+      <AppSnackbar
         open={!!successMessage}
-        autoHideDuration={4000}
         onClose={clearSuccess}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="success" onClose={clearSuccess}>
-          {successMessage}
-        </Alert>
-      </Snackbar>
+        message={successMessage}
+        actionLabel="Go to Review Forms"
+        actionTo="/config/performance/review-forms"
+      />
 
       <ConfirmDialog
         open={!!pendingRemoveUser}

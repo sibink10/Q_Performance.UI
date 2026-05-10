@@ -8,7 +8,7 @@
 //   - Evaluations
 //   - Results
 
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 import {
   fetchAppraisalConfig,
   saveAppraisalConfig,
@@ -290,7 +290,8 @@ const performanceSlice = createSlice({
       .addCase(assignReviewForm.rejected, handleRejected)
       .addCase(assignReviewForm.fulfilled, (state) => {
         state.isSaving = false;
-        state.successMessage = 'Review form assigned successfully. Employees have been notified.';
+        state.successMessage =
+          'Review form assigned successfully. To publish, go to the Review Forms page.';
       });
 
     // ── Employee Reviews (dedicated flags: parallel manager fetch + no global isLoading races)
@@ -387,9 +388,8 @@ const performanceSlice = createSlice({
         state.managerTeamTotalCount =
           typeof payload.totalCount === 'number' ? payload.totalCount : (payload.rows || []).length;
       })
-      .addCase(fetchManagerTeam.rejected, (state, action) => {
+      .addCase(fetchManagerTeam.rejected, (state) => {
         state.managerTeamLoading = false;
-        state.error = action.payload || state.error || 'Something went wrong';
       });
 
     builder
@@ -435,10 +435,9 @@ export const selectAppraisalConfig = (state) => state.performance.appraisalConfi
 export const selectFocusAreas = (state) =>
   Array.isArray(state.performance.focusAreas) ? state.performance.focusAreas : [];
 export const selectFocusAreasPagination = (state) => state.performance.focusAreasPagination;
-export const selectActiveFocusAreas = (state) =>
-  (Array.isArray(state.performance.focusAreas) ? state.performance.focusAreas : []).filter(
-    (f) => f.status === 'Active'
-  );
+export const selectActiveFocusAreas = createSelector([selectFocusAreas], (focusAreas) =>
+  focusAreas.filter((f) => f.status === 'Active')
+);
 export const selectReviewForms = (state) =>
   Array.isArray(state.performance.reviewForms) ? state.performance.reviewForms : [];
 export const selectDashboardEmployees = (state) => state.performance.dashboard.employees;

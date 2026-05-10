@@ -6,8 +6,7 @@ import { useEffect, useState } from 'react';
 import {
   Box, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, Chip,
-  Alert, Snackbar, TextField, FormControl, InputLabel,
-  Select, MenuItem, Stack, Tooltip, TablePagination,
+  Alert, Stack, Tooltip, TablePagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -15,10 +14,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import usePerformance from '../../hooks/usePerformance';
 import AppButton from '../../components/common/AppButton';
-import { AppCard, AppModal, AppLoader, EmptyState, PageHeader } from '../../components/common/index';
-import { FOCUS_AREA_SUGGESTIONS } from '../../utils/constants';
-
-const DEFAULT_FORM = { name: '', description: '', status: 'Active' };
+import { AppCard, AppLoader, AppSnackbar, EmptyState, PageHeader } from '../../components/common/index';
+import FocusAreaFormModal, { DEFAULT_FOCUS_AREA_FORM } from './FocusAreaFormModal';
 
 const FocusAreas = () => {
   const {
@@ -28,8 +25,7 @@ const FocusAreas = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(DEFAULT_FORM);
-  const [formError, setFormError] = useState('');
+  const [modalInitialValues, setModalInitialValues] = useState(DEFAULT_FOCUS_AREA_FORM);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
@@ -57,46 +53,31 @@ const FocusAreas = () => {
 
   const openAdd = () => {
     setEditingId(null);
-    setForm(DEFAULT_FORM);
-    setFormError('');
+    setModalInitialValues({ ...DEFAULT_FOCUS_AREA_FORM });
     setModalOpen(true);
   };
 
   const openEdit = (fa) => {
     setEditingId(fa.id);
-    setForm({ name: fa.name, description: fa.description || '', status: fa.status });
-    setFormError('');
+    setModalInitialValues({
+      name: fa.name,
+      description: fa.description || '',
+      status: fa.status,
+    });
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      setFormError('Focus area name is required');
-      return;
-    }
-    // Check duplicate name (case-insensitive)
-    const duplicate = focusAreas.find(
-      (f) => f.name.toLowerCase() === form.name.toLowerCase() && f.id !== editingId
-    );
-    if (duplicate) {
-      setFormError('A focus area with this name already exists');
-      return;
-    }
-
+  const handleFocusAreaModalSubmit = async (payload) => {
     let result;
     if (editingId) {
-      result = await editFocusArea(editingId, form);
+      result = await editFocusArea(editingId, payload);
     } else {
-      result = await addFocusArea(form);
-      // Refresh from server after add so latest focus areas are shown.
+      result = await addFocusArea(payload);
       if (result?.meta?.requestStatus === 'fulfilled') {
         await fetchFocusAreasPage(page, rowsPerPage);
       }
     }
-
-    if (result?.meta?.requestStatus === 'fulfilled') {
-      setModalOpen(false);
-    }
+    return result?.meta?.requestStatus === 'fulfilled';
   };
 
   const toggleStatus = async (fa) => {
@@ -209,80 +190,17 @@ const FocusAreas = () => {
         />
       </AppCard>
 
-      {/* Add/Edit Modal */}
-      <AppModal
+      <FocusAreaFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingId ? 'Edit Focus Area' : 'Add Focus Area'}
-        maxWidth="sm"
-        actions={
-          <>
-            <AppButton variant="outlined" onClick={() => setModalOpen(false)}>Cancel</AppButton>
-            <AppButton loading={isSaving} onClick={handleSave}>
-              {editingId ? 'Save Changes' : 'Add Focus Area'}
-            </AppButton>
-          </>
-        }
-      >
-        <Stack spacing={2.5} sx={{ pt: 1 }}>
-          {formError && <Alert severity="error">{formError}</Alert>}
+        editingId={editingId}
+        initialValues={modalInitialValues}
+        focusAreas={focusAreas}
+        isSaving={isSaving}
+        onSubmit={handleFocusAreaModalSubmit}
+      />
 
-          {/* Name with suggestions */}
-          <TextField
-            label="Focus Area Name *"
-            value={form.name}
-            onChange={(e) => { setForm((p) => ({ ...p, name: e.target.value })); setFormError(''); }}
-            fullWidth size="small"
-            placeholder="e.g., Technical Skills"
-          />
-
-          {/* Quick suggestion chips */}
-          {!editingId && (
-            <Box>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Quick suggestions:
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                {FOCUS_AREA_SUGGESTIONS.filter(
-                  (s) => !focusAreas.find((f) => f.name === s)
-                ).map((s) => (
-                  <Chip
-                    key={s}
-                    label={s}
-                    size="small"
-                    variant="outlined"
-                    clickable
-                    onClick={() => setForm((p) => ({ ...p, name: s }))}
-                  />
-                ))}
-              </Box>
-            </Box>
-          )}
-
-          <TextField
-            label="Description (Optional)"
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            fullWidth size="small" multiline rows={2}
-            placeholder="Describe what this focus area measures..."
-            helperText="This description is shown to employees during self-evaluation"
-          />
-
-          <FormControl fullWidth size="small">
-            <InputLabel>Status</InputLabel>
-            <Select value={form.status} label="Status"
-              onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-              <MenuItem value="Active">Active</MenuItem>
-              <MenuItem value="Inactive">Inactive</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-      </AppModal>
-
-      <Snackbar open={!!successMessage} autoHideDuration={4000} onClose={clearSuccess}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="success" onClose={clearSuccess}>{successMessage}</Alert>
-      </Snackbar>
+      <AppSnackbar open={!!successMessage} onClose={clearSuccess} message={successMessage} />
     </Box>
   );
 };

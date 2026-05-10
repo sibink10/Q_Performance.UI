@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, Stack,
-  Tooltip, Alert, Snackbar, Pagination, FormControl, InputLabel,
+  Tooltip, Alert, Pagination, FormControl, InputLabel,
   Select, MenuItem, Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -15,7 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import usePerformance from '../../../hooks/usePerformance';
 import AppButton from '../../common/AppButton';
-import { AppCard, AppLoader, ConfirmDialog, EmptyState, PageHeader } from '../../common/index';
+import { AppCard, AppLoader, AppSnackbar, ConfirmDialog, EmptyState, PageHeader } from '../../common/index';
 import {
   getReviewFormQuestionCount,
   getReviewFormSectionCount,
@@ -222,10 +222,7 @@ const ReviewFormsList = () => {
         )}
       </AppCard>
 
-      <Snackbar open={!!successMessage} autoHideDuration={4000} onClose={clearSuccess}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="success" onClose={clearSuccess}>{successMessage}</Alert>
-      </Snackbar>
+      <AppSnackbar open={!!successMessage} onClose={clearSuccess} message={successMessage} />
 
       <ConfirmDialog
         open={!!deleteTarget}

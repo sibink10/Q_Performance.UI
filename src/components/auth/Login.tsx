@@ -10,7 +10,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
 import AppCard from '../../components/common/AppCard';
-import productLogo from '../../assets/qubiqon_logo.jpg';
+import appLogo from '../../assets/logo.png';
 
 const Login = () => {
   const theme = useTheme();
@@ -56,7 +56,7 @@ const Login = () => {
               boxShadow: `0 14px 34px -24px ${alpha(theme.palette.primary.main, 0.9)}`,
             }}
           >
-            <Box component="img" src={productLogo} alt="Qubiqon logo" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Box component="img" src={appLogo} alt="" sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 0.5 }} />
           </Box>
           <Box>
             <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.03em' }}>

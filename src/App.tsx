@@ -5,17 +5,20 @@
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ThemeProvider, CssBaseline, Box, Alert } from '@mui/material';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { MsalProvider, useMsal } from '@azure/msal-react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import store from './app/state';
 import AppRoutes from './routes/AppRoutes';
 import { msalInstance, isMsalConfigured, loginRequest, toAuthUser } from './services/msalConfig';
 import { registerNavigationService } from './services/navigationService';
-import { setAuthFromSso, clearAuth, setAuthLoading } from './app/state/slices/authSlice';
-import { theme } from './types/them';
+import { setAuthFromSso, clearAuth, setAuthLoading, selectIsAuthenticated } from './app/state/slices/authSlice';
+import { fetchOrgBranding } from './app/state/slices/orgBrandingSlice';
+import { DEFAULT_ORG_BRANDING } from './utils/orgBrandingDefaults';
+import { createAppTheme } from './types/them';
+import { selectOrgBranding } from './app/state/slices/orgBrandingSlice';
 
 let authBootstrapStarted = false;
 
@@ -24,6 +27,8 @@ const AuthBootstrap = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const hasInitialized = useRef(authBootstrapStarted);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const token = useSelector((s) => s.auth.token);
 
   useEffect(() => {
     registerNavigationService({
@@ -104,13 +109,31 @@ const AuthBootstrap = () => {
     syncAuthState();
   }, [dispatch, instance]);
 
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      dispatch(fetchOrgBranding());
+    } else if (!isAuthenticated) {
+      document.title = DEFAULT_ORG_BRANDING.documentTitle;
+    }
+  }, [dispatch, isAuthenticated, token]);
+
   return <AppRoutes />;
+};
+
+const AppThemeShell = ({ children }) => {
+  const primary = useSelector(selectOrgBranding).themePrimaryColor;
+  const dynamicTheme = useMemo(() => createAppTheme(primary), [primary]);
+  return (
+    <ThemeProvider theme={dynamicTheme}>
+      <CssBaseline />
+      {children}
+    </ThemeProvider>
+  );
 };
 
 const App = () => (
   <Provider store={store}>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <AppThemeShell>
       {!isMsalConfigured || !msalInstance ? (
         <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 2 }}>
           <Alert severity="error">
@@ -126,7 +149,7 @@ const App = () => (
           </LocalizationProvider>
         </MsalProvider>
       )}
-    </ThemeProvider>
+    </AppThemeShell>
   </Provider>
 );
 

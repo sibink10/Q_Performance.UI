@@ -7,7 +7,7 @@ import {
   Box, Typography, TextField, Grid, Stack, Divider,
   Accordion, AccordionSummary, AccordionDetails, IconButton,
   FormControl, InputLabel, Select, MenuItem, Alert,
-  Snackbar, Chip, Tooltip, CircularProgress, Fab,
+  Chip, Tooltip, CircularProgress, Fab,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
@@ -15,10 +15,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { alpha } from '@mui/material/styles';
 import usePerformance from '../../../hooks/usePerformance';
 import usePerformanceApi from '../../../hooks/usePerformanceApi';
 import AppButton from '../../common/AppButton';
-import { AppCard, AppLoader, ConfirmDialog, PageHeader, RichTextEditor } from '../../common/index';
+import { AppCard, AppLoader, AppSnackbar, ConfirmDialog, PageHeader, RichTextEditor } from '../../common/index';
+import FocusAreaFormModal, { DEFAULT_FOCUS_AREA_FORM } from '../FocusAreaFormModal';
 import { WEIGHTAGE_OPTIONS } from '../../../utils/constants';
 import { normalizeQuestionTextToHtml, richTextHtmlToPlainText } from '../../../utils/richText';
 
@@ -46,8 +48,8 @@ const ReviewFormEditor = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
   const {
-    activeFocusAreas, focusAreasPagination, isSaving, isLoading, error, successMessage,
-    loadFocusAreas, createReviewForm, editReviewForm, clearSuccess,
+    activeFocusAreas, focusAreas, focusAreasPagination, isSaving, isLoading, error, successMessage,
+    loadFocusAreas, addFocusArea, createReviewForm, editReviewForm, clearSuccess,
   } = usePerformance();
   const { getReviewFormById } = usePerformanceApi();
 
@@ -58,12 +60,11 @@ const ReviewFormEditor = () => {
   });
   const [errors, setErrors] = useState({});
   const [hydrating, setHydrating] = useState(isEditMode);
-  /** When set, navigate to list after the success snackbar closes (so the snackbar stays visible first). */
-  const [pendingNavAfterSnack, setPendingNavAfterSnack] = useState(false);
   const [loadingMoreFocusAreas, setLoadingMoreFocusAreas] = useState(false);
   const [questionDelete, setQuestionDelete] = useState(null);
   const [pendingScrollFocusAreaId, setPendingScrollFocusAreaId] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [focusAreaModalOpen, setFocusAreaModalOpen] = useState(false);
   const sectionRefs = useRef({});
 
   useEffect(() => {
@@ -147,6 +148,32 @@ const ReviewFormEditor = () => {
     } else {
       setPendingScrollFocusAreaId(fa.id);
     }
+  };
+
+  const handleFocusAreaModalSubmit = async (values) => {
+    const result = await addFocusArea(values);
+    if (result?.meta?.requestStatus !== 'fulfilled') return false;
+    const created = result.payload;
+    const pageSize =
+      Number(focusAreasPagination?.pageSize) || REVIEW_FORM_FOCUS_AREAS_PAGE_SIZE;
+    try {
+      await loadFocusAreas({ page: 1, pageSize }).unwrap();
+    } catch {
+      // Create already succeeded; refresh is best-effort for chip list + counts
+    }
+    setErrors((e) => ({ ...e, sections: '' }));
+    if (created?.id && created?.name && created.status === 'Active') {
+      setForm((p) => {
+        const sections = Array.isArray(p.sections) ? p.sections : [];
+        const exists = sections.some(
+          (s) => String(s.focusAreaId) === String(created.id)
+        );
+        if (exists) return p;
+        return { ...p, sections: [...sections, newFocusAreaEntry(created)] };
+      });
+      setPendingScrollFocusAreaId(created.id);
+    }
+    return true;
   };
 
   useEffect(() => {
@@ -271,16 +298,8 @@ const ReviewFormEditor = () => {
       ? await editReviewForm(formId, payload)
       : await createReviewForm(payload);
     if (result?.meta?.requestStatus === 'fulfilled') {
-      setPendingNavAfterSnack(true);
+      navigate('/config/performance/review-forms', { replace: true });
     }
-  };
-
-  const handleSaveSuccessSnackClose = () => {
-    clearSuccess();
-    setPendingNavAfterSnack((prev) => {
-      if (prev) navigate('/config/performance/review-forms');
-      return false;
-    });
   };
 
   if (hydrating) return <AppLoader />;
@@ -360,6 +379,31 @@ const ReviewFormEditor = () => {
               />
             );
           })}
+          <Tooltip title="Create a new focus area">
+            <Chip
+              icon={<AddIcon fontSize="small" />}
+              label="New focus area"
+              color="success"
+              clickable
+              variant="outlined"
+              onClick={() => setFocusAreaModalOpen(true)}
+              sx={(theme) => ({
+                borderStyle: 'dashed',
+                borderWidth: 1,
+                fontWeight: 600,
+                bgcolor: alpha(theme.palette.success.main, 0.12),
+                borderColor: 'success.main',
+                color: 'success.dark',
+                '& .MuiChip-icon': {
+                  color: 'success.main',
+                },
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.success.main, 0.2),
+                  borderColor: 'success.dark',
+                },
+              })}
+            />
+          </Tooltip>
           {showLoadMoreFocusAreas && (
             <Chip
               label={
@@ -538,16 +582,21 @@ const ReviewFormEditor = () => {
         <KeyboardArrowUpIcon />
       </Fab>
 
-      <Snackbar
+      <AppSnackbar
         open={!!successMessage}
-        autoHideDuration={4000}
-        onClose={handleSaveSuccessSnackClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="success" onClose={handleSaveSuccessSnackClose}>
-          {successMessage}
-        </Alert>
-      </Snackbar>
+        onClose={clearSuccess}
+        message={successMessage}
+      />
+
+      <FocusAreaFormModal
+        open={focusAreaModalOpen}
+        onClose={() => setFocusAreaModalOpen(false)}
+        editingId={null}
+        initialValues={DEFAULT_FOCUS_AREA_FORM}
+        focusAreas={focusAreas}
+        isSaving={isSaving}
+        onSubmit={handleFocusAreaModalSubmit}
+      />
 
       <ConfirmDialog
         open={!!questionDelete}

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Grid, FormControl, InputLabel,
   Select, MenuItem, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Chip, IconButton, Alert, Snackbar,
+  TableHead, TableRow, Chip, IconButton, Alert,
   Tooltip, Stack, TextField, InputAdornment, Badge,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -15,7 +15,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import usePerformance from '../../hooks/usePerformance';
 import AppButton from '../../components/common/AppButton';
-import { AppCard, AppLoader, AppModal, PageHeader } from '../../components/common/index.jsx';
+import { AppCard, AppLoader, AppModal, AppSnackbar, PageHeader } from '../../components/common/index.jsx';
 import { EVALUATION_PHASES, PHASE_LABELS } from '../../utils/constants';
 import { formatDate } from '../../utils/helpers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -312,10 +312,7 @@ const OperationsPerformance = () => {
         isSaving={isSaving}
       />
 
-      <Snackbar open={!!successMessage} autoHideDuration={4000} onClose={clearSuccess}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="success" onClose={clearSuccess}>{successMessage}</Alert>
-      </Snackbar>
+      <AppSnackbar open={!!successMessage} onClose={clearSuccess} message={successMessage} />
     </Box>
   );
 };

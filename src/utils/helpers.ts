@@ -236,12 +236,28 @@ export const formatBulkAssignmentPublishSummary = (verb, result) => {
   return msg;
 };
 
+/** Parses a positive numeric max rating (e.g. appraisal `ratingScale`); coerces strings from JSON APIs. */
+export const parseRatingScaleMax = (raw) => {
+  if (raw == null || raw === '') return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+};
+
 /**
  * Maps GET /performance/assignments/:id (and similar) into the self-eval review shape.
  * Merges assignment-level timelines/status with nested `reviewForm` when present.
  */
 export const mapAssignmentForSelfEvaluation = (assignment) => {
   if (!assignment || typeof assignment !== 'object') return null;
+
+  const wrapperAppraisalConfig =
+    assignment.appraisalConfig ?? assignment.AppraisalConfig ?? null;
+  const ratingScaleFromAppraisal =
+    wrapperAppraisalConfig && typeof wrapperAppraisalConfig === 'object'
+      ? parseRatingScaleMax(
+          wrapperAppraisalConfig.ratingScale ?? wrapperAppraisalConfig.RatingScale
+        )
+      : undefined;
 
   /**
    * GET /performance/assignments/:id returns `data` as:
@@ -251,6 +267,9 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
   let a = assignment;
   const rootSelfEvaluationStatus =
     a.selfEvaluationStatus ?? a.SelfEvaluationStatus ?? null;
+  /** Wrapped GET detail responses often expose HR phase as `hrEvaluationStatus`; older payloads use `hrReviewStatus`. */
+  const rootHrEvaluationStatus =
+    a.hrEvaluationStatus ?? a.HrEvaluationStatus ?? null;
   const rootSelfOverallScore =
     a.selfOverallScore ?? a.SelfOverallScore ?? null;
   const rootManagerOverallScore =
@@ -356,11 +375,9 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
       a.ReviewFormName ??
       'Review',
     ratingScale:
-      typeof formLike.ratingScale === 'number'
-        ? formLike.ratingScale
-        : typeof a.ratingScale === 'number'
-          ? a.ratingScale
-          : undefined,
+      ratingScaleFromAppraisal ??
+      parseRatingScaleMax(formLike.ratingScale ?? formLike.scale ?? formLike.maxRating) ??
+      parseRatingScaleMax(a.ratingScale ?? a.scale ?? a.maxRating),
     status:
       a.selfEvalStatus ??
       a.SelfEvalStatus ??
@@ -383,7 +400,13 @@ export const mapAssignmentForSelfEvaluation = (assignment) => {
     ),
     selfEvalStatus: a.selfEvalStatus ?? a.SelfEvalStatus ?? null,
     managerEvalStatus: a.managerEvalStatus ?? a.ManagerEvalStatus ?? null,
-    hrReviewStatus: a.hrReviewStatus ?? a.HrReviewStatus ?? null,
+    hrReviewStatus:
+      a.hrReviewStatus ??
+      a.HrReviewStatus ??
+      a.hrEvaluationStatus ??
+      a.HrEvaluationStatus ??
+      rootHrEvaluationStatus ??
+      null,
     publishedStatus: a.publishedStatus ?? a.PublishedStatus ?? null,
     resultsPublishedToEmployee: isAssignmentResultsPublishedToEmployee(
       a.resultsPublishedToEmployee ??
@@ -440,13 +463,10 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
   const id = String(payload.id ?? payload._id ?? '');
   const formName = payload.formName ?? payload.name ?? 'Review';
   const ratingScale =
-    typeof payload.ratingScale === 'number'
-      ? payload.ratingScale
-      : typeof payload.scale === 'number'
-        ? payload.scale
-        : typeof payload.maxRating === 'number'
-          ? payload.maxRating
-          : 5;
+    parseRatingScaleMax(payload.ratingScale) ??
+    parseRatingScaleMax(payload.scale) ??
+    parseRatingScaleMax(payload.maxRating) ??
+    5;
   const status = payload.status ?? '-';
   const endDate =
     payload.endDate ?? payload.periodEnd ?? payload.evaluationEndDate ?? payload.deadline ?? payload.period ?? null;
@@ -525,7 +545,12 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
   const allReviewsSubmitted = Boolean(payload.allReviewsSubmitted);
   const selfEvalStatus = payload.selfEvalStatus ?? payload.SelfEvalStatus ?? null;
   const managerEvalStatus = payload.managerEvalStatus ?? payload.ManagerEvalStatus ?? null;
-  const hrReviewStatus = payload.hrReviewStatus ?? payload.HrReviewStatus ?? null;
+  const hrReviewStatus =
+    payload.hrReviewStatus ??
+    payload.HrReviewStatus ??
+    payload.hrEvaluationStatus ??
+    payload.HrEvaluationStatus ??
+    null;
   const assignmentEmployeeId =
     typeof payload.assignmentEmployeeId === 'string' ? payload.assignmentEmployeeId : '';
   const selfOverallScore =

@@ -2,6 +2,7 @@ export { default as AppCard } from './AppCard';
 export { default as AppInput } from './AppInput';
 export { default as AppLoader } from './AppLoader';
 export { default as AppModal } from './AppModal';
+export { default as AppSnackbar } from './AppSnackbar';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as EmptyState } from './EmptyState';
 export { default as PageHeader } from './PageHeader';

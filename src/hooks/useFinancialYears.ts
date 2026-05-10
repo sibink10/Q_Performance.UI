@@ -22,7 +22,8 @@ function mapRow(row: Record<string, unknown>): FinancialYearOption {
 
 export default function useFinancialYears() {
   const [items, setItems] = useState<FinancialYearOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  /** Start true so first paint does not flash empty UI before the fetch sets loading. */
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const loadFinancialYears = async () => {

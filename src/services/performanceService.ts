@@ -2,11 +2,34 @@
 // src/services/performanceService.js
 // All API calls for the Performance module
 // Organized by module section: Config → Operations → Employee → Manager
+//
+// ═══ Org branding (backend contract) ══════════════════════════════════════════
+// GET    /performance/org-branding
+//        Any authenticated user; Bearer JWT. Returns effective branding for tenant.
+// PATCH  /performance/org-branding
+//        ADMIN only; 403 otherwise. Body: partial JSON (all keys optional).
+// POST   /performance/org-branding/upload
+//        ADMIN only. multipart/form-data: `file` (binary image), `kind` one of
+//        logo | companyLogo | loginLogo | favicon | banner
+//        Response JSON: { "url": "<absolute url to stored asset>" } (browser loads this;
+//        users never paste URLs in the UI).
+// ═══════════════════════════════════════════════════════════════════════════
 
 import api from './api';
 import { createAssignments } from './assignReviewFormService';
 
 const performanceService = {
+  // ── Config: Organization branding ─────────────────────────────────────────
+  getOrgBranding: () => api.get('/performance/org-branding'),
+  updateOrgBranding: (data) => api.patch('/performance/org-branding', data),
+  /** @param kind See module-level POST /performance/org-branding/upload contract */
+  uploadOrgBrandingAsset: (file, kind) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('kind', kind);
+    return api.post('/performance/org-branding/upload', fd);
+  },
+
   // ── Config: Appraisal Cycle Settings ───────────────────────────────────────
   getAppraisalConfig: (financialYearId) =>
     api.get('/performance/config', { params: { financialYearId } }),

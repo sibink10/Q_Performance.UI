@@ -1,7 +1,26 @@
 // @ts-nocheck
 // Maps GET /performance/my-results list and GET /performance/my-results/:assignmentId payloads.
 
-import { toArrayFromPayload, toEntityFromPayload, normalizePhaseSnapshot } from './helpers';
+import {
+  toArrayFromPayload,
+  toEntityFromPayload,
+  normalizePhaseSnapshot,
+  parseRatingScaleMax,
+} from './helpers';
+
+function ratingScaleFromPayloadEntity(e) {
+  if (!e || typeof e !== 'object') return 5;
+  const appraisalCfg = e.appraisalConfig ?? e.AppraisalConfig ?? null;
+  const fromAppraisal =
+    appraisalCfg && typeof appraisalCfg === 'object'
+      ? parseRatingScaleMax(appraisalCfg.ratingScale ?? appraisalCfg.RatingScale)
+      : undefined;
+  return (
+    fromAppraisal ??
+    parseRatingScaleMax(e.ratingScale ?? e.scale ?? e.maxRating) ??
+    5
+  );
+}
 
 /** Per-question row for published results (aligned with assignment / review form question shape). */
 function mapFocusAreaQuestion(q, qIdx) {
@@ -141,7 +160,6 @@ export function mapMyResultListItem(raw) {
     null;
 
   const finalRating = raw.finalRating ?? raw.finalScore ?? raw.overallRating ?? raw.overallScore;
-  const ratingScale = raw.ratingScale ?? raw.scale ?? raw.maxRating ?? 5;
 
   const managerName =
     raw.managerName ??
@@ -155,7 +173,7 @@ export function mapMyResultListItem(raw) {
     period: String(period),
     publishedDate,
     finalRating: finalRating != null && finalRating !== '' ? Number(finalRating) : null,
-    ratingScale: Number(ratingScale) || 5,
+    ratingScale: ratingScaleFromPayloadEntity(raw),
     managerName: String(managerName),
   };
 }
@@ -261,7 +279,7 @@ export function normalizeMyResultDetailPayload(raw) {
     e.appraisalCycleName ??
     '-';
 
-  const ratingScale = Number(e.ratingScale ?? e.scale ?? e.maxRating ?? 5) || 5;
+  const ratingScale = ratingScaleFromPayloadEntity(e);
 
   const finiteOrNaN = (v) => {
     if (v == null || v === '') return NaN;

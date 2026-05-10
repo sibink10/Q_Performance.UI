@@ -116,6 +116,20 @@ export function mapMyReviewItem(raw) {
     raw.hrEvaluationStatus ??
     'Pending';
 
+  const managerEmail =
+    raw.managerEmail ??
+    raw.manager_email ??
+    raw.reviewerEmail ??
+    raw.reviewer_email ??
+    raw.reportingManagerEmail ??
+    raw.reporting_manager_email ??
+    (raw.manager && typeof raw.manager === 'object' ? raw.manager.email : null) ??
+    (raw.managerDetails && typeof raw.managerDetails === 'object'
+      ? raw.managerDetails.email
+      : null) ??
+    (raw.reviewer && typeof raw.reviewer === 'object' ? raw.reviewer.email : null) ??
+    null;
+
   return {
     id: String(id),
     assignmentId: String(assignmentId),
@@ -127,6 +141,7 @@ export function mapMyReviewItem(raw) {
     submittedAt,
     managerStatus,
     hrStatus,
+    managerEmail: managerEmail != null && String(managerEmail).trim() !== '' ? String(managerEmail).trim() : null,
   };
 }
 

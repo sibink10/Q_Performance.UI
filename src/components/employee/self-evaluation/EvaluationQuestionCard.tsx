@@ -1,11 +1,95 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { Box, Typography, Chip, Stack, Divider, TextField } from '@mui/material';
+import { Box, Typography, Chip, Stack, Divider, TextField, Rating } from '@mui/material';
 import RatingInput from '../../common/RatingInput';
+import RichTextEditor from '../../common/RichTextEditor';
+import { isProbablyHtml, richTextHtmlToPlainText, sanitizeRichTextHtml } from '../../../utils/richText';
 
 const SELF_EVAL_MIN_ANSWER_LEN = 50;
-const getTextLen = (value: unknown) => String(value || '').trim().length;
+const getTextLen = (value: unknown) => richTextHtmlToPlainText(String(value ?? '')).length;
 
-/** Read-only snapshot (self / manager). */
+const commentRichTextContentSx = {
+  '& p': { m: 0 },
+  '& ul, & ol': { mt: 0, mb: 0, pl: 2.25 },
+  '& li': { mt: 0.25 },
+  '& strong': { fontWeight: 700 },
+  '& img': { maxWidth: '100%', height: 'auto', verticalAlign: 'middle' },
+} as const;
+
+function SnapshotCommentBody({ comment }: { comment: string }) {
+  const raw = String(comment || '').trim();
+  if (!raw || getTextLen(raw) === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+        -
+      </Typography>
+    );
+  }
+  if (isProbablyHtml(raw)) {
+    return (
+      <Box
+        sx={{ ...commentRichTextContentSx, typography: 'body2', color: 'text.secondary' }}
+        component="div"
+        dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(raw) }}
+      />
+    );
+  }
+  return (
+    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+      {raw}
+    </Typography>
+  );
+}
+
+const ratingStarSx = {
+  '& .MuiRating-iconFilled': {
+    filter: 'drop-shadow(0 2px 4px rgba(79, 70, 229, 0.22))',
+  },
+};
+
+/** Read-only star (or numeric block for 10-point) display aligned with `RatingInput` behavior. */
+function SnapshotRatingStars({ value, scale }: { value: number; scale: number }) {
+  const n = Number(value);
+  const safeVal = Number.isFinite(n) ? Math.min(scale, Math.max(0, n)) : 0;
+
+  if (scale === 10) {
+    return (
+      <Box sx={{ mb: 1 }}>
+        <Rating
+          value={safeVal}
+          max={10}
+          readOnly
+          precision={0.1}
+          size="small"
+          sx={{
+            ...ratingStarSx,
+            '& .MuiRating-icon': { fontSize: '1.05rem' },
+          }}
+        />
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+          {safeVal.toFixed(1)} / {scale}
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ mb: 1 }}>
+      <Rating
+        value={safeVal}
+        max={scale}
+        readOnly
+        precision={0.1}
+        size="medium"
+        sx={ratingStarSx}
+      />
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+        {safeVal.toFixed(1)} / {scale}
+      </Typography>
+    </Box>
+  );
+}
+
+/** Read-only snapshot (self / manager / HR). */
 function PhaseSnapshotDisplay({ label, snapshot, ratingScale }: { label: string; snapshot: any; ratingScale: number }) {
   if (!snapshot) return null;
   return (
@@ -15,15 +99,14 @@ function PhaseSnapshotDisplay({ label, snapshot, ratingScale }: { label: string;
           {label}
         </Typography>
       ) : null}
-      <Typography variant="body2" sx={{ mb: 0.5 }}>
-        Rating:{' '}
-        <strong>
-          {snapshot.rating}/{ratingScale}
-        </strong>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+        Rating
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-        {snapshot.comment?.trim() ? snapshot.comment : '-'}
+      <SnapshotRatingStars value={Number(snapshot.rating)} scale={ratingScale} />
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
+        Comments
       </Typography>
+      <SnapshotCommentBody comment={snapshot.comment?.trim() ? snapshot.comment : ''} />
     </Box>
   );
 }
@@ -100,7 +183,7 @@ function EvaluationQuestionCardInner({
   }, [hydrationKey, question.id, commentEditable]);
 
   const effectiveComment = commentEditable ? commentDraft : String(qAns?.comment ?? '');
-  const isAnswered = qAns.rating && String(effectiveComment).trim();
+  const isAnswered = qAns.rating && getTextLen(effectiveComment) > 0;
 
   const questionWeight =
     question.weightage == null || question.weightage === ''
@@ -143,7 +226,7 @@ function EvaluationQuestionCardInner({
     if (selfFieldsReadOnly) {
       const snap =
         question.selfReview || (qAns?.rating ? { rating: Number(qAns.rating), comment: String(qAns.comment || '') } : null);
-      if (snap?.rating || String(snap?.comment || '').trim()) {
+      if (snap?.rating || getTextLen(snap?.comment)) {
         return <PhaseSnapshotDisplay label="Your response" snapshot={snap} ratingScale={ratingScale} />;
       }
       return (
@@ -167,20 +250,15 @@ function EvaluationQuestionCardInner({
             readOnly={false}
           />
         </Box>
-        <TextField
-          label="Comments "
-          placeholder="Provide specific examples and justification for your rating..."
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+          Comments
+        </Typography>
+        <RichTextEditor
           value={commentDraft}
-          onChange={(e) => setCommentDraft(e.target.value)}
+          onChange={(next) => setCommentDraft(next)}
           onBlur={flushCommentToParent}
-          fullWidth
-          multiline
-          minRows={2}
-          size="small"
-          required
-          error={
-            !!(selfSubmitValidationOn && qAns?.rating && getTextLen(commentDraft) < SELF_EVAL_MIN_ANSWER_LEN)
-          }
+          placeholder="Provide specific examples and justification for your rating..."
+          error={!!(selfSubmitValidationOn && qAns?.rating && getTextLen(commentDraft) < SELF_EVAL_MIN_ANSWER_LEN)}
           helperText={
             selfSubmitValidationOn && qAns?.rating && getTextLen(commentDraft) < SELF_EVAL_MIN_ANSWER_LEN
               ? `Minimum ${SELF_EVAL_MIN_ANSWER_LEN} characters required (${getTextLen(commentDraft)}/${SELF_EVAL_MIN_ANSWER_LEN}).`
@@ -234,6 +312,7 @@ function EvaluationQuestionCardInner({
     );
   };
 
+
   return (
     <Box
       sx={{
@@ -274,7 +353,7 @@ function EvaluationQuestionCardInner({
           </Box>
         </Box>
         {questionWeight != null && (
-          <Chip label={`${questionWeight}`} size="small" variant="outlined" sx={{ ...weightageChipSx, mt: 0.3 }} />
+          <Chip label={`${questionWeight} x`} size="small" variant="outlined" sx={{ ...weightageChipSx, mt: 0.3 }} />
         )}
       </Box>
 

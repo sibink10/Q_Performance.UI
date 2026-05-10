@@ -31,6 +31,9 @@ export function getAppBarTitle(pathname: string, search: string): string {
   if (path === '/operations/performance/assignments/employees') {
     return 'Assigned employees';
   }
+  if (path === '/config/performance/org-branding') {
+    return 'Organization branding';
+  }
   if (path === '/config/performance/financial-years') {
     return 'Review periods';
   }

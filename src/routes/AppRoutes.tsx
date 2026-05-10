@@ -20,6 +20,7 @@ import FinancialYearConfig from '../pages/config/FinancialYearConfig';
 import AppraisalConfig from '../pages/config/AppraisalConfig';
 import FocusAreas from '../pages/config/FocusAreas';
 import ReviewFormDesign from '../pages/config/ReviewFormDesign';
+import OrganizationBranding from '../pages/config/OrganizationBranding';
 
 // ── Operations Module (Admin Only) ────────────────────────────────────────────
 import OperationsPerformance from '../pages/operations/OperationsPerformance';
@@ -96,6 +97,10 @@ const AppRoutes = () => (
       <Route
         path="config/performance/review-forms/:formId"
         element={<AdminGuard><ReviewFormDesign /></AdminGuard>}
+      />
+      <Route
+        path="config/performance/org-branding"
+        element={<AdminGuard><OrganizationBranding /></AdminGuard>}
       />
     </Route>
 
