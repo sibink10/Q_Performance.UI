@@ -142,8 +142,12 @@ const FinancialYearConfig = () => {
               />
             </Grid>
             <Grid item xs={12} md={3}>
-              <Stack direction="row" spacing={1}>
-                <AppButton onClick={saveFinancialYear} disabled={!canCreate}>
+              <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', md: 'auto' } }}>
+                <AppButton
+                  onClick={saveFinancialYear}
+                  disabled={!canCreate}
+                  sx={{ width: { xs: '100%', md: 'auto' } }}
+                >
                   Create
                 </AppButton>
               </Stack>

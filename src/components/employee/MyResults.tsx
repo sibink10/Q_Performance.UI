@@ -592,9 +592,13 @@ const MyResults = () => {
         title="My Results"
         subtitle="Your assignments for the year - open a submission to view published ratings when available"
         actions={
-          <FormControl size="small" sx={{ minWidth: 168 }}>
+          <FormControl
+            size="small"
+            sx={{ width: { xs: '100%', sm: 'auto' }, minWidth: { xs: 0, sm: 168 } }}
+          >
             <InputLabel>Review Period</InputLabel>
             <Select
+              fullWidth
               value={financialYearId}
               label="Review Period"
               onChange={(e) => setFinancialYearId(e.target.value)}

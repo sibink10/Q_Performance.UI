@@ -95,8 +95,16 @@ const ReviewFormsList = () => {
         title="Review Forms"
         subtitle="Manage configured review templates used in the performance cycle."
         actions={
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            <FormControl
+              size="small"
+              sx={{ width: { xs: '100%', sm: 'auto' }, minWidth: { xs: 0, sm: 200 } }}
+            >
               <InputLabel id="review-forms-fy-label">Review period</InputLabel>
               <Select
                 labelId="review-forms-fy-label"
@@ -109,7 +117,10 @@ const ReviewFormsList = () => {
                 ))}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl
+              size="small"
+              sx={{ width: { xs: '100%', sm: 'auto' }, minWidth: { xs: 0, sm: 160 } }}
+            >
               <InputLabel id="review-forms-publish-status-label">Publish status</InputLabel>
               <Select
                 labelId="review-forms-publish-status-label"
@@ -122,7 +133,11 @@ const ReviewFormsList = () => {
                 <MenuItem value="Pending">Pending</MenuItem>
               </Select>
             </FormControl>
-            <AppButton startIcon={<AddIcon />} onClick={() => navigate('/config/performance/review-forms/new')}>
+            <AppButton
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/config/performance/review-forms/new')}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
               Add Review Form
             </AppButton>
           </Stack>

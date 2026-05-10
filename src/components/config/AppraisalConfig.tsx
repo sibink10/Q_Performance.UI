@@ -163,7 +163,11 @@ const AppraisalConfig = () => {
         <PageHeader
           title="Appraisal Config"
           subtitle="Manage appraisal cycles, scales, and evaluation timelines by review period."
-          actions={<AppButton onClick={openAddModal}>Add</AppButton>}
+          actions={
+            <AppButton onClick={openAddModal} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+              Add
+            </AppButton>
+          }
         />
         {!modalOpen && (pageError || pageSuccess) && (
           <Alert

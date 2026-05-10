@@ -67,22 +67,19 @@ const PageHeader = ({
 
   const stickySx = surface;
 
-  const rowSx = sticky
-    ? {
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: 2,
-        position: 'relative',
-        zIndex: 1,
-      }
-    : {};
+  /** Grid: title block full width on xs; actions row below on xs, right column from sm up */
+  const rowSx = {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' },
+    gap: 2,
+    alignItems: 'start',
+    ...(sticky ? { position: 'relative' as const, zIndex: 1 } : {}),
+  };
 
   return (
     <Box sx={{ ...stickySx, ...sx }}>
       <Box sx={rowSx}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0, flex: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
           {startAdornment}
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.02em', lineHeight: 1.2 }}>
@@ -96,7 +93,18 @@ const PageHeader = ({
           </Box>
         </Box>
         {actions ? (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>{actions}</Box>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              alignItems: 'center',
+              width: { xs: '100%', sm: 'auto' },
+              justifySelf: { xs: 'stretch', sm: 'end' },
+            }}
+          >
+            {actions}
+          </Box>
         ) : null}
       </Box>
     </Box>

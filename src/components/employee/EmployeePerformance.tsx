@@ -32,6 +32,7 @@ import {
   TextField,
   TablePagination,
   useTheme,
+  useMediaQuery,
   Avatar,
   InputAdornment,
 } from '@mui/material';
@@ -234,6 +235,7 @@ const ReviewCard = ({ review, onStart }) => {
 
 const EmployeePerformance = () => {
   const theme = useTheme();
+  const isSmDown = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const {
     myReviews,
@@ -323,7 +325,7 @@ const EmployeePerformance = () => {
   ];
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       <AppCard
         variant="glass"
         sx={{
@@ -332,6 +334,9 @@ const EmployeePerformance = () => {
           px: 2,
           py: 2,
           mb: 2.5,
+          maxWidth: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
         }}
       >
         <Box sx={{ mb: 2, position: 'relative', zIndex: 1 }}>
@@ -349,64 +354,104 @@ const EmployeePerformance = () => {
             alignItems: 'center',
             gap: 2,
             rowGap: 1.5,
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
           }}
         >
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            variant="scrollable"
-            scrollButtons={'auto'}
-            allowScrollButtonsMobile
+          {/* minWidth:0 + shrink so tab row is viewport-bound; MUI can detect overflow and show scroll controls */}
+          <Box
             sx={{
               order: { xs: 2, sm: 1 },
-              width: { xs: '100%', sm: 'max-content' },
+              flex: { xs: '1 1 100%', sm: '0 1 auto' },
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: 0,
               maxWidth: '100%',
-              flexShrink: 0,
-              minHeight: 36,
-              '& .MuiTabs-indicator': { display: 'none' },
-              '& .MuiTabs-flexContainer': { gap: 0.75 },
+              // Do not use overflow:hidden here — it clips MUI’s right TabScrollButton when the
+              // strip is wider than the viewport; minWidth:0 + scroller minWidth below keeps layout correct.
             }}
           >
-            {tabs.map((t, i) => (
-              <Tab
-                key={i}
-                label={
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    {t.icon}
-                    <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
-                      {t.label}
-                    </Box>
-                    {t.count > 0 && (
-                      <Chip label={t.count} size="small" color="primary" sx={{ height: 18, fontSize: 10 }} />
-                    )}
-                  </Stack>
-                }
-                disableRipple
-                sx={{
-                  minHeight: 34,
-                  px: 1.25,
-                  py: 0.5,
-                  borderRadius: 999,
-                  textTransform: 'none',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
+            <Tabs
+              value={tab}
+              onChange={(_, v) => setTab(v)}
+              variant="scrollable"
+              scrollButtons={isSmDown ? true : 'auto'}
+              allowScrollButtonsMobile
+              sx={{
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                minHeight: 36,
+                display: 'flex',
+                '& .MuiTabs-indicator': { display: 'none' },
+                '& .MuiTabs-flexContainer': { gap: 0.75 },
+                '& .MuiTabs-scrollButtons': {
+                  width: { xs: 36, sm: 32 },
+                  flexShrink: 0,
                   color: 'text.secondary',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'rgba(255,255,255,0.65)',
-                  backdropFilter: 'blur(10px)',
-                  '& .MuiChip-root': { ml: 0.25 },
-                  '&.Mui-selected': {
-                    color: 'primary.dark',
-                    borderColor: 'rgba(34,197,94,0.35)',
-                    bgcolor: 'rgba(34,197,94,0.12)',
-                    boxShadow: '0 10px 22px -18px rgba(34,197,94,0.55)',
-                  },
-                  '&:hover': { bgcolor: 'rgba(2,6,23,0.04)' },
-                }}
-              />
-            ))}
-          </Tabs>
+                },
+                '& .MuiTabs-scrollButtons.Mui-disabled': { opacity: 0.35 },
+                '& .MuiTabScrollButton-root': {
+                  bgcolor: { xs: 'rgba(255,255,255,0.72)', sm: 'transparent' },
+                  borderRadius: 1,
+                  border: { xs: '1px solid', sm: 'none' },
+                  borderColor: { xs: 'divider', sm: 'transparent' },
+                },
+                '& .MuiTabs-scroller': {
+                  minWidth: 0,
+                  flexGrow: 1,
+                  WebkitOverflowScrolling: 'touch',
+                },
+              }}
+            >
+              {tabs.map((t, i) => (
+                <Tab
+                  key={i}
+                  label={
+                    <Stack direction="row" alignItems="center" spacing={isSmDown ? 0.5 : 1}>
+                      {t.icon}
+                      <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
+                        {t.label}
+                      </Box>
+                      {t.count > 0 && (
+                        <Chip
+                          label={t.count}
+                          size="small"
+                          color="primary"
+                          sx={{ height: 18, fontSize: 10, flexShrink: 0 }}
+                        />
+                      )}
+                    </Stack>
+                  }
+                  disableRipple
+                  sx={{
+                    minHeight: 34,
+                    px: { xs: 1, sm: 1.25 },
+                    py: 0.5,
+                    borderRadius: 999,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'rgba(255,255,255,0.65)',
+                    backdropFilter: 'blur(10px)',
+                    flexShrink: 0,
+                    '& .MuiChip-root': { ml: 0.25 },
+                    '&.Mui-selected': {
+                      color: 'primary.dark',
+                      borderColor: 'rgba(34,197,94,0.35)',
+                      bgcolor: 'rgba(34,197,94,0.12)',
+                      boxShadow: '0 10px 22px -18px rgba(34,197,94,0.55)',
+                    },
+                    '&:hover': { bgcolor: 'rgba(2,6,23,0.04)' },
+                  }}
+                />
+              ))}
+            </Tabs>
+          </Box>
           <FormControl
             size="small"
             sx={{

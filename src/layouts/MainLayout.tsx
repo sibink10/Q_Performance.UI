@@ -512,7 +512,7 @@ const MainLayout = () => {
   const appBarMl = isMdUp && drawerOpen ? `${DRAWER_WIDTH}px` : 0;
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", minWidth: 0, width: "100%" }}>
       <CssBaseline />
 
       <AppBar
@@ -732,6 +732,9 @@ const MainLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0,
+          width: "100%",
+          maxWidth: "100%",
           mt: `${MAIN_LAYOUT_APP_BAR_HEIGHT}px`,
           bgcolor: "transparent",
           minHeight: `calc(100vh - ${MAIN_LAYOUT_APP_BAR_HEIGHT}px)`,
@@ -757,6 +760,9 @@ const MainLayout = () => {
         <Box
           sx={{
             flexGrow: 1,
+            minWidth: 0,
+            width: "100%",
+            maxWidth: "100%",
             p: { xs: 2, sm: 3 },
           }}
         >

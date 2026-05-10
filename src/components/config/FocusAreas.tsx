@@ -107,7 +107,11 @@ const FocusAreas = () => {
         title="Focus Areas"
         subtitle="Define performance categories used in review forms. Examples: Technical Skills, Communication, Leadership."
         actions={
-          <AppButton startIcon={<AddIcon />} onClick={openAdd}>
+          <AppButton
+            startIcon={<AddIcon />}
+            onClick={openAdd}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
             Add Focus Area
           </AppButton>
         }
