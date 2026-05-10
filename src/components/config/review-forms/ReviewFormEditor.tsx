@@ -333,6 +333,7 @@ const ReviewFormEditor = () => {
             startIcon={<SaveIcon />}
             onClick={handleSave}
             disabled={!canSaveForm || isSaving}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             {isEditMode ? 'Save Changes' : 'Save Form'}
           </AppButton>
