@@ -47,6 +47,7 @@ export const selectAuthLoading = (state) => state.auth.isLoading;
 export const selectAuthError = (state) => state.auth.error;
 export const selectUserRole = (state) => (state.auth.user?.role || 'EMPLOYEE').toUpperCase();
 export const selectIsAdmin = (state) => selectUserRole(state) === 'ADMIN';
+export const selectIsHr = (state) => selectUserRole(state) === 'HR';
 export const selectIsManager = (state) =>
   selectUserRole(state) === 'ADMIN' || selectUserRole(state) === 'MANAGER';
 

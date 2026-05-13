@@ -778,3 +778,36 @@ export const getApiErrorMessage = (error) => {
 
   return error?.message?.trim?.() || 'Something went wrong. Please try again.';
 };
+
+/** Parse `filename` / `filename*` from a Content-Disposition header (RFC 5987). */
+export const parseFilenameFromContentDisposition = (contentDisposition) => {
+  const raw = String(contentDisposition || '');
+  if (!raw) return '';
+
+  const star = raw.match(/filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i);
+  if (star?.[1]) {
+    const v = String(star[1]).trim().replace(/^"(.*)"$/, '$1');
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v;
+    }
+  }
+
+  const normal = raw.match(/filename\s*=\s*("?)([^";]+)\1/i);
+  if (normal?.[2]) return String(normal[2]).trim();
+  return '';
+};
+
+/** Trigger a browser file download for a Blob (e.g. Excel from `responseType: 'blob'`). */
+export const downloadBlobAsFile = (blob, filename) => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'download';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};

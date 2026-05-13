@@ -119,6 +119,18 @@ const performanceService = {
 
   // ── Manager: Team Reviews (managed assignments for current manager) ─────────
   getManagedAssignments: (params = {}) => api.get('/performance/managed-assignments', { params }),
+  /** GET /performance/managed-assignments/export — same filter query as list, without pagination. */
+  exportManagedAssignments: (params = {}) =>
+    api.get('/performance/managed-assignments/export', {
+      params: {
+        financialYearId: params.financialYearId,
+        search: params.search ?? '',
+        ...(params.reviewFormId != null && String(params.reviewFormId).trim() !== ''
+          ? { reviewFormId: params.reviewFormId }
+          : {}),
+      },
+      responseType: 'blob',
+    }),
   getEmployeeSelfEvaluation: (employeeId, reviewId) =>
     api.get(`/performance/manager/team/${employeeId}/review/${reviewId}`),
   /** PATCH draft answers for manager evaluation (does not submit). */

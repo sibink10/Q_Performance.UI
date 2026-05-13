@@ -721,7 +721,7 @@ const MyResults = () => {
 
       <AppCard sx={{}} variant="table">
         {!assignmentRows.length ? (
-          <EmptyState variant="noContent" message="No review assignments found for this review period." minHeight={260} />
+          <EmptyState variant="noContent" message="No review assignments found for this Review Period." minHeight={260} />
         ) : (
           <TableContainer>
             <Table sx={modernTableSx}>

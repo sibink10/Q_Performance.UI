@@ -196,8 +196,8 @@ const ReviewFormsList = () => {
                         <Tooltip
                           title={
                             financialYearId
-                              ? 'Publish assignments for this form in the selected review period'
-                              : 'Select a review period to publish'
+                              ? 'Publish assignments for this form in the selected Review Period'
+                              : 'Select a Review Period to publish'
                           }
                         >
                           <span>

@@ -34,6 +34,7 @@ import useAuth from '../../hooks/useAuth';
 import AppButton from '../../components/common/AppButton';
 import { AppCard, AppSnackbar } from '../../components/common';
 import { AppLoader, PageHeader } from '../../components/common/index.jsx';
+import RatingInput from '../common/RatingInput';
 import {
   calculateCompletionPercentage,
   calculateQuestionWeightedOverallRating,
@@ -851,12 +852,16 @@ const progressCardChipShell = (theme) => ({
                   *
                 </Box>
               </Typography>
-              <Rating
-                name="hr-overall-rating"
-                value={hrOverallRatingStarValue}
-                onChange={(_, newValue) => {
-                  const next =
-                    newValue == null ? '' : String(Math.round(Number(newValue) * 10) / 10);
+              <RatingInput
+                scale={hrRatingScale}
+                label=""
+                value={
+                  hrOverallRating !== '' && Number.isFinite(Number(hrOverallRating))
+                    ? Number(hrOverallRating)
+                    : 0
+                }
+                onChange={(v) => {
+                  const next = String(Math.round(Number(v) * 10) / 10);
                   setHrOverallRating(next);
                   if (hrValidation.hrOverallRating) {
                     setHrValidation((prev) => ({
@@ -865,27 +870,10 @@ const progressCardChipShell = (theme) => ({
                     }));
                   }
                 }}
-                max={hrRatingScale}
-                precision={0.1}
-                size="large"
-                sx={(theme) => ({
-                  maxWidth: '100%',
-                  '& .MuiRating-iconFilled': {
-                    filter: 'drop-shadow(0 2px 4px rgba(79, 70, 229, 0.25))',
-                  },
-                  [theme.breakpoints.down('sm')]: {
-                    '& .MuiRating-icon': {
-                      fontSize: hrRatingScale > 7 ? '1.05rem' : '1.4rem',
-                    },
-                  },
-                })}
               />
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                {hrOverallRatingStarCaption}
-              </Typography>
               <FormHelperText error={!!hrValidation.hrOverallRating} sx={{ mx: 0 }}>
                 {hrValidation.hrOverallRating ||
-                  `Click the stars to set a score from 0 to ${hrRatingScale} (0.1 steps).`}
+                  `Use stars or the score field (0–${hrRatingScale}, 0.1 steps).`}
               </FormHelperText>
             </Box>
             <TextField

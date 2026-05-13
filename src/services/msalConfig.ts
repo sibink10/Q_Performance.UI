@@ -36,6 +36,7 @@ export const getPrimaryRole = (claims: any): string => {
   const normalized = roles.map((r: string) => String(r || '').toUpperCase());
 
   if (normalized.includes('ADMIN')) return 'ADMIN';
+  if (normalized.includes('HR')) return 'HR';
   if (normalized.includes('MANAGER')) return 'MANAGER';
   return 'EMPLOYEE';
 };

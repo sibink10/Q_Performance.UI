@@ -1,4 +1,28 @@
 // @ts-nocheck
+import { parseRatingScaleMax } from './helpers';
+
+/** Max rating from nested `appraisalConfig` (GET /performance/managed-assignments). */
+const ratingScaleFromAppraisalOn = (obj) => {
+  if (!obj || typeof obj !== 'object') return null;
+  const cfg = obj.appraisalConfig ?? obj.AppraisalConfig;
+  if (cfg && typeof cfg === 'object') {
+    const s = parseRatingScaleMax(cfg.ratingScale ?? cfg.RatingScale);
+    if (s) return s;
+  }
+  return null;
+};
+
+const pickAppraisalRatingScale = (...candidates) => {
+  for (const c of candidates) {
+    if (!c || typeof c !== 'object') continue;
+    const fromNested = ratingScaleFromAppraisalOn(c);
+    if (fromNested) return fromNested;
+    const flat = parseRatingScaleMax(c.appraisalRatingScale ?? c.AppraisalRatingScale);
+    if (flat) return flat;
+  }
+  return null;
+};
+
 /** Parse paged API envelopes (matches operations assignments lists). */
 export const readManagedAssignmentsPaged = (res) => {
   const inner = res?.data;
@@ -85,7 +109,12 @@ const mapManagedRowToTeamMember = (row) => {
     row?.id ??
     row?.Id;
 
-  const mgrDetails = row?.managerDetails ?? row?.ManagerDetails ?? {};
+  const mgrDetails =
+    row?.managerDetails ??
+    row?.ManagerDetails ??
+    nestedA.managerDetails ??
+    nestedA.ManagerDetails ??
+    {};
 
   const nestedA = row?.assignment ?? row?.Assignment ?? {};
 
@@ -154,13 +183,14 @@ const mapManagedRowToTeamMember = (row) => {
       row?.AssignmentId ??
       row?.id ??
       row?.Id,
+    appraisalRatingScale: pickAppraisalRatingScale(row, nestedA),
   };
 };
 
 /**
  * New managed-assignments shape: `{ employee, assignments: [{ assignment, reviewForm, evaluations }] }`.
  */
-const mapEmployeeAssignmentToTeamMember = (employee, bundle) => {
+const mapEmployeeAssignmentToTeamMember = (employee, bundle, parentWrapper) => {
   const emp = employee ?? {};
   const a = bundle?.assignment ?? bundle?.Assignment ?? {};
   const rf = bundle?.reviewForm ?? bundle?.ReviewForm ?? {};
@@ -175,7 +205,12 @@ const mapEmployeeAssignmentToTeamMember = (employee, bundle) => {
     (trimmedFull || emp.email || emp.Email || '-');
 
   const id = emp.id ?? emp.Id ?? emp.employeeId ?? emp.EmployeeId ?? a.employeeId ?? a.EmployeeId;
-  const mgrDetails = a.managerDetails ?? a.ManagerDetails ?? {};
+  const mgrDetails =
+    bundle?.managerDetails ??
+    bundle?.ManagerDetails ??
+    a.managerDetails ??
+    a.ManagerDetails ??
+    {};
 
   return {
     id,
@@ -237,6 +272,7 @@ const mapEmployeeAssignmentToTeamMember = (employee, bundle) => {
       bundle?.PublishedDate ??
       null,
     reviewId: a.id ?? a.Id ?? bundle?.assignmentId ?? bundle?.AssignmentId,
+    appraisalRatingScale: pickAppraisalRatingScale(bundle, a, emp, parentWrapper),
   };
 };
 
@@ -249,7 +285,7 @@ const expandManagedAssignmentList = (list) => {
       const employee = row?.employee ?? row?.Employee ?? {};
       return assignments.map((bundle) =>
         bundle?.assignment != null || bundle?.Assignment != null
-          ? mapEmployeeAssignmentToTeamMember(employee, bundle)
+          ? mapEmployeeAssignmentToTeamMember(employee, bundle, row)
           : mapManagedRowToTeamMember(bundle)
       );
     }

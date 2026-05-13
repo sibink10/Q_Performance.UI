@@ -260,7 +260,7 @@ const AssignReviewForm = () => {
     setValidationError('');
 
     if (!formData.financialYearId || !formData.reviewFormId) {
-      setValidationError('Please select review period and review form.');
+      setValidationError('Please select Review Period and review form.');
       return;
     }
 
@@ -289,7 +289,7 @@ const AssignReviewForm = () => {
     <Box>
       <PageHeader
         title="Assign Review Form"
-        subtitle="Choose review period, select a review form, and assign it to users."
+        subtitle="Choose Review Period, select a review form, and assign it to users."
         actions={
           <Stack
             direction={{ xs: 'column', sm: 'row' }}

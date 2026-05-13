@@ -223,7 +223,7 @@ const OperationsPerformance = () => {
       ) : !dashboardFilters.financialYearId ? (
         <AppCard sx={{ p: 6, textAlign: 'center' }}>
           <FilterListIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-          <Typography color="text.secondary">Select a review period to view performance data</Typography>
+          <Typography color="text.secondary">Select a Review Period to view performance data</Typography>
         </AppCard>
       ) : (
         <AppCard sx={{ overflow: 'hidden', p: 0 }}>

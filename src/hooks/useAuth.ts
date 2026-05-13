@@ -10,6 +10,7 @@ import {
   selectAuthLoading,
   selectAuthError,
   selectIsAdmin,
+  selectIsHr,
   selectIsManager,
   clearAuth,
   setAuthLoading,
@@ -26,6 +27,7 @@ const useAuth = () => {
   const isLoading = useSelector(selectAuthLoading);
   const error = useSelector(selectAuthError);
   const isAdmin = useSelector(selectIsAdmin);
+  const isHr = useSelector(selectIsHr);
   const isManager = useSelector(selectIsManager);
 
   const login = async () => {
@@ -50,6 +52,7 @@ const useAuth = () => {
     isLoading,
     error,
     isAdmin,
+    isHr,
     isManager,
     login,
     logout,

@@ -39,46 +39,17 @@ import {
 } from '../../services/assignReviewFormService';
 import performanceService from '../../services/performanceService';
 import EditEvaluationDatesModal from './EditEvaluationDatesModal';
+import PublishResultsConfirmDialog from './PublishResultsConfirmDialog';
 import {
   formatBulkAssignmentPublishSummary,
   formatDate,
   getApiErrorMessage,
   isAssignmentResultsPublishedToEmployee,
+  parseFilenameFromContentDisposition,
+  downloadBlobAsFile,
   readBulkAssignmentPublishResult,
 } from '../../utils/helpers';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-
-const parseFilenameFromContentDisposition = (contentDisposition) => {
-  const raw = String(contentDisposition || '');
-  if (!raw) return '';
-
-  // RFC 5987: filename*=UTF-8''...
-  const star = raw.match(/filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i);
-  if (star?.[1]) {
-    const v = String(star[1]).trim().replace(/^"(.*)"$/, '$1');
-    try {
-      return decodeURIComponent(v);
-    } catch {
-      return v;
-    }
-  }
-
-  const normal = raw.match(/filename\s*=\s*("?)([^";]+)\1/i);
-  if (normal?.[2]) return String(normal[2]).trim();
-  return '';
-};
-
-const triggerBrowserDownload = (blob, filename) => {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename || 'assigned-employees.xlsx';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-};
 
 const readPaged = (res) => {
   const inner = res?.data;
@@ -214,10 +185,13 @@ const AssignedReviewFormEmployees = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selected, setSelected] = useState(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkPublishOpen, setBulkPublishOpen] = useState(false);
   const [bulkUnpublishOpen, setBulkUnpublishOpen] = useState(false);
   /** `{ id, mode }` while a publish/unpublish request runs for one row */
   const [rowBusy, setRowBusy] = useState(() => ({ id: '', mode: '' }));
   const [bulkSnack, setBulkSnack] = useState(null);
+  /** When set, show confirm before publishing one assignment */
+  const [singlePublishId, setSinglePublishId] = useState(null);
   /** When set, show confirm before unpublishing one assignment */
   const [singleUnpublishId, setSingleUnpublishId] = useState(null);
 
@@ -281,7 +255,7 @@ const AssignedReviewFormEmployees = () => {
 
   const subtitle = useMemo(() => {
     if (!financialYearId || !reviewFormId) {
-      return 'Missing review period or review form in the URL.';
+      return 'Missing Review Period or review form in the URL.';
     }
     if (reviewFormName) {
       return `${reviewFormName} · ${financialYear}`;
@@ -312,7 +286,7 @@ const AssignedReviewFormEmployees = () => {
       const headers = res?.headers || {};
       const cd = headers['content-disposition'] || headers['Content-Disposition'];
       const filename = parseFilenameFromContentDisposition(cd) || 'assigned-employees.xlsx';
-      triggerBrowserDownload(res?.data, filename);
+      downloadBlobAsFile(res?.data, filename);
     } catch (e) {
       const status = e?.response?.status;
       if (status === 413) {
@@ -374,6 +348,7 @@ const AssignedReviewFormEmployees = () => {
   const bulkIds = () => [...selected];
 
   const runBulkPublish = async () => {
+    setBulkPublishOpen(false);
     const ids = bulkIds();
     if (!ids.length) return;
     setBulkBusy(true);
@@ -431,6 +406,7 @@ const AssignedReviewFormEmployees = () => {
       setBulkSnack({ severity: 'error', message: getApiErrorMessage(e) });
     } finally {
       setRowBusy({ id: '', mode: '' });
+      setSinglePublishId(null);
     }
   };
 
@@ -576,7 +552,12 @@ const AssignedReviewFormEmployees = () => {
               <Typography variant="body2" fontWeight={600}>
                 {selected.size} selected
               </Typography>
-              <AppButton size="small" onClick={runBulkPublish} loading={bulkBusy} disabled={bulkBusy}>
+              <AppButton
+                size="small"
+                onClick={() => setBulkPublishOpen(true)}
+                loading={bulkBusy}
+                disabled={bulkBusy}
+              >
                 Publish results
               </AppButton>
               <AppButton
@@ -782,7 +763,9 @@ const AssignedReviewFormEmployees = () => {
                                       hrDone ? 'Publish results' : 'Publish results (complete HR review first)'
                                     }
                                     disabled={!r.id || rowBusyHere || !hrDone}
-                                    onClick={() => runRowPublish(r.id)}
+                                    onClick={() => {
+                                      if (sid) setSinglePublishId(sid);
+                                    }}
                                   >
                                     {rowBusyHere && rowBusy.mode === 'publish' ? (
                                       <CircularProgress color="inherit" size={18} thickness={5} />
@@ -830,6 +813,15 @@ const AssignedReviewFormEmployees = () => {
         </Typography>
       ) : null}
 
+      <PublishResultsConfirmDialog
+        open={bulkPublishOpen}
+        onClose={() => setBulkPublishOpen(false)}
+        onConfirm={runBulkPublish}
+        loading={bulkBusy}
+        mode="bulk"
+        bulkSelectedCount={selected.size}
+      />
+
       <Dialog
         open={bulkUnpublishOpen}
         onClose={() => !bulkBusy && setBulkUnpublishOpen(false)}
@@ -852,6 +844,21 @@ const AssignedReviewFormEmployees = () => {
           </AppButton>
         </DialogActions>
       </Dialog>
+
+      <PublishResultsConfirmDialog
+        open={singlePublishId != null}
+        onClose={() => setSinglePublishId(null)}
+        onConfirm={() => {
+          const id = singlePublishId;
+          if (id) void runRowPublish(id);
+        }}
+        loading={
+          rowBusy.mode === 'publish' &&
+          singlePublishId != null &&
+          String(rowBusy.id) === String(singlePublishId)
+        }
+        mode="single"
+      />
 
       <Dialog open={singleUnpublishId != null} onClose={() => setSingleUnpublishId(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Unpublish results?</DialogTitle>

@@ -310,8 +310,6 @@ const MainLayout = () => {
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: alpha(theme.palette.grey[900], 0.08) }} />
-
       <List
         dense
         sx={{
@@ -542,16 +540,10 @@ const MainLayout = () => {
             onClick={() => setDrawerOpen((o) => !o)}
             aria-label={drawerOpen ? "Close navigation" : "Open navigation"}
             sx={{
+              display: { xs: "inline-flex", md: "none" },
               color: "text.secondary",
-              borderRadius: 2,
-              border: `1px solid ${alpha(theme.palette.grey[900], 0.12)}`,
-              bgcolor: alpha(
-                theme.palette.grey[100],
-                theme.palette.mode === "light" ? 1 : 0.08,
-              ),
               "&:hover": {
                 bgcolor: alpha(theme.palette.primary.main, 0.06),
-                borderColor: alpha(theme.palette.primary.main, 0.28),
                 color: "primary.main",
               },
             }}

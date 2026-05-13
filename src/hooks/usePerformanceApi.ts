@@ -42,6 +42,17 @@ const usePerformanceApi = () => {
     }
   };
 
+  /** Full Axios response (blob + headers) for Excel export. */
+  const exportManagedAssignmentsExcel = async (params) => {
+    try {
+      return await performanceService.exportManagedAssignments(params);
+    } catch (e) {
+      const err = new Error(getApiErrorMessage(e));
+      err.status = e?.response?.status;
+      throw err;
+    }
+  };
+
   const saveManagerEvaluationDraft = async ({ employeeId, assignmentId, answers }) => {
     try {
       const payload = buildSelfOrManagerSubmitPayload(answers);
@@ -59,6 +70,7 @@ const usePerformanceApi = () => {
     getAssignmentById,
     publishRatings,
     unpublishAssignmentResults,
+    exportManagedAssignmentsExcel,
     saveManagerEvaluationDraft,
   };
 };

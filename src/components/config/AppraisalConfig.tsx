@@ -162,7 +162,7 @@ const AppraisalConfig = () => {
       <Box>
         <PageHeader
           title="Appraisal Config"
-          subtitle="Manage appraisal cycles, scales, and evaluation timelines by review period."
+          subtitle="Manage appraisal cycles, scales, and evaluation timelines by Review Period."
           actions={
             <AppButton onClick={openAddModal} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Add

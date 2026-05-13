@@ -42,6 +42,7 @@ import {
   Tooltip,
   IconButton,
   CircularProgress,
+  FormHelperText,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
@@ -56,6 +57,9 @@ import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import CloudOffOutlinedIcon from '@mui/icons-material/CloudOffOutlined';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import usePerformance from '../../hooks/usePerformance';
 import usePerformanceApi from '../../hooks/usePerformanceApi';
 import useAuth from '../../hooks/useAuth';
@@ -72,8 +76,14 @@ import {
   isAssignmentPhaseSubmitted,
   isAssignmentResultsPublishedToEmployee,
   getApiErrorMessage,
+  parseRatingScaleMax,
+  parseFilenameFromContentDisposition,
+  downloadBlobAsFile,
 } from '../../utils/helpers';
 import useFinancialYears from '../../hooks/useFinancialYears';
+import SubmitConfirmationDialog from './self-evaluation/SubmitConfirmationDialog';
+import PublishResultsConfirmDialog from '../operations/PublishResultsConfirmDialog';
+import { validateHrSubmitInput } from '../../utils/performanceSubmission';
 
 /** Single action for "Others' Reviews": manager phase first, then HR for admins when manager is done. */
 const othersManagedReviewAction = (
@@ -116,6 +126,18 @@ const othersRowAllReviewsComplete = (emp: {
   isAssignmentPhaseSubmitted(emp.selfEvalStatus) &&
   isAssignmentPhaseSubmitted(emp.managerReviewStatus) &&
   isAssignmentPhaseSubmitted(emp.hrReviewStatus);
+
+/** Admins can record HR overall rating here when manager review is done and HR is still pending. */
+const othersRowHrRatingEditable = (
+  emp: { selfEvalStatus?: string; managerReviewStatus?: string; hrReviewStatus?: string; reviewId?: string },
+  isAdmin: boolean
+) => {
+  if (!isAdmin || emp.reviewId == null || String(emp.reviewId).trim() === '') return false;
+  if (!isAssignmentPhaseSubmitted(emp.selfEvalStatus)) return false;
+  if (!isAssignmentPhaseSubmitted(emp.managerReviewStatus)) return false;
+  if (isAssignmentPhaseSubmitted(emp.hrReviewStatus)) return false;
+  return true;
+};
 
 const managedScoreLabel = (value: number | null | undefined): string | null => {
   if (value == null) return null;
@@ -281,10 +303,13 @@ const EmployeePerformance = () => {
     loadMyReviews,
     loadManagerTeam,
     loadReviewForms,
+    submitHrEval,
+    clearError,
   } = usePerformance();
   const { financialYears, activeFinancialYear, financialYearsLoading } = useFinancialYears();
-  const { isAdmin } = useAuth();
-  const { publishRatings, unpublishAssignmentResults } = usePerformanceApi();
+  const { isAdmin, isHr, user } = useAuth();
+  const { publishRatings, unpublishAssignmentResults, exportManagedAssignmentsExcel } =
+    usePerformanceApi();
 
   const hasMyReviews =
     (Array.isArray(myReviews?.pending) && myReviews.pending.length > 0) ||
@@ -298,7 +323,7 @@ const EmployeePerformance = () => {
   const [debouncedOthersSearch, setDebouncedOthersSearch] = useState('');
   const [othersReviewFormId, setOthersReviewFormId] = useState('');
   const [othersPublishSnack, setOthersPublishSnack] = useState<{
-    severity: 'success' | 'error';
+    severity: 'success' | 'error' | 'warning';
     message: string;
   } | null>(null);
   /** `{ id, mode }` while publish/unpublish runs for one managed-assignment row */
@@ -306,6 +331,51 @@ const EmployeePerformance = () => {
     null
   );
   const [singleUnpublishAssignmentId, setSingleUnpublishAssignmentId] = useState<string | null>(null);
+  /** When set, confirm before publishing one managed assignment (Others' Reviews tab). */
+  const [singlePublishAssignmentId, setSinglePublishAssignmentId] = useState<string | null>(null);
+  /** Inline HR overall rating (Others' Reviews tab, admin, HR pending). */
+  const [hrQuickInline, setHrQuickInline] = useState<{
+    assignmentId: string;
+    draft: string;
+    scale: number;
+  } | null>(null);
+  const [hrQuickInlineError, setHrQuickInlineError] = useState<string | null>(null);
+  const [hrQuickConfirm, setHrQuickConfirm] = useState<{
+    assignmentId: string;
+    rating: number;
+    caption: string;
+  } | null>(null);
+  const [hrQuickSubmitting, setHrQuickSubmitting] = useState(false);
+  const [othersExporting, setOthersExporting] = useState(false);
+
+  const resolveRatingScaleForManagedRow = useCallback(
+    (emp: { formName?: string; appraisalRatingScale?: number | null }) => {
+      const fromAssignment = parseRatingScaleMax(emp?.appraisalRatingScale);
+      if (fromAssignment) return fromAssignment;
+      if (othersReviewFormId) {
+        const f = reviewForms.find((x) => String(x?.id ?? x?._id ?? '') === String(othersReviewFormId));
+        const s = parseRatingScaleMax(f?.ratingScale ?? f?.RatingScale ?? f?.scale ?? f?.maxRating);
+        if (s) return s;
+      }
+      const nameKey = String(emp.formName ?? '').trim().toLowerCase();
+      const matchName = reviewForms.find(
+        (x) => String(x?.name ?? x?.Name ?? '').trim().toLowerCase() === nameKey
+      );
+      const s2 = parseRatingScaleMax(
+        matchName?.ratingScale ?? matchName?.RatingScale ?? matchName?.scale ?? matchName?.maxRating
+      );
+      return s2 ?? 5;
+    },
+    [reviewForms, othersReviewFormId]
+  );
+
+  useEffect(() => {
+    if (tab !== 2) {
+      setHrQuickInline(null);
+      setHrQuickConfirm(null);
+      setHrQuickInlineError(null);
+    }
+  }, [tab]);
 
   const refetchManagedAssignments = useCallback(() => {
     if (!financialYearId) return;
@@ -324,6 +394,37 @@ const EmployeePerformance = () => {
     othersReviewFormId,
     loadManagerTeam,
   ]);
+
+  const runOthersExport = async () => {
+    if (!financialYearId || othersExporting) return;
+    setOthersExporting(true);
+    try {
+      const res = await exportManagedAssignmentsExcel({
+        financialYearId,
+        search: debouncedOthersSearch,
+        ...(othersReviewFormId != null && String(othersReviewFormId).trim() !== ''
+          ? { reviewFormId: othersReviewFormId }
+          : {}),
+      });
+      const headers = res?.headers || {};
+      const cd = headers['content-disposition'] || headers['Content-Disposition'];
+      const filename =
+        parseFilenameFromContentDisposition(cd) || 'managed-assignments.xlsx';
+      downloadBlobAsFile(res?.data, filename);
+    } catch (e) {
+      const status = e?.status;
+      if (status === 413) {
+        setOthersPublishSnack({
+          severity: 'warning',
+          message: 'Too many rows to export. Narrow filters and try again.',
+        });
+      } else {
+        setOthersPublishSnack({ severity: 'error', message: getApiErrorMessage(e) });
+      }
+    } finally {
+      setOthersExporting(false);
+    }
+  };
 
   /** Avoid empty UI before FY list + default year are ready, then avoid empty → full-screen loader when fetch starts. */
   const fyBootstrapPending =
@@ -388,6 +489,7 @@ const EmployeePerformance = () => {
       setOthersPublishSnack({ severity: 'error', message: getApiErrorMessage(e) });
     } finally {
       setRowPublishBusy(null);
+      setSinglePublishAssignmentId(null);
     }
   };
 
@@ -407,6 +509,30 @@ const EmployeePerformance = () => {
       setOthersPublishSnack({ severity: 'error', message: getApiErrorMessage(e) });
     } finally {
       setRowPublishBusy(null);
+    }
+  };
+
+  const handleHrQuickConfirmSubmit = async () => {
+    if (!hrQuickConfirm) return;
+    clearError();
+    setHrQuickSubmitting(true);
+    try {
+      /** `usePerformance` / thunk modules are `@ts-nocheck`; RTK `.unwrap()` is not visible to TS otherwise. */
+      await (
+        submitHrEval as unknown as (
+          assignmentId: string,
+          hrOverallRating: number,
+          hrComments: string
+        ) => { unwrap: () => Promise<unknown> }
+      )(hrQuickConfirm.assignmentId, hrQuickConfirm.rating, '').unwrap();
+      setHrQuickConfirm(null);
+      setHrQuickInline(null);
+      setHrQuickInlineError(null);
+      refetchManagedAssignments();
+    } catch (e) {
+      setOthersPublishSnack({ severity: 'error', message: getApiErrorMessage(e) });
+    } finally {
+      setHrQuickSubmitting(false);
     }
   };
 
@@ -585,7 +711,7 @@ const EmployeePerformance = () => {
               <EmptyState
                 variant="empty"
                 title="All caught up!"
-                message="No pending reviews for selected review period."
+                message="No pending reviews for selected Review Period."
                 minHeight={260}
               />
             </AppCard>
@@ -609,7 +735,7 @@ const EmployeePerformance = () => {
         <Box>
           {(!myReviews.submitted || myReviews.submitted.length === 0) ? (
             <AppCard sx={{ p: 0 }}>
-              <EmptyState variant="noContent" message="No submitted reviews for selected review period." minHeight={260} />
+              <EmptyState variant="noContent" message="No submitted reviews for selected Review Period." minHeight={260} />
             </AppCard>
           ) : (
             <AppCard variant="table">
@@ -740,6 +866,27 @@ const EmployeePerformance = () => {
                   ),
                 }}
               />
+              {(isAdmin || isHr) && (
+                <Box
+                  sx={{
+                    ml: { xs: 0, sm: 'auto' },
+                    width: { xs: '100%', sm: 'auto' },
+                    display: 'flex',
+                    justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+                  }}
+                >
+                  <AppButton
+                    variant="outlined"
+                    size="small"
+                    loading={othersExporting}
+                    disabled={!financialYearId || othersExporting}
+                    startIcon={<FileDownloadOutlinedIcon />}
+                    onClick={runOthersExport}
+                  >
+                    Export to Excel
+                  </AppButton>
+                </Box>
+              )}
             </Box>
             {managerTeamLoading ? <LinearProgress /> : null}
             {managerTeamLoading && (!managerTeam || managerTeam.length === 0) && (
@@ -780,8 +927,34 @@ const EmployeePerformance = () => {
                           !!rowPublishBusy &&
                           rowPublishBusy.id === assignmentIdStr;
                         const rowPublished = isAssignmentResultsPublishedToEmployee(emp.publishedStatus);
+                        const viewerEmailNorm = String(user?.email ?? '').trim().toLowerCase();
+                        const managerEmailNorm = String(emp.managerEmail ?? '').trim().toLowerCase();
+                        const highlightAsMyManagedAssignment =
+                          (isAdmin || isHr) &&
+                          Boolean(viewerEmailNorm) &&
+                          Boolean(managerEmailNorm) &&
+                          viewerEmailNorm === managerEmailNorm;
                         return (
-                          <TableRow key={`${emp.id}-${emp.reviewId}`} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
+                          <TableRow
+                            key={`${emp.id}-${emp.reviewId}`}
+                            hover
+                            sx={{
+                              ...(highlightAsMyManagedAssignment
+                                ? {
+                                    bgcolor: alpha(
+                                      theme.palette.primary.main,
+                                      theme.palette.mode === 'dark' ? 0.14 : 0.08
+                                    ),
+                                    boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
+                                  }
+                                : {}),
+                              '&:hover': {
+                                bgcolor: highlightAsMyManagedAssignment
+                                  ? alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.2 : 0.12)
+                                  : 'rgba(79,70,229,0.035)',
+                              },
+                            }}
+                          >
                             <TableCell>
                               <Stack direction="row" spacing={1.5} alignItems="center">
                                 <Avatar
@@ -841,11 +1014,137 @@ const EmployeePerformance = () => {
                                 }
                               />
                             </TableCell>
-                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                              <ManagedPhaseStatusWithScore
-                                statusLabel={emp.hrReviewStatus || 'Pending'}
-                                score={emp.hrOverallScore ?? null}
-                              />
+                            <TableCell
+                              sx={{
+                                display: { xs: 'none', sm: 'table-cell' },
+                                ...(hrQuickInline?.assignmentId === assignmentIdStr
+                                  ? {
+                                      '&&': {
+                                        whiteSpace: 'normal',
+                                        verticalAlign: 'middle',
+                                        minWidth: 220,
+                                      },
+                                    }
+                                  : {}),
+                              }}
+                            >
+                              {(() => {
+                                const hrEditable = othersRowHrRatingEditable(emp, isAdmin);
+                                const isEditing = hrQuickInline?.assignmentId === assignmentIdStr;
+                                if (isEditing && hrQuickInline) {
+                                  return (
+                                    <Stack spacing={0.5} alignItems="flex-start" onClick={(e) => e.stopPropagation()}>
+                                      <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+                                        <TextField
+                                          size="small"
+                                          value={hrQuickInline.draft}
+                                          onChange={(e) => {
+                                            setHrQuickInline((p) => (p ? { ...p, draft: e.target.value } : p));
+                                            setHrQuickInlineError(null);
+                                          }}
+                                          placeholder={`0–${hrQuickInline.scale}`}
+                                          type="text"
+                                          inputProps={{
+                                            inputMode: 'decimal',
+                                            'aria-label': 'HR overall rating',
+                                          }}
+                                          InputProps={{
+                                            sx: {
+                                              py: 0.25,
+                                              '& input': { fontSize: '0.8125rem', py: 0.5, width: 72 },
+                                            },
+                                          }}
+                                          error={Boolean(hrQuickInlineError)}
+                                        />
+                                        <Tooltip title="Confirm (opens submission dialog)">
+                                          <span>
+                                            <IconButton
+                                              size="small"
+                                              color="primary"
+                                              aria-label="Confirm HR rating"
+                                              onClick={() => {
+                                                const errs = validateHrSubmitInput(
+                                                  { hrOverallRating: hrQuickInline.draft, hrComments: '' },
+                                                  hrQuickInline.scale
+                                                );
+                                                const msg = errs.hrOverallRating || errs.hrComments || null;
+                                                if (msg) {
+                                                  setHrQuickInlineError(msg);
+                                                  return;
+                                                }
+                                                const n = Number(hrQuickInline.draft);
+                                                const rounded = Math.round(n * 10) / 10;
+                                                setHrQuickConfirm({
+                                                  assignmentId: hrQuickInline.assignmentId,
+                                                  rating: n,
+                                                  caption: `${rounded.toFixed(1)} / ${hrQuickInline.scale}`,
+                                                });
+                                              }}
+                                            >
+                                              <CheckIcon fontSize="small" />
+                                            </IconButton>
+                                          </span>
+                                        </Tooltip>
+                                        <Tooltip title="Cancel">
+                                          <IconButton
+                                            size="small"
+                                            aria-label="Cancel HR rating edit"
+                                            onClick={() => {
+                                              setHrQuickInline(null);
+                                              setHrQuickInlineError(null);
+                                            }}
+                                          >
+                                            <CloseIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Stack>
+                                      {hrQuickInlineError ? (
+                                        <FormHelperText error sx={{ mx: 0 }}>
+                                          {hrQuickInlineError}
+                                        </FormHelperText>
+                                      ) : null}
+                                    </Stack>
+                                  );
+                                }
+                                return (
+                                  <Tooltip
+                                    title={
+                                      hrEditable
+                                        ? 'Double-click to enter HR overall rating'
+                                        : `${emp.hrReviewStatus || 'Pending'}`
+                                    }
+                                  >
+                                    <Box
+                                      onDoubleClick={(e) => {
+                                        e.preventDefault();
+                                        if (!hrEditable || !assignmentIdStr) return;
+                                        const scale = resolveRatingScaleForManagedRow(emp);
+                                        const seed =
+                                          emp.hrOverallScore != null && Number.isFinite(Number(emp.hrOverallScore))
+                                            ? String(Number(emp.hrOverallScore))
+                                            : '';
+                                        setHrQuickInlineError(null);
+                                        setHrQuickInline({
+                                          assignmentId: assignmentIdStr,
+                                          draft: seed,
+                                          scale,
+                                        });
+                                      }}
+                                      sx={{
+                                        cursor: hrEditable ? 'pointer' : 'default',
+                                        display: 'inline-block',
+                                        minWidth: 0,
+                                        maxWidth: '100%',
+                                      }}
+                                    >
+                                      <ManagedPhaseStatusWithScore
+                                        statusLabel={emp.hrReviewStatus || 'Pending'}
+                                        score={emp.hrOverallScore ?? null}
+                                      />
+                                    </Box>
+                                  </Tooltip>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -948,7 +1247,7 @@ const EmployeePerformance = () => {
                                             rowBusyHere ||
                                             !othersRowAllReviewsComplete(emp)
                                           }
-                                          onClick={() => void runOthersRowPublish(assignmentIdStr)}
+                                          onClick={() => setSinglePublishAssignmentId(assignmentIdStr)}
                                         >
                                           {rowBusyHere && rowPublishBusy?.mode === 'publish' ? (
                                             <CircularProgress color="inherit" size={18} thickness={5} />
@@ -994,6 +1293,19 @@ const EmployeePerformance = () => {
         severity={othersPublishSnack?.severity || 'success'}
         autoHideDuration={5000}
       />
+      <PublishResultsConfirmDialog
+        open={singlePublishAssignmentId != null}
+        onClose={() => setSinglePublishAssignmentId(null)}
+        onConfirm={() => {
+          const id = singlePublishAssignmentId;
+          if (id) void runOthersRowPublish(id);
+        }}
+        loading={
+          Boolean(rowPublishBusy?.mode === 'publish') &&
+          String(rowPublishBusy?.id ?? '') === String(singlePublishAssignmentId ?? '')
+        }
+        mode="single"
+      />
       <Dialog
         open={singleUnpublishAssignmentId != null}
         onClose={() => !rowPublishBusy && setSingleUnpublishAssignmentId(null)}
@@ -1029,6 +1341,19 @@ const EmployeePerformance = () => {
           </AppButton>
         </DialogActions>
       </Dialog>
+      <SubmitConfirmationDialog
+        open={hrQuickConfirm != null}
+        onClose={() => {
+          if (!hrQuickSubmitting) setHrQuickConfirm(null);
+        }}
+        onConfirm={() => void handleHrQuickConfirmSubmit()}
+        isSaving={hrQuickSubmitting}
+        isHrMode
+        isManagerMode={false}
+        preview={null}
+        hrOverallRatingCaption={hrQuickConfirm?.caption ?? ''}
+        hrCommentsPlain=""
+      />
     </Box>
   );
 };

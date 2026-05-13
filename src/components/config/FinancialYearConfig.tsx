@@ -85,7 +85,7 @@ const FinancialYearConfig = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box>
-        <PageHeader title="Review Periods" subtitle="Create and manage review periods used across appraisal workflows." />
+        <PageHeader title="Review Periods" subtitle="Create and manage Review Periods used across appraisal workflows." />
         {(error || message) && (
           <Alert severity={error ? 'error' : 'success'} sx={{ mb: 2 }} onClose={() => { setError(''); setMessage(''); }}>
             {error || message}
@@ -178,15 +178,15 @@ const FinancialYearConfig = () => {
             </Table>
           </TableContainer>
           {!financialYears.length && (
-            <EmptyState variant="box" message="No review periods available yet." minHeight={220} sx={{ mt: 1 }} />
+            <EmptyState variant="box" message="No Review Periods available yet." minHeight={220} sx={{ mt: 1 }} />
           )}
         </AppCard>
 
         <Dialog open={Boolean(deleteConfirmId)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
-          <DialogTitle>Delete review period?</DialogTitle>
+          <DialogTitle>Delete Review Period?</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              This will permanently delete the selected <strong>review period</strong>. This action cannot be undone.
+              This will permanently delete the selected <strong>Review Period</strong>. This action cannot be undone.
             </DialogContentText>
           </DialogContent>
           <DialogActions>
