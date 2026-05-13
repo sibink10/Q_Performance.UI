@@ -1,4 +1,4 @@
-import FocusAreasPage from '../../components/config/FocusAreas';
+import FocusAreasPage from '../../components/config/focus-area/FocusAreas';
 
 const FocusAreas = () => <FocusAreasPage />;
 

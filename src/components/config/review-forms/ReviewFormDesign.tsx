@@ -2,8 +2,8 @@
 // Routes `review-forms` (list) vs `review-forms/:formId` (create/edit) entry - UI lives in subcomponents.
 
 import { useParams } from 'react-router-dom';
-import ReviewFormEditor from './review-forms/ReviewFormEditor';
-import ReviewFormsList from './review-forms/ReviewFormsList';
+import ReviewFormEditor from './ReviewFormEditor';
+import ReviewFormsList from './ReviewFormsList';
 
 const ReviewFormDesign = () => {
   const { formId } = useParams();

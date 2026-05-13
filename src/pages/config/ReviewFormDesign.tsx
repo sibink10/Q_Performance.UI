@@ -1,4 +1,4 @@
-import ReviewFormDesignPage from '../../components/config/ReviewFormDesign';
+import ReviewFormDesignPage from '../../components/config/review-forms/ReviewFormDesign';
 
 const ReviewFormDesign = () => <ReviewFormDesignPage />;
 

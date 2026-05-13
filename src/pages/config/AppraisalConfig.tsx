@@ -1,4 +1,4 @@
-import AppraisalConfigPage from '../../components/config/AppraisalConfig';
+import AppraisalConfigPage from '../../components/config/appraisal/AppraisalConfig';
 
 const AppraisalConfig = () => <AppraisalConfigPage />;
 

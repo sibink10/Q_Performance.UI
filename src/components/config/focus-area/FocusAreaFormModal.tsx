@@ -14,9 +14,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import AppButton from '../common/AppButton';
-import { AppModal } from '../common/index';
-import { FOCUS_AREA_SUGGESTIONS } from '../../utils/constants';
+import AppButton from '../../common/AppButton';
+import { AppModal } from '../../common/index';
+import { FOCUS_AREA_SUGGESTIONS } from '../../../utils/constants';
 
 export const DEFAULT_FOCUS_AREA_FORM = { name: '', description: '', status: 'Active' };
 

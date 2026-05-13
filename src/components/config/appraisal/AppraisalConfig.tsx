@@ -22,11 +22,11 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import AppButton from '../common/AppButton';
-import { AppCard, EmptyState, PageHeader } from '../common';
-import performanceService from '../../services/performanceService';
-import useFinancialYears from '../../hooks/useFinancialYears';
-import { getApiErrorMessage, toArrayFromPayload } from '../../utils/helpers';
+import AppButton from '../../common/AppButton';
+import { AppCard, EmptyState, PageHeader } from '../../common';
+import performanceService from '../../../services/performanceService';
+import useFinancialYears from '../../../hooks/useFinancialYears';
+import { getApiErrorMessage, toArrayFromPayload } from '../../../utils/helpers';
 import AppraisalConfigModal from './AppraisalConfigModal';
 
 const defaultCfg = {

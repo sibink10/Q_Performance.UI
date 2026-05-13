@@ -1,4 +1,4 @@
-import FinancialYearConfigPage from '../../components/config/FinancialYearConfig';
+import FinancialYearConfigPage from '../../components/config/financial-year/FinancialYearConfig';
 
 const FinancialYearConfig = () => <FinancialYearConfigPage />;
 

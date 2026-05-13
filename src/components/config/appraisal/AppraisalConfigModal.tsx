@@ -16,8 +16,8 @@ import {
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
-import AppButton from '../common/AppButton';
-import { APPRAISAL_CYCLE_TYPES, APPRAISAL_START_MONTHS, RATING_SCALES } from '../../utils/constants';
+import AppButton from '../../common/AppButton';
+import { APPRAISAL_CYCLE_TYPES, APPRAISAL_START_MONTHS, RATING_SCALES } from '../../../utils/constants';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
 

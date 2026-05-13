@@ -1,5 +1,5 @@
 // @ts-nocheck
-// src/components/config/FocusAreas
+// src/components/config/focus-area/FocusAreas
 // Admin: Create and manage performance focus areas (categories used in review forms)
 
 import { useEffect, useState } from 'react';
@@ -12,9 +12,9 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import usePerformance from '../../hooks/usePerformance';
-import AppButton from '../../components/common/AppButton';
-import { AppCard, AppLoader, AppSnackbar, EmptyState, PageHeader } from '../../components/common/index';
+import usePerformance from '../../../hooks/usePerformance';
+import AppButton from '../../common/AppButton';
+import { AppCard, AppLoader, AppSnackbar, EmptyState, PageHeader } from '../../common/index';
 import FocusAreaFormModal, { DEFAULT_FOCUS_AREA_FORM } from './FocusAreaFormModal';
 
 const FocusAreas = () => {

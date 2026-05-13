@@ -1,4 +1,4 @@
-import OrganizationBrandingPage from '../../components/config/OrganizationBranding';
+import OrganizationBrandingPage from '../../components/config/organization/OrganizationBranding';
 
 const OrganizationBranding = () => <OrganizationBrandingPage />;
 

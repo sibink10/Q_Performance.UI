@@ -20,7 +20,7 @@ import usePerformance from '../../../hooks/usePerformance';
 import usePerformanceApi from '../../../hooks/usePerformanceApi';
 import AppButton from '../../common/AppButton';
 import { AppCard, AppLoader, AppSnackbar, ConfirmDialog, PageHeader, RichTextEditor } from '../../common/index';
-import FocusAreaFormModal, { DEFAULT_FOCUS_AREA_FORM } from '../FocusAreaFormModal';
+import FocusAreaFormModal, { DEFAULT_FOCUS_AREA_FORM } from '../focus-area/FocusAreaFormModal';
 import { WEIGHTAGE_OPTIONS } from '../../../utils/constants';
 import { normalizeQuestionTextToHtml, richTextHtmlToPlainText } from '../../../utils/richText';
 

@@ -15,19 +15,19 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useDispatch, useSelector } from 'react-redux';
-import AppButton from '../common/AppButton';
-import { AppCard, PageHeader } from '../common';
+import AppButton from '../../common/AppButton';
+import { AppCard, PageHeader } from '../../common';
 import {
   selectOrgBrandingFetchStatus,
   selectOrgBrandingRemote,
   selectOrgBrandingUpdateStatus,
   updateOrgBranding,
   uploadOrgBrandingAsset,
-} from '../../app/state/slices/orgBrandingSlice';
-import type { OrgBrandingUploadKind } from '../../types/orgBranding';
-import { DEFAULT_BRAND_PRIMARY } from '../../types/them';
-import { DEFAULT_ORG_BRANDING, mergeOrgBranding } from '../../utils/orgBrandingDefaults';
-import { getApiErrorMessage } from '../../utils/helpers';
+} from '../../../app/state/slices/orgBrandingSlice';
+import type { OrgBrandingUploadKind } from '../../../types/orgBranding';
+import { DEFAULT_BRAND_PRIMARY } from '../../../types/them';
+import { DEFAULT_ORG_BRANDING, mergeOrgBranding } from '../../../utils/orgBrandingDefaults';
+import { getApiErrorMessage } from '../../../utils/helpers';
 
 const ACCEPT_IMAGES = 'image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/x-icon,.ico';
 
