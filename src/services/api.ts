@@ -1,60 +1,113 @@
 // @ts-nocheck
-// src/services/api.js
-// Centralized Axios instance with:
-//   - Base URL configuration
-//   - JWT auto-attachment via request interceptor
-//   - Global error handling via response interceptor
-
 import axios from 'axios';
+import { msalInstance } from './msalConfig'; // your MSAL instance
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { navigateToLoginAfterUnauthorized } from './navigationService';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000, // 30 second timeout
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 });
 
-// ─── Request Interceptor ──────────────────────────────────────────────────────
-// Automatically attach JWT token to every outgoing request
+// ─── Token Scopes ─────────────────────────────────────────────────────────────
+const TOKEN_SCOPES = {
+  scopes: [`api://${import.meta.env.VITE_AZURE_CLIENT_ID}/access_as_user`]
+};
 
+// ─── Get Fresh Token (Silent → Popup fallback) ────────────────────────────────
+async function getFreshToken(): Promise<string | null> {
+  const account = msalInstance.getActiveAccount();
+  if (!account) return null;
+
+  try {
+    // Always try silent first — MSAL auto-refreshes if near expiry
+    const result = await msalInstance.acquireTokenSilent({
+      ...TOKEN_SCOPES,
+      account,
+    });
+    // Keep localStorage in sync for any legacy code that reads it
+    localStorage.setItem('qhrms_token', result.accessToken);
+    return result.accessToken;
+
+  } catch (error) {
+    if (error instanceof InteractionRequiredAuthError) {
+      // Refresh token also expired → need user interaction
+      try {
+        const result = await msalInstance.acquireTokenPopup({
+          ...TOKEN_SCOPES,
+          account,
+        });
+        localStorage.setItem('qhrms_token', result.accessToken);
+        return result.accessToken;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+// ─── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (config.data instanceof FormData && config.headers) {
       delete config.headers['Content-Type'];
     }
-    const token = localStorage.getItem('qhrms_token');
+
+    //  Always get a fresh/valid token before every request
+    const token = await getFreshToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Fallback: use stored token (handles non-MSAL auth flows)
+      const stored = localStorage.getItem('qhrms_token');
+      if (stored) config.headers.Authorization = `Bearer ${stored}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 // ─── Response Interceptor ─────────────────────────────────────────────────────
-// Handle common error scenarios globally
+// Track if we already retried to avoid infinite loops
+let isRetrying = false;
 
 api.interceptors.response.use(
   (response) => {
-    // Keep full response for file downloads (need headers like Content-Disposition).
     const rt = response?.config?.responseType;
     if (rt === 'blob' || rt === 'arraybuffer') return response;
-    return response.data; // Unwrap data by default
+    return response.data;
   },
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
+    const originalRequest = error.config;
 
-    if (status === 401) {
-      // Token expired or invalid - clear session and go to login (SPA; avoids full reload)
+    if (status === 401 && !isRetrying && !originalRequest._retry) {
+      // ✅ On 401: retry ONCE with a fresh token instead of immediately logging out
+      originalRequest._retry = true;
+      isRetrying = true;
+
+      try {
+        const freshToken = await getFreshToken();
+        if (freshToken) {
+          originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+          isRetrying = false;
+          return api(originalRequest); // Retry the original request
+        }
+      } catch {
+        // Token refresh failed completely
+      }
+
+      isRetrying = false;
+      // Only navigate to login if retry also failed
       navigateToLoginAfterUnauthorized();
     }
 
     if (status === 403) {
-      // Forbidden - user doesn't have required role
       console.error('Access denied: insufficient permissions');
     }
 
