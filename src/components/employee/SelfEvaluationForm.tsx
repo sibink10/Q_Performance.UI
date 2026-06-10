@@ -15,6 +15,7 @@ import {
     AccordionDetails,
     TextField,
     LinearProgress,
+    CircularProgress,
     Alert,
     Chip,
     Stack,
@@ -36,11 +37,15 @@ import { AppCard, AppSnackbar } from '../../components/common';
 import { AppLoader, PageHeader } from '../../components/common/index.jsx';
 import RatingInput from '../common/RatingInput';
 import {
-  calculateCompletionPercentage,
   calculateQuestionWeightedOverallRating,
-  isFormComplete,
   mapAssignmentForSelfEvaluation,
   isAssignmentPhaseSubmitted,
+  isPhaseSnapshotCompleteForChip,
+  isQuestionCompleteForSubmit,
+  getQuestionSubmitIncompleteReason,
+  normalizePhaseSnapshot,
+  mergePhaseSnapshot,
+  hasPlainTextComment,
   getApiErrorMessage,
 } from '../../utils/helpers';
 import { normalizeQuestionTextToHtml, richTextHtmlToPlainText, sanitizeRichTextHtml } from '../../utils/richText';
@@ -58,7 +63,6 @@ import {
 import EvaluationQuestionCard from './self-evaluation/EvaluationQuestionCard';
 import SubmitConfirmationDialog from './self-evaluation/SubmitConfirmationDialog';
 
-const SELF_EVAL_MIN_ANSWER_LEN = 50;
 const getTextLen = (value) => richTextHtmlToPlainText(String(value ?? '')).length;
 
 const SelfEvaluationForm = () => {
@@ -69,6 +73,7 @@ const SelfEvaluationForm = () => {
   const { isAdmin, user } = useAuth();
   const {
     getAssignmentById,
+    getAssignmentSectionQuestionTexts,
     publishRatings,
     unpublishAssignmentResults,
     saveManagerEvaluationDraft,
@@ -94,6 +99,10 @@ const SelfEvaluationForm = () => {
   const [answersHydrationKey, setAnswersHydrationKey] = useState(0);
   const commentDraftGettersRef = useRef(new Map());
   const [expandedFocusAreaId, setExpandedFocusAreaId] = useState(false);
+  const [sectionFetchBusyId, setSectionFetchBusyId] = useState(null);
+  const sectionFetchSeqRef = useRef(0);
+  const sectionTextsLoadedRef = useRef(new Set());
+  const lastAnswersHydratedReviewIdRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(() => !!reviewId);
   const [loadError, setLoadError] = useState(null);
@@ -134,6 +143,7 @@ const SelfEvaluationForm = () => {
       setIsLoading(true);
       setLoadError(null);
       setPhaseConflict({ self: false, manager: false, hr: false });
+      sectionTextsLoadedRef.current = new Set();
       dispatch(clearPerformanceError());
       try {
         if (cancelled) return;
@@ -162,8 +172,16 @@ const SelfEvaluationForm = () => {
 
   useEffect(() => {
     if (!review) return;
-    setAnswers(pickInitialAnswers(review));
-    setAnswersHydrationKey((k) => k + 1);
+    // Important: `review` also changes when we lazy-load section question texts.
+    // Do NOT reset `answers` on those merges; only reset when the assignment (review id) changes.
+    if (lastAnswersHydratedReviewIdRef.current !== review.id) {
+      lastAnswersHydratedReviewIdRef.current = review.id;
+      setAnswers(pickInitialAnswers(review));
+      setAnswersHydrationKey((k) => k + 1);
+      setSelfSubmitValidationOn(false);
+      setHrValidation({});
+      setManagerDraftSaveStatus('idle');
+    }
     setExpandedFocusAreaId((prev) =>
       // Default: all sections collapsed. If a panel was expanded and still exists after refresh, keep it.
       prev && review.sections.some((s) => s.focusAreaId === prev) ? prev : false,
@@ -178,9 +196,6 @@ const SelfEvaluationForm = () => {
         ? String(review.hrComments)
         : ''
     );
-    setSelfSubmitValidationOn(false);
-    setHrValidation({});
-    setManagerDraftSaveStatus('idle');
   }, [review, pickInitialAnswers, modeManager, modeHr]);
 
   const allQuestions = review ? review.sections.flatMap((s) => s.questions) : [];
@@ -242,27 +257,8 @@ const SelfEvaluationForm = () => {
     };
   }, [review, confirmOpen, isHrMode, allQuestions, answers, hrRatingScale]);
 
-  const selfAnsweredCountMinLen = allQuestions.filter((q) => {
-    const a = answers[q.id] || {};
-    return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
-  }).length;
-  const completionPct =
-    isManagerMode || isHrMode
-      ? calculateCompletionPercentage(answers, allQuestions)
-      : allQuestions.length
-        ? Math.round((selfAnsweredCountMinLen / allQuestions.length) * 100)
-        : 0;
   const hrCompletionPct =
     hrOverallRating !== '' && Number.isFinite(Number(hrOverallRating)) ? 100 : 0;
-  const effectiveCompletionPct = isHrMode ? hrCompletionPct : completionPct;
-  const canSubmit = isHrMode
-    ? Object.keys(validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale)).length === 0
-    : isManagerMode
-      ? isFormComplete(answers, allQuestions)
-      : allQuestions.every((q) => {
-          const a = answers[q.id] || {};
-          return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
-        });
 
   const hrOverallRatingNum = Number(hrOverallRating);
   const hrOverallRatingStarValue =
@@ -363,16 +359,57 @@ const progressCardChipShell = (theme) => ({
   const showHrOverallSummary =
     (hasHrOverall || hasHrOverallComments) && (isHrMode || isManagerMode || hrResultsVisible);
 
-  const isPhaseSnapshotComplete = (snapshot) =>
-    Boolean(snapshot?.rating) && getTextLen(snapshot?.comment) > 0;
+  const isQuestionCompleteForSectionHeader = useCallback(
+    (question) => {
+      if (isHrMode) {
+        return (
+          isPhaseSnapshotCompleteForChip(question.selfReview) &&
+          isPhaseSnapshotCompleteForChip(question.managerReview)
+        );
+      }
+      const phase = isManagerMode ? 'manager' : 'self';
+      const fieldsReadOnly = isManagerMode ? managerFieldsReadOnly : selfFieldsReadOnly;
+      return isQuestionCompleteForSubmit(question, { phase, answers, fieldsReadOnly });
+    },
+    [isHrMode, isManagerMode, managerFieldsReadOnly, selfFieldsReadOnly, answers],
+  );
 
-  const isQuestionCompleteForSectionHeader = (question) => {
-    if (isHrMode) {
-      return isPhaseSnapshotComplete(question.selfReview) && isPhaseSnapshotComplete(question.managerReview);
-    }
-    const answer = answers[question.id] || {};
-    return Boolean(answer?.rating) && getTextLen(answer?.comment) > 0;
-  };
+  const isEveryQuestionCompleteForSubmit = useCallback(
+    (answersMap) => {
+      if (isHrMode) {
+        return (
+          Object.keys(validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale)).length === 0
+        );
+      }
+      if (!allQuestions.length) return false;
+      const phase = isManagerMode ? 'manager' : 'self';
+      const fieldsReadOnly = isManagerMode ? managerFieldsReadOnly : selfFieldsReadOnly;
+      return allQuestions.every((q) =>
+        isQuestionCompleteForSubmit(q, { phase, answers: answersMap, fieldsReadOnly }),
+      );
+    },
+    [
+      allQuestions,
+      hrComments,
+      hrOverallRating,
+      hrRatingScale,
+      isHrMode,
+      isManagerMode,
+      managerFieldsReadOnly,
+      selfFieldsReadOnly,
+    ],
+  );
+
+  const completedQuestionCount = useMemo(
+    () => allQuestions.filter((q) => isQuestionCompleteForSectionHeader(q)).length,
+    [allQuestions, isQuestionCompleteForSectionHeader],
+  );
+
+  const completionPct = allQuestions.length
+    ? Math.round((completedQuestionCount / allQuestions.length) * 100)
+    : 0;
+
+  const effectiveCompletionPct = isHrMode ? hrCompletionPct : completionPct;
 
   const reloadAssignment = useCallback(async () => {
     if (!reviewId) return;
@@ -384,6 +421,147 @@ const progressCardChipShell = (theme) => ({
       // ignore refresh errors; page already has error UI
     }
   }, [reviewId, getAssignmentById]);
+
+  const snapshotFromQuestionTextItem = useCallback((item, { phase }) => {
+    if (!item) return null;
+    if (phase === 'manager') return normalizePhaseSnapshot(item.managerReview);
+    const direct = normalizePhaseSnapshot(item.selfReview);
+    if (direct) return direct;
+    const ratingRaw = item.answerRating ?? item.AnswerRating;
+    const commentRaw = item.answerComment ?? item.AnswerComment;
+    const hasRating =
+      ratingRaw != null && ratingRaw !== '' && Number.isFinite(Number(ratingRaw));
+    const hasComment = hasPlainTextComment(commentRaw);
+    if (!hasRating && !hasComment) return null;
+    return {
+      rating: hasRating ? Number(ratingRaw) : 0,
+      comment: hasComment ? String(commentRaw) : '',
+      commentStatus: hasComment,
+    };
+  }, []);
+
+  const showSubmitValidationFailure = useCallback(
+    (mergedAnswers) => {
+      const phase = isManagerMode ? 'manager' : 'self';
+      const fieldsReadOnly = isManagerMode ? managerFieldsReadOnly : selfFieldsReadOnly;
+
+      if (!isManagerMode && !isHrMode) setSelfSubmitValidationOn(true);
+
+      const incomplete = allQuestions.filter(
+        (q) => !isQuestionCompleteForSubmit(q, { phase, answers: mergedAnswers, fieldsReadOnly }),
+      );
+      const missingCommentCount = incomplete.filter(
+        (q) =>
+          getQuestionSubmitIncompleteReason(q, { phase, answers: mergedAnswers, fieldsReadOnly }) ===
+          'missing_comment',
+      ).length;
+
+      setMutationToast({
+        severity: 'warning',
+        message:
+          incomplete.length > 0
+            ? missingCommentCount > 0 && missingCommentCount === incomplete.length
+              ? `Please add a comment for ${missingCommentCount} question${missingCommentCount === 1 ? '' : 's'}. Saved answers count via comment status; new answers need comment text in the form.`
+              : `Please add a rating and comment for ${incomplete.length} question${incomplete.length === 1 ? '' : 's'}. Saved answers count via comment status; new answers need comment text in the form.`
+            : 'Please complete all required fields before submitting.',
+      });
+    },
+    [allQuestions, isHrMode, isManagerMode, managerFieldsReadOnly, selfFieldsReadOnly],
+  );
+
+  const fetchSectionQuestionTexts = useCallback(
+    async (section) => {
+      if (!reviewId || !section?.sectionId) return;
+      const sectionKey = String(section.sectionId);
+      if (sectionTextsLoadedRef.current.has(sectionKey)) return;
+
+      const seq = ++sectionFetchSeqRef.current;
+      setSectionFetchBusyId(section.focusAreaId);
+      try {
+        const items = await getAssignmentSectionQuestionTexts(reviewId, section.sectionId);
+        if (sectionFetchSeqRef.current !== seq) return;
+
+        sectionTextsLoadedRef.current.add(sectionKey);
+
+        // Merge into `review` (main state) so question HTML + snapshots render via existing logic.
+        setReview((prev) => {
+          if (!prev?.sections?.length || !items?.length) return prev;
+          const byQid = new Map(items.map((x) => [String(x?.questionId ?? ''), x]));
+          const nextSections = prev.sections.map((s) => {
+            if (s.focusAreaId !== section.focusAreaId) return s;
+            const nextQuestions = Array.isArray(s.questions)
+              ? s.questions.map((q) => {
+                  const item = byQid.get(String(q?.id ?? ''));
+                  if (!item) return q;
+                  return {
+                    ...q,
+                    text: item.text ?? q.text,
+                    selfReview: mergePhaseSnapshot(
+                      q.selfReview,
+                      snapshotFromQuestionTextItem(item, { phase: 'self' }),
+                    ),
+                    managerReview: mergePhaseSnapshot(
+                      q.managerReview,
+                      snapshotFromQuestionTextItem(item, { phase: 'manager' }),
+                    ),
+                  };
+                })
+              : s.questions;
+            return { ...s, questions: nextQuestions };
+          });
+          return { ...prev, sections: nextSections };
+        });
+
+        // Also hydrate `answers` so editable self/manager fields populate after lazy-load.
+        if (!isHrMode) {
+          setAnswers((prev) => {
+            if (!items?.length) return prev;
+            let next = null;
+            for (const item of items) {
+              const qid = String(item?.questionId ?? '').trim();
+              if (!qid) continue;
+
+              const snap = snapshotFromQuestionTextItem(item, {
+                phase: isManagerMode ? 'manager' : 'self',
+              });
+              if (!snap) continue;
+
+              const ratingRaw = snap?.rating;
+              const commentRaw = snap?.comment;
+              const hasRating =
+                ratingRaw != null && ratingRaw !== '' && Number.isFinite(Number(ratingRaw));
+              const hasComment =
+                snap?.commentStatus === true || String(commentRaw ?? '').trim() !== '';
+              if (!hasRating && !hasComment) continue;
+
+              if (next === null) next = { ...prev };
+              next[qid] = {
+                ...(next[qid] || {}),
+                rating: hasRating ? Number(ratingRaw) : 0,
+                comment: String(commentRaw || ''),
+              };
+            }
+            return next ?? prev;
+          });
+          setAnswersHydrationKey((k) => k + 1);
+        }
+      } catch (e) {
+        if (sectionFetchSeqRef.current === seq) {
+          setMutationToast({ severity: 'error', message: getApiErrorMessage(e) });
+        }
+      } finally {
+        if (sectionFetchSeqRef.current === seq) setSectionFetchBusyId(null);
+      }
+    },
+    [
+      reviewId,
+      getAssignmentSectionQuestionTexts,
+      isHrMode,
+      isManagerMode,
+      getApiErrorMessage,
+      snapshotFromQuestionTextItem,
+    ],
+  );
 
   const updateAnswer = useCallback((questionId, field, value) => {
     setAnswers((prev) => ({
@@ -434,6 +612,7 @@ const progressCardChipShell = (theme) => ({
         });
         if (managerDraftSaveSeqRef.current === seq) {
           setManagerDraftSaveStatus('saved');
+          sectionTextsLoadedRef.current = new Set();
           dispatch(setPerfSuccessMessage('Manager evaluation draft saved.'));
           navigate('/performance');
         }
@@ -464,6 +643,7 @@ const progressCardChipShell = (theme) => ({
     const mergedAnswers = flushCommentDraftsToAnswers();
     try {
       await dispatch(saveEvaluation({ reviewId, answers: mergedAnswers })).unwrap();
+      sectionTextsLoadedRef.current = new Set();
       navigate('/performance');
     } catch (e) {
       const status = e?.status;
@@ -476,43 +656,15 @@ const progressCardChipShell = (theme) => ({
   const handleSubmit = () => {
     if (isManagerMode && !effectiveEmployeeId) return;
     const mergedAnswers = flushCommentDraftsToAnswers();
-    const canSubmitMerged = isHrMode
-      ? Object.keys(validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale)).length === 0
-      : isManagerMode
-        ? isFormComplete(mergedAnswers, allQuestions)
-        : allQuestions.every((q) => {
-            const a = mergedAnswers[q.id] || {};
-            return Boolean(a?.rating) && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN;
-          });
 
     if (isHrMode) {
       const nextErrors = validateHrSubmitInput({ hrOverallRating, hrComments }, hrRatingScale);
       setHrValidation(nextErrors);
       if (Object.keys(nextErrors).length > 0) return;
     }
-    if (!canSubmitMerged) {
-      if (isHrMode) {
-        setMutationToast({
-          severity: 'warning',
-          message: 'Please provide the required HR overall rating (and comments if applicable) before submitting.',
-        });
-        return;
-      }
 
-      if (!isManagerMode && !isHrMode) setSelfSubmitValidationOn(true);
-      const unansweredCount = allQuestions.filter((q) => {
-        const a = mergedAnswers[q.id] || {};
-        if (isManagerMode) return !(a?.rating && String(a?.comment || '').trim());
-        return !(a?.rating && getTextLen(a?.comment) >= SELF_EVAL_MIN_ANSWER_LEN);
-      }).length;
-
-      setMutationToast({
-        severity: 'warning',
-        message:
-          unansweredCount > 0
-            ? `Please complete ${unansweredCount} more question${unansweredCount === 1 ? '' : 's'} (rating + at least ${SELF_EVAL_MIN_ANSWER_LEN} characters) before submitting.`
-            : 'Please complete all required fields before submitting.',
-      });
+    if (!isEveryQuestionCompleteForSubmit(mergedAnswers)) {
+      showSubmitValidationFailure(mergedAnswers);
       return;
     }
     setConfirmOpen(true);
@@ -529,6 +681,12 @@ const progressCardChipShell = (theme) => ({
     }
     clearError();
     const mergedAnswers = flushCommentDraftsToAnswers();
+
+    if (!isEveryQuestionCompleteForSubmit(mergedAnswers)) {
+      showSubmitValidationFailure(mergedAnswers);
+      return;
+    }
+
     try {
       if (isHrMode) {
         await dispatch(
@@ -561,6 +719,9 @@ const progressCardChipShell = (theme) => ({
       const status = e?.status;
       const msg = e?.message ?? 'Submission failed.';
       setMutationToast({ severity: 'error', message: msg });
+      if (!isManagerMode && !isHrMode && (status === 400 || status === undefined)) {
+        setSelfSubmitValidationOn(true);
+      }
       if (status === 409) {
         if (isHrMode) setPhaseConflict((p) => ({ ...p, hr: true }));
         else if (isManagerMode) setPhaseConflict((p) => ({ ...p, manager: true }));
@@ -715,13 +876,7 @@ const progressCardChipShell = (theme) => ({
           >
             {isHrMode
               ? `Progress: ${hrCompletionPct === 100 ? 'Overall rating provided' : 'Overall rating pending'}`
-              : `Progress: ${
-                  isManagerMode
-                    ? Object.keys(answers).filter(
-                        (k) => answers[k]?.rating && getTextLen(answers[k]?.comment) > 0,
-                      ).length
-                    : selfAnsweredCountMinLen
-                } of ${allQuestions.length} questions answered`}
+              : `Progress: ${completedQuestionCount} of ${allQuestions.length} questions answered`}
           </Typography>
           <Stack
             direction="row"
@@ -1003,14 +1158,16 @@ const progressCardChipShell = (theme) => ({
       {review.sections.map((section, sIdx) => {
         const sectionAnswered = section.questions.filter(isQuestionCompleteForSectionHeader).length;
         const sectionWeight = formatWeightage(section.weightage);
+        const isSectionLoading = sectionFetchBusyId === section.focusAreaId;
 
         return (
           <Accordion
             key={section.focusAreaId}
             expanded={expandedFocusAreaId === section.focusAreaId}
-            onChange={(_, isExpanded) =>
-              setExpandedFocusAreaId(isExpanded ? section.focusAreaId : false)
-            }
+            onChange={(_, isExpanded) => {
+              setExpandedFocusAreaId(isExpanded ? section.focusAreaId : false);
+              if (isExpanded) fetchSectionQuestionTexts(section);
+            }}
             elevation={0}
             sx={{
               border: '1px solid',
@@ -1070,32 +1227,59 @@ const progressCardChipShell = (theme) => ({
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: { xs: 1.5, sm: 2, md: 3 }, overflow: 'hidden' }}>
-              {section.description && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
-                  {section.description}
-                </Typography>
-              )}
-              <Stack spacing={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
-                {section.questions.map((question, qIdx) => (
-                  <EvaluationQuestionCard
-                    key={question.id}
-                    question={question}
-                    qAns={answers[question.id] || {}}
-                    questionHtml={questionHtmlById[question.id] ?? ''}
-                    qIdx={qIdx}
-                    ratingScale={review.ratingScale}
-                    isManagerMode={isManagerMode}
-                    isHrMode={isHrMode}
-                    selfFieldsReadOnly={selfFieldsReadOnly}
-                    managerFieldsReadOnly={managerFieldsReadOnly}
-                    hrResultsVisible={hrResultsVisible}
-                    selfSubmitValidationOn={selfSubmitValidationOn}
-                    hydrationKey={answersHydrationKey}
-                    registerCommentDraftGetter={registerCommentDraftGetter}
-                    onUpdateAnswer={updateAnswer}
-                  />
-                ))}
-              </Stack>
+              <Box sx={{ position: 'relative', minWidth: 0, maxWidth: '100%' }}>
+                {isSectionLoading && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                      zIndex: 1,
+                    }}
+                  >
+                    <CircularProgress size={24} />
+                  </Box>
+                )}
+
+                <Box sx={{ opacity: isSectionLoading ? 0.55 : 1 }}>
+                  {section.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+                      {section.description}
+                    </Typography>
+                  )}
+                  <Stack spacing={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+                    {section.questions.map((question, qIdx) => (
+                      <EvaluationQuestionCard
+                        key={question.id}
+                        question={question}
+                        qAns={answers[question.id] || {}}
+                        questionHtml={questionHtmlById[question.id] ?? ''}
+                        qIdx={qIdx}
+                        ratingScale={review.ratingScale}
+                        isManagerMode={isManagerMode}
+                        isHrMode={isHrMode}
+                        selfFieldsReadOnly={selfFieldsReadOnly}
+                        managerFieldsReadOnly={managerFieldsReadOnly}
+                        hrResultsVisible={hrResultsVisible}
+                        selfCommentRequiredForSubmit={
+                          selfSubmitValidationOn &&
+                          getQuestionSubmitIncompleteReason(question, {
+                            phase: 'self',
+                            answers,
+                            fieldsReadOnly: selfFieldsReadOnly,
+                          }) === 'missing_comment'
+                        }
+                        hydrationKey={answersHydrationKey}
+                        registerCommentDraftGetter={registerCommentDraftGetter}
+                        onUpdateAnswer={updateAnswer}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+              </Box>
             </AccordionDetails>
           </Accordion>
         );

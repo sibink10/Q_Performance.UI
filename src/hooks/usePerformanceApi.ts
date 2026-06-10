@@ -1,6 +1,6 @@
 // @ts-nocheck
 import performanceService from '../services/performanceService';
-import { getApiErrorMessage, toEntityFromPayload } from '../utils/helpers';
+import { getApiErrorMessage, toArrayFromPayload, toEntityFromPayload } from '../utils/helpers';
 import { buildSelfOrManagerSubmitPayload } from '../utils/performanceSubmission';
 
 /**
@@ -21,6 +21,15 @@ const usePerformanceApi = () => {
     try {
       const res = await performanceService.getAssignmentById(id);
       return toEntityFromPayload(res);
+    } catch (e) {
+      throw new Error(getApiErrorMessage(e));
+    }
+  };
+
+  const getAssignmentSectionQuestionTexts = async (assignmentId, sectionId) => {
+    try {
+      const res = await performanceService.getAssignmentSectionQuestionTexts(assignmentId, sectionId);
+      return toArrayFromPayload(res);
     } catch (e) {
       throw new Error(getApiErrorMessage(e));
     }
@@ -68,6 +77,7 @@ const usePerformanceApi = () => {
   return {
     getReviewFormById,
     getAssignmentById,
+    getAssignmentSectionQuestionTexts,
     publishRatings,
     unpublishAssignmentResults,
     exportManagedAssignmentsExcel,

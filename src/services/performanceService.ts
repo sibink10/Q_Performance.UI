@@ -70,6 +70,9 @@ const performanceService = {
   assignReviewForm: (data) => createAssignments(data),
   getAssignments: (params = {}) => api.get('/performance/assignments', { params }),
   getAssignmentById: (id) => api.get(`/performance/assignments/${id}`),
+  /** Lazy-load question HTML + self/manager snapshots for one assignment section. */
+  getAssignmentSectionQuestionTexts: (assignmentId, sectionId) =>
+    api.get(`/performance/assignments/${assignmentId}/sections/${sectionId}/question-texts`),
   publishReviewFormAssignments: ({ reviewFormId, financialYearId }) =>
     api.patch('/performance/assignments/review-form/publish', {}, {
       params: { reviewFormId, financialYearId },

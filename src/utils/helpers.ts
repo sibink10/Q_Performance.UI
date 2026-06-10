@@ -3,6 +3,7 @@
 // Reusable utility functions used across the Performance module
 
 import dayjs from 'dayjs';
+import { richTextHtmlToPlainText } from './richText';
 
 /**
  * Calculate the completion percentage of an evaluation form.
@@ -205,18 +206,155 @@ const GUID_STRING_REGEX = /^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$/i;
 export const isLikelyGuidString = (value) =>
   typeof value === 'string' && GUID_STRING_REGEX.test(value.trim());
 
-/** Parses API phase snapshot `{ rating?, comment? }` (camelCase or PascalCase). */
+/** Merge lazy-loaded snapshot into existing; preserve commentStatus when either side has it. */
+export const mergePhaseSnapshot = (prev, next) => {
+  if (!next) return prev ?? null;
+  if (!prev) return next;
+  const prevStatus = prev.commentStatus ?? prev.CommentStatus;
+  const nextStatus = next.commentStatus ?? next.CommentStatus;
+  return {
+    ...prev,
+    ...next,
+    commentStatus: prevStatus === true || nextStatus === true,
+  };
+};
+
+/** Plain-text length > 0 after stripping HTML (matches backend CommentPlainTextHelper). */
+export const hasPlainTextComment = (value) =>
+  richTextHtmlToPlainText(String(value ?? '')).length > 0;
+
+/** Parses API phase snapshot `{ rating?, comment?, commentStatus? }` (camelCase or PascalCase). */
 export const normalizePhaseSnapshot = (snap) => {
   if (snap == null || typeof snap !== 'object') return null;
   const ratingRaw = snap.rating ?? snap.Rating;
   const commentRaw = snap.comment ?? snap.Comment ?? '';
+  const commentStatusRaw = snap.commentStatus ?? snap.CommentStatus;
   const hasRating = ratingRaw != null && ratingRaw !== '' && !Number.isNaN(Number(ratingRaw));
-  const hasComment = String(commentRaw).trim() !== '';
-  if (!hasRating && !hasComment) return null;
+  const hasCommentText = hasPlainTextComment(commentRaw);
+  const commentOmittedOnPayload = String(commentRaw).trim() === '';
+  const trustedApiCommentStatus = commentStatusRaw === true && commentOmittedOnPayload;
+  if (!hasRating && !hasCommentText && !trustedApiCommentStatus) return null;
   return {
     rating: hasRating ? Number(ratingRaw) : 0,
     comment: String(commentRaw || ''),
+    commentStatus: hasCommentText || trustedApiCommentStatus,
   };
+};
+
+/** True when a phase snapshot has a valid rating and an existing comment (via commentStatus or comment text). */
+export const isPhaseSnapshotCompleteForChip = (snap) => {
+  if (!snap) return false;
+  const ratingRaw = snap.rating ?? snap.Rating;
+  const hasRating =
+    ratingRaw != null &&
+    ratingRaw !== '' &&
+    Number.isFinite(Number(ratingRaw)) &&
+    Number(ratingRaw) > 0;
+  if (!hasRating) return false;
+  const commentStatus = snap.commentStatus ?? snap.CommentStatus;
+  const comment = snap.comment ?? snap.Comment ?? '';
+  if (commentStatus === true && String(comment).trim() === '') return true;
+  return hasPlainTextComment(comment);
+};
+
+const hasSnapshotRating = (snap) => {
+  if (!snap) return false;
+  const ratingRaw = snap.rating ?? snap.Rating;
+  return (
+    ratingRaw != null &&
+    ratingRaw !== '' &&
+    Number.isFinite(Number(ratingRaw)) &&
+    Number(ratingRaw) > 0
+  );
+};
+
+/** Submit gate: saved DB answer (commentStatus when comment omitted) or plain-text snapshot comment. */
+export const isSnapshotCompleteForSubmit = (snap) => {
+  if (!hasSnapshotRating(snap)) return false;
+  const comment = snap.comment ?? snap.Comment ?? '';
+  if (hasPlainTextComment(comment)) return true;
+  const commentStatus = snap.commentStatus ?? snap.CommentStatus;
+  return commentStatus === true && String(comment).trim() === '';
+};
+
+const getLocalAnswer = (answers, questionId) => {
+  const qid = questionId ?? '';
+  return answers?.[qid] ?? answers?.[String(qid)] ?? {};
+};
+
+const getLocalPlainCommentLength = (answers, questionId) => {
+  const a = getLocalAnswer(answers, questionId);
+  const comment = a?.comment ?? a?.Comment ?? '';
+  return richTextHtmlToPlainText(String(comment)).length;
+};
+
+const hasLocalAnswerRating = (answers, questionId) => {
+  const a = getLocalAnswer(answers, questionId);
+  const ratingRaw = a?.rating ?? a?.Rating;
+  return (
+    ratingRaw != null &&
+    ratingRaw !== '' &&
+    Number.isFinite(Number(ratingRaw)) &&
+    Number(ratingRaw) > 0
+  );
+};
+
+/** Local form state has rating and non-empty comment plain-text length. */
+export const isLocalAnswerCompleteForSubmit = (answers, questionId) =>
+  hasLocalAnswerRating(answers, questionId) && getLocalPlainCommentLength(answers, questionId) > 0;
+
+/** User has typed a rating or comment in local answers for this question. */
+export const hasLocalAnswerEdits = (answers, questionId) =>
+  hasLocalAnswerRating(answers, questionId) || getLocalPlainCommentLength(answers, questionId) > 0;
+
+export const getQuestionSubmitCompletion = (question, { phase, answers, fieldsReadOnly }) => {
+  const snap =
+    phase === 'manager'
+      ? question?.managerReview ?? question?.ManagerReview
+      : question?.selfReview ?? question?.SelfReview;
+  const qid = question?.id ?? question?.Id;
+  const snapshotOk = isSnapshotCompleteForSubmit(snap);
+  const localOk = isLocalAnswerCompleteForSubmit(answers, qid);
+
+  if (fieldsReadOnly) {
+    return { complete: snapshotOk, snapshotOk, localOk };
+  }
+
+  let complete = snapshotOk;
+  if (hasLocalAnswerEdits(answers, qid)) {
+    complete = snapshotOk || localOk;
+  }
+
+  return { complete, snapshotOk, localOk };
+};
+
+/**
+ * True when a question is ready to submit (dual-path: commentStatus snapshot OR local answer length).
+ * Does not enforce self-eval 50-character minimum (backend validates on submit).
+ */
+export const isQuestionCompleteForSubmit = (question, { phase, answers, fieldsReadOnly }) =>
+  getQuestionSubmitCompletion(question, { phase, answers, fieldsReadOnly }).complete;
+
+/** When incomplete: missing_rating | missing_comment; null when complete. */
+export const getQuestionSubmitIncompleteReason = (question, { phase, answers, fieldsReadOnly }) => {
+  const snap =
+    phase === 'manager'
+      ? question?.managerReview ?? question?.ManagerReview
+      : question?.selfReview ?? question?.SelfReview;
+  const qid = question?.id ?? question?.Id;
+  const { complete, snapshotOk, localOk } = getQuestionSubmitCompletion(question, {
+    phase,
+    answers,
+    fieldsReadOnly,
+  });
+  if (complete) return null;
+
+  const hasLocalRating = hasLocalAnswerRating(answers, qid);
+  const hasSnapshotRatingValue = hasSnapshotRating(snap);
+
+  if (!hasLocalRating && !hasSnapshotRatingValue) return 'missing_rating';
+  if (!snapshotOk && !localOk) return 'missing_comment';
+  return 'missing_comment';
 };
 
 /** True when assignment phase status indicates the phase was finalized. */
@@ -537,7 +675,9 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
   let hrHasPrefilledAnswersFromApi = false;
 
   const sections = sectionsSrc.map((s, idx) => {
-    const focusAreaId = String(s?.focusAreaId ?? s?.id ?? `section-${idx}`);
+    // `sectionId` (review form section id) is required for lazy section fetch endpoints.
+    const sectionId = String(s?.id ?? `section-${idx}`);
+    const focusAreaId = String(s?.focusAreaId ?? '');
     const focusAreaName = s?.focusAreaName ?? s?.name ?? s?.title ?? `Focus area ${idx + 1}`;
     const description = s?.description ?? s?.details ?? '';
     const weightage = s?.weightage ?? s?.Weightage ?? null;
@@ -593,7 +733,7 @@ export const mapReviewFormForSelfEvaluation = (payload) => {
         hrReview: hrSnap,
       };
     });
-    return { focusAreaId, focusAreaName, description, weightage, questions };
+    return { sectionId, focusAreaId, focusAreaName, description, weightage, questions };
   });
 
   const selfEvaluationStatus =

@@ -142,7 +142,7 @@ const SubmitConfirmationDialog = ({
                             {row.sectionTitle}
                           </Typography>
                         ) : null}
-                        <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
+                        {/* <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                           {row.questionText}
                         </Typography>
                         {row.commentPlain ? (
@@ -156,7 +156,7 @@ const SubmitConfirmationDialog = ({
                               {row.commentPlain}
                             </Typography>
                           </Box>
-                        ) : null}
+                        ) : null} */}
                       </TableCell>
                       <TableCell align="right" sx={{ verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                         {Number.isInteger(row.rating) ? row.rating : row.rating.toFixed(1)}
