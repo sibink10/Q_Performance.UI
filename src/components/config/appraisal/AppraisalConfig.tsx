@@ -26,7 +26,7 @@ import AppButton from '../../common/AppButton';
 import { AppCard, EmptyState, PageHeader } from '../../common';
 import performanceService from '../../../services/performanceService';
 import useFinancialYears from '../../../hooks/useFinancialYears';
-import { getApiErrorMessage, toArrayFromPayload } from '../../../utils/helpers';
+import { getApiErrorMessage, toArrayFromPayload, getDefaultRatingBands, validateRatingBands, normalizeRatingBandRow } from '../../../utils/helpers';
 import AppraisalConfigModal from './AppraisalConfigModal';
 
 const defaultCfg = {
@@ -34,6 +34,8 @@ const defaultCfg = {
   startMonth: 4,
   cycleType: 'ANNUAL',
   ratingScale: 5,
+  ratingBands: getDefaultRatingBands(5),
+  ratingBandsCustomized: false,
   selfEvalStart: null,
   selfEvalEnd: null,
   managerEvalStart: null,
@@ -48,7 +50,7 @@ const AppraisalConfig = () => {
   const { financialYears } = useFinancialYears();
   const [configs, setConfigs] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [configForm, setConfigForm] = useState(defaultCfg);
+  const [modalInitialForm, setModalInitialForm] = useState(defaultCfg);
   const [editConfigId, setEditConfigId] = useState('');
   const [pageError, setPageError] = useState('');
   const [pageSuccess, setPageSuccess] = useState('');
@@ -80,7 +82,7 @@ const AppraisalConfig = () => {
   const closeModal = () => {
     setModalOpen(false);
     setEditConfigId('');
-    setConfigForm(defaultCfg);
+    setModalInitialForm(defaultCfg);
     setFormError('');
     setModalSaving(false);
   };
@@ -88,22 +90,32 @@ const AppraisalConfig = () => {
   const openAddModal = () => {
     setFormError('');
     setEditConfigId('');
-    setConfigForm(defaultCfg);
+    setModalInitialForm(defaultCfg);
     setModalOpen(true);
   };
 
   const openEditModal = (row) => {
     setFormError('');
     setEditConfigId(row.id);
-    setConfigForm({ ...defaultCfg, ...row });
+    const scale = Number(row.ratingScale) || 5;
+    const bandsRaw = row.ratingBands ?? row.RatingBands ?? [];
+    const ratingBands = Array.isArray(bandsRaw) && bandsRaw.length
+      ? bandsRaw.map(normalizeRatingBandRow).filter(Boolean)
+      : getDefaultRatingBands(scale);
+    setModalInitialForm({ ...defaultCfg, ...row, ratingScale: scale, ratingBands });
     setModalOpen(true);
   };
 
-  const saveConfig = async () => {
+  const saveConfig = async (form) => {
     setFormError('');
+    const bandsError = validateRatingBands(form.ratingBands, form.ratingScale);
+    if (bandsError) {
+      setFormError(bandsError);
+      return;
+    }
     setModalSaving(true);
     try {
-      const payload = { ...configForm, financialYearId: configForm.financialYearId };
+      const payload = { ...form, financialYearId: form.financialYearId };
       if (editConfigId) {
         await performanceService.updateAppraisalConfig(editConfigId, payload);
       } else {
@@ -241,8 +253,7 @@ const AppraisalConfig = () => {
           error={formError}
           editId={editConfigId}
           financialYears={financialYears}
-          configForm={configForm}
-          setConfigForm={setConfigForm}
+          initialForm={modalInitialForm}
           onClose={closeModal}
           onSave={saveConfig}
           clearError={() => setFormError('')}

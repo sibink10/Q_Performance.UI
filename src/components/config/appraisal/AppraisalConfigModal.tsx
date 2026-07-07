@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -9,15 +10,21 @@ import {
   Divider,
   FormControl,
   Grid,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
+  Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import AppButton from '../../common/AppButton';
 import { APPRAISAL_CYCLE_TYPES, APPRAISAL_START_MONTHS, RATING_SCALES } from '../../../utils/constants';
+import { getDefaultRatingBands } from '../../../utils/helpers';
+import RatingBandCard from './RatingBandCard';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
 
@@ -39,10 +46,9 @@ type Props = {
   error: string;
   editId: string;
   financialYears: any[];
-  configForm: any;
-  setConfigForm: (updater: any) => void;
+  initialForm: any;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (form: any) => void;
   clearError: () => void;
 };
 
@@ -53,19 +59,79 @@ const AppraisalConfigModal = ({
   error,
   editId,
   financialYears,
-  configForm,
-  setConfigForm,
+  initialForm,
   onClose,
   onSave,
   clearError,
 }: Props) => {
+  const [form, setForm] = useState(initialForm);
   const isEditing = Boolean(editId);
+  const bandsTouchedRef = useRef(false);
+  const prevScaleRef = useRef(initialForm?.ratingScale);
+
+  useEffect(() => {
+    if (open) {
+      setForm(initialForm);
+      bandsTouchedRef.current = false;
+      prevScaleRef.current = initialForm?.ratingScale;
+    }
+  }, [open, initialForm]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const scale = Number(form?.ratingScale) || 5;
+    const bands = Array.isArray(form?.ratingBands) ? form.ratingBands : [];
+
+    if (!bands.length) {
+      setForm((p: any) => ({
+        ...p,
+        ratingBands: getDefaultRatingBands(scale),
+        ratingBandsCustomized: false,
+      }));
+      return;
+    }
+
+    if (!isEditing && prevScaleRef.current !== scale && !bandsTouchedRef.current) {
+      setForm((p: any) => ({
+        ...p,
+        ratingBands: getDefaultRatingBands(scale),
+        ratingBandsCustomized: false,
+      }));
+    }
+
+    prevScaleRef.current = scale;
+  }, [open, form?.ratingScale, form?.ratingBands?.length, isEditing]);
+
+  const handleBandFieldChange = useCallback((index: number, field: string, value: string | number) => {
+    bandsTouchedRef.current = true;
+    setForm((p: any) => {
+      const next = [...(p.ratingBands || [])];
+      next[index] = { ...next[index], [field]: value };
+      return { ...p, ratingBands: next, ratingBandsCustomized: true };
+    });
+  }, []);
+
+  const resetBandsToDefaults = () => {
+    bandsTouchedRef.current = false;
+    const scale = Number(form?.ratingScale) || 5;
+    setForm((p: any) => ({
+      ...p,
+      ratingBands: getDefaultRatingBands(scale),
+      ratingBandsCustomized: false,
+    }));
+  };
+
   const canSave =
-    Boolean(configForm?.financialYearId) &&
-    PHASE_FIELDS.every(([key]) => Boolean(configForm?.[key]));
+    Boolean(form?.financialYearId) &&
+    PHASE_FIELDS.every(([key]) => Boolean(form?.[key])) &&
+    Array.isArray(form?.ratingBands) &&
+    form.ratingBands.length > 0;
+
+  const bands = Array.isArray(form?.ratingBands) ? form.ratingBands : [];
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth scroll="paper">
+    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="lg" fullWidth scroll="paper">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers sx={{ pt: 2 }}>
         {error ? (
@@ -87,9 +153,9 @@ const AppraisalConfigModal = ({
               <InputLabel>Review period</InputLabel>
               <Select
                 label="Review period"
-                value={configForm.financialYearId}
+                value={form.financialYearId}
                 disabled={isEditing}
-                onChange={(e) => setConfigForm((p: any) => ({ ...p, financialYearId: e.target.value }))}
+                onChange={(e) => setForm((p: any) => ({ ...p, financialYearId: e.target.value }))}
               >
                 {financialYears.map((y: any) => (
                   <MenuItem key={y.id} value={y.id}>
@@ -105,9 +171,9 @@ const AppraisalConfigModal = ({
               <InputLabel>Cycle Type</InputLabel>
               <Select
                 label="Cycle Type"
-                value={configForm.cycleType}
+                value={form.cycleType}
                 disabled={isEditing}
-                onChange={(e) => setConfigForm((p: any) => ({ ...p, cycleType: e.target.value }))}
+                onChange={(e) => setForm((p: any) => ({ ...p, cycleType: e.target.value }))}
               >
                 {APPRAISAL_CYCLE_TYPES.map((c: any) => (
                   <MenuItem key={c.value} value={c.value}>
@@ -123,9 +189,9 @@ const AppraisalConfigModal = ({
               <InputLabel>Start Month</InputLabel>
               <Select
                 label="Start Month"
-                value={configForm.startMonth}
+                value={form.startMonth}
                 disabled={isEditing}
-                onChange={(e) => setConfigForm((p: any) => ({ ...p, startMonth: e.target.value }))}
+                onChange={(e) => setForm((p: any) => ({ ...p, startMonth: e.target.value }))}
               >
                 {APPRAISAL_START_MONTHS.map((m: any) => (
                   <MenuItem key={m.value} value={m.value}>
@@ -141,9 +207,9 @@ const AppraisalConfigModal = ({
               <InputLabel>Rating Scale</InputLabel>
               <Select
                 label="Rating Scale"
-                value={configForm.ratingScale}
+                value={form.ratingScale}
                 disabled={isEditing}
-                onChange={(e) => setConfigForm((p: any) => ({ ...p, ratingScale: e.target.value }))}
+                onChange={(e) => setForm((p: any) => ({ ...p, ratingScale: e.target.value }))}
               >
                 {Object.values(RATING_SCALES).map((s: any) => (
                   <MenuItem key={s.value} value={s.value}>
@@ -152,6 +218,44 @@ const AppraisalConfigModal = ({
                 ))}
               </Select>
             </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sx={{ mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Result rating bands
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Map overall score ranges to the title and description shown on published results.
+                  Bands must cover {form.ratingScale} steps from 0.1 to {form.ratingScale}.
+                </Typography>
+              </Box>
+              <Tooltip title="Reset to default bands for this scale">
+                <span>
+                  <IconButton
+                    size="small"
+                    aria-label="Reset rating bands"
+                    onClick={resetBandsToDefaults}
+                    disabled={saving}
+                  >
+                    <RefreshIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+            <Divider sx={{ mt: 1, mb: 2 }} />
+            <Stack spacing={2}>
+              {bands.map((band: any, idx: number) => (
+                <RatingBandCard
+                  key={`band-${idx}`}
+                  index={idx}
+                  band={band}
+                  saving={saving}
+                  onFieldChange={handleBandFieldChange}
+                />
+              ))}
+            </Stack>
           </Grid>
 
           <Grid item xs={12} sx={{ mt: 1 }}>
@@ -168,8 +272,8 @@ const AppraisalConfigModal = ({
             <Grid item xs={12} md={6} key={key}>
               <DatePicker
                 label={label}
-                value={configForm[key] ? dayjs(configForm[key]) : null}
-                onChange={(v) => setConfigForm((p: any) => ({ ...p, [key]: v?.toISOString() ?? null }))}
+                value={form[key] ? dayjs(form[key]) : null}
+                onChange={(v) => setForm((p: any) => ({ ...p, [key]: v?.toISOString() ?? null }))}
                 format={DATE_FORMAT}
                 slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
@@ -177,7 +281,6 @@ const AppraisalConfigModal = ({
           ))}
         </Grid>
 
-        {/* small bottom spacing so last date field doesn't touch divider */}
         <Box sx={{ height: 4 }} />
       </DialogContent>
 
@@ -185,7 +288,7 @@ const AppraisalConfigModal = ({
         <AppButton variant="outlined" onClick={onClose} disabled={saving}>
           Cancel
         </AppButton>
-        <AppButton onClick={onSave} disabled={saving || !canSave}>
+        <AppButton onClick={() => onSave(form)} disabled={saving || !canSave}>
           {editId ? 'Save changes' : 'Create'}
         </AppButton>
       </DialogActions>
@@ -194,4 +297,3 @@ const AppraisalConfigModal = ({
 };
 
 export default AppraisalConfigModal;
-

@@ -6,7 +6,30 @@ import {
   toEntityFromPayload,
   normalizePhaseSnapshot,
   parseRatingScaleMax,
+  normalizeRatingBandRow,
+  getDefaultRatingBands,
 } from './helpers';
+
+function ratingBandsFromPayloadEntity(e) {
+  if (!e || typeof e !== 'object') return [];
+  const appraisalCfg = e.appraisalConfig ?? e.AppraisalConfig ?? null;
+  const rawBands =
+    (appraisalCfg && typeof appraisalCfg === 'object'
+      ? appraisalCfg.ratingBands ?? appraisalCfg.RatingBands
+      : null) ??
+    e.ratingBands ??
+    e.RatingBands ??
+    [];
+
+  const bands = Array.isArray(rawBands)
+    ? rawBands.map(normalizeRatingBandRow).filter(Boolean)
+    : [];
+
+  if (bands.length > 0) return bands;
+
+  const scale = ratingScaleFromPayloadEntity(e);
+  return getDefaultRatingBands(scale);
+}
 
 function ratingScaleFromPayloadEntity(e) {
   if (!e || typeof e !== 'object') return 5;
@@ -291,6 +314,7 @@ export function normalizeMyResultDetailPayload(raw) {
     '-';
 
   const ratingScale = ratingScaleFromPayloadEntity(e);
+  const ratingBands = ratingBandsFromPayloadEntity(e);
 
   const finiteOrNaN = (v) => {
     if (v == null || v === '') return NaN;
@@ -358,6 +382,7 @@ export function normalizeMyResultDetailPayload(raw) {
     period: String(period),
     finalRating,
     ratingScale,
+    ratingBands,
     publishedDate,
     managerName: String(managerName),
     hrName: String(hrName),

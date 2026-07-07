@@ -3,6 +3,11 @@
 // Reusable utility functions used across the Performance module
 
 import dayjs from 'dayjs';
+import {
+  resolveBandAccentColor,
+  resolveBandIconKey,
+  isValidHex6,
+} from './ratingBandIcons';
 import { richTextHtmlToPlainText } from './richText';
 
 /**
@@ -134,8 +139,201 @@ export const getRatingColor = (label) => {
     'Meets Expectations': '#1565c0',
     'Needs Improvement': '#e65100',
     Unsatisfactory: '#b71c1c',
+    'FAR EXCEEDS': '#00695c',
+    EXCEEDS: '#2e7d32',
+    MEETS: '#1565c0',
+    BELOW: '#e65100',
   };
   return map[label] || '#333';
+};
+
+const SCORE_TOLERANCE = 0.001;
+
+/** Default result bands for a rating scale (mirrors backend AppraisalRatingBandHelper). */
+export const getDefaultRatingBands = (scale) => {
+  const n = Number(scale) || 5;
+  if (n === 4) {
+    return [
+      {
+        minScore: 0.1,
+        maxScore: 1.0,
+        shortLabel: 'BELOW',
+        title: 'Improvement Needed',
+        description:
+          'Performance gaps in results, behaviours, or adherence requiring focused improvement and support.',
+        iconKey: 'trending_down',
+        accentColor: '#e65100',
+      },
+      {
+        minScore: 1.1,
+        maxScore: 2.0,
+        shortLabel: 'MEETS',
+        title: 'Solid Contributor',
+        description:
+          'Consistently fulfills responsibilities, dependable execution, and adherence to processes.',
+        iconKey: 'thumb_up',
+        accentColor: '#1565c0',
+      },
+      {
+        minScore: 2.1,
+        maxScore: 3.0,
+        shortLabel: 'EXCEEDS',
+        title: 'Strong Performer',
+        description:
+          'High-quality results, reliability, effective collaboration and meaningful team contribution.',
+        iconKey: 'workspace_premium',
+        accentColor: '#2e7d32',
+      },
+      {
+        minScore: 3.1,
+        maxScore: 4.0,
+        shortLabel: 'FAR EXCEEDS',
+        title: 'Exceptional Performer',
+        description:
+          'Exceptional results, strong ownership, innovation & major positive impact beyond responsibilities.',
+        iconKey: 'emoji_events',
+        accentColor: '#00695c',
+      },
+    ];
+  }
+
+  const stepIconKeys = [
+    'trending_down', 'thumb_up', 'show_chart', 'workspace_premium', 'emoji_events',
+    'star', 'verified', 'rocket_launch', 'grade', 'military_tech',
+  ];
+  const stepColors = [
+    '#e65100', '#1565c0', '#2e7d32', '#00695c', '#6a1b9a',
+    '#c62828', '#ef6c00', '#00838f', '#4527a0', '#558b2f',
+  ];
+  const bands = [];
+  for (let i = 0; i < n; i += 1) {
+    const min = i === 0 ? 0.1 : Math.round((i + 0.1) * 10) / 10;
+    const max = Math.round((i + 1) * 10) / 10;
+    bands.push({
+      minScore: min,
+      maxScore: max,
+      shortLabel: `LEVEL ${i + 1}`,
+      title: `Rating level ${i + 1}`,
+      description: `Overall score from ${min.toFixed(1)} to ${max.toFixed(1)} on the ${n}-point scale.`,
+      iconKey: stepIconKeys[i % stepIconKeys.length],
+      accentColor: stepColors[i % stepColors.length],
+    });
+  }
+  return bands;
+};
+
+export const normalizeRatingBandRow = (raw) => {
+  if (!raw || typeof raw !== 'object') return null;
+  const minScore = Number(raw.minScore ?? raw.MinScore);
+  const maxScore = Number(raw.maxScore ?? raw.MaxScore);
+  if (!Number.isFinite(minScore) || !Number.isFinite(maxScore)) return null;
+  return {
+    minScore,
+    maxScore,
+    shortLabel: String(raw.shortLabel ?? raw.ShortLabel ?? '').trim(),
+    title: String(raw.title ?? raw.Title ?? '').trim(),
+    description: String(raw.description ?? raw.Description ?? '').trim(),
+    iconKey: String(raw.iconKey ?? raw.IconKey ?? '').trim() || undefined,
+    accentColor: String(raw.accentColor ?? raw.AccentColor ?? '').trim() || undefined,
+  };
+};
+
+/** Validate rating bands client-side (same rules as backend). Returns error string or null. */
+export const validateRatingBands = (bands, ratingScale) => {
+  const scale = Number(ratingScale) || 5;
+  const minAllowed = 0.1;
+
+  if (!Array.isArray(bands) || bands.length === 0) {
+    return 'At least one rating band is required.';
+  }
+  if (bands.length !== scale) {
+    return `Rating bands count (${bands.length}) must match the rating scale (${scale}).`;
+  }
+
+  const ordered = [...bands].sort((a, b) => a.minScore - b.minScore);
+
+  for (let i = 0; i < ordered.length; i += 1) {
+    const band = ordered[i];
+    if (!band.shortLabel) return `Band ${i + 1}: short label is required.`;
+    if (!band.title) return `Band ${i + 1}: title is required.`;
+    if (!band.description) return `Band ${i + 1}: description is required.`;
+    if (band.accentColor && !isValidHex6(band.accentColor)) {
+      return `Band ${i + 1}: accent color must be a valid #rrggbb hex value.`;
+    }
+    if (band.minScore > band.maxScore + SCORE_TOLERANCE) {
+      return `Band ${i + 1}: min score cannot exceed max score.`;
+    }
+    if (band.minScore < minAllowed - SCORE_TOLERANCE || band.maxScore > scale + SCORE_TOLERANCE) {
+      return `Band ${i + 1}: scores must stay within ${minAllowed} and ${scale}.`;
+    }
+    if (i > 0) {
+      const prev = ordered[i - 1];
+      if (band.minScore <= prev.maxScore - SCORE_TOLERANCE) {
+        return `Band ${i + 1}: ranges must not overlap.`;
+      }
+      const expectedMin = Math.round((prev.maxScore + 0.1) * 10) / 10;
+      if (Math.abs(band.minScore - expectedMin) > SCORE_TOLERANCE) {
+        return `Band ${i + 1}: min score should be ${expectedMin.toFixed(1)} (previous max + 0.1).`;
+      }
+    }
+  }
+
+  if (Math.abs(ordered[0].minScore - minAllowed) > SCORE_TOLERANCE) {
+    return `First band must start at ${minAllowed}.`;
+  }
+  if (Math.abs(ordered[ordered.length - 1].maxScore - scale) > SCORE_TOLERANCE) {
+    return `Last band must end at ${scale}.`;
+  }
+
+  return null;
+};
+
+/**
+ * Resolve configured rating band for an overall score.
+ * Falls back to percentage-based label when no band matches.
+ */
+export const resolveRatingBand = (score, bands, scale) => {
+  const numScore = Number(score);
+  const numScale = Number(scale) || 5;
+  const normalizedBands = (Array.isArray(bands) ? bands : [])
+    .map(normalizeRatingBandRow)
+    .filter(Boolean)
+    .sort((a, b) => a.minScore - b.minScore);
+
+  if (Number.isFinite(numScore) && normalizedBands.length > 0) {
+    const matchIndex = normalizedBands.findIndex(
+      (band) =>
+        numScore + SCORE_TOLERANCE >= band.minScore &&
+        numScore <= band.maxScore + SCORE_TOLERANCE
+    );
+    const match = matchIndex >= 0 ? normalizedBands[matchIndex] : null;
+    if (match) {
+      return {
+        shortLabel: match.shortLabel,
+        title: match.title,
+        description: match.description,
+        iconKey: resolveBandIconKey(match, matchIndex),
+        color: resolveBandAccentColor(match, matchIndex, getRatingColor),
+        isConfigured: true,
+      };
+    }
+  }
+
+  const fallbackLabel = getRatingLabel(numScore, numScale);
+  return {
+    shortLabel: fallbackLabel,
+    title: fallbackLabel,
+    description: '',
+    iconKey: 'emoji_events',
+    color: getRatingColor(fallbackLabel),
+    isConfigured: false,
+  };
+};
+
+export const getRatingBandColor = (band) => {
+  if (!band) return '#333';
+  if (band.color) return band.color;
+  return getRatingColor(band.shortLabel || band.title || '');
 };
 
 /**

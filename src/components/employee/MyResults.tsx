@@ -11,7 +11,6 @@ import {
   Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
@@ -23,7 +22,8 @@ import { AppCard, AppLoader, EmptyState, PageHeader } from '../../components/com
 import TableDotStatus from '../../components/common/TableDotStatus';
 import { modernTableSx } from '../../utils/floatingPanelSx';
 import { REVIEW_STATUSES } from '../../utils/constants';
-import { getRatingLabel, getRatingColor, formatDate } from '../../utils/helpers';
+import { formatDate, resolveRatingBand } from '../../utils/helpers';
+import { RatingBandIcon, RatingBandShortLabelChip } from '../../utils/ratingBandIcons';
 import {
   isProbablyHtml,
   normalizeQuestionTextToHtml,
@@ -155,10 +155,10 @@ function PublishedPhaseReadout({
 }
 
 function PublishedResultPanels({ result }) {
-  const ratingLabel = getRatingLabel(result.finalRating, result.ratingScale);
-  const ratingColor = getRatingColor(ratingLabel);
-
   const scale = Number(result.ratingScale) || 5;
+  const ratingBand = resolveRatingBand(result.finalRating, result.ratingBands, scale);
+  const ratingColor = ratingBand.color;
+
   const areas = result.focusAreas || [];
 
   const radarRatingTicks =
@@ -220,15 +220,24 @@ function PublishedResultPanels({ result }) {
     <>
       <AppCard
         sx={{
-          p: 4, mb: 3,
+          position: 'relative',
+          overflow: 'hidden',
+          p: 4,
+          mb: 3,
           background: `linear-gradient(135deg, ${ratingColor}15 0%, transparent 60%)`,
           borderLeft: `4px solid ${ratingColor}`,
         }}
       >
+        <RatingBandShortLabelChip
+          label={ratingBand.shortLabel}
+          color={ratingColor}
+          size="medium"
+          variant="corner"
+        />
         <Grid container spacing={3} alignItems="center">
           <Grid item>
             <Avatar sx={{ width: 72, height: 72, bgcolor: ratingColor, fontSize: 28 }}>
-              <EmojiEventsIcon fontSize="large" />
+              <RatingBandIcon iconKey={ratingBand.iconKey} fontSize="large" />
             </Avatar>
           </Grid>
           <Grid item flex={1}>
@@ -238,9 +247,14 @@ function PublishedResultPanels({ result }) {
                 / {result.ratingScale}
               </Typography>
             </Typography>
-            <Typography variant="h6" fontWeight={600} sx={{ color: ratingColor }}>
-              {ratingLabel}
+            <Typography variant="h6" fontWeight={600} sx={{ color: ratingColor, mt: 0.5 }}>
+              {ratingBand.title}
             </Typography>
+            {ratingBand.description ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 560, lineHeight: 1.7 }}>
+                {ratingBand.description}
+              </Typography>
+            ) : null}
             {scale !== 10 ? (
               <Rating
                 value={Math.min(scale, Math.max(0, Number(result.finalRating) || 0))}
