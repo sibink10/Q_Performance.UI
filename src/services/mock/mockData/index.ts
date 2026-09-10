@@ -16,6 +16,7 @@ import type { PerformanceCycle } from '../../../types/performanceCycle';
 import type { PerformanceImprovementPlan } from '../../../types/pip';
 import type { SelfAppraisal } from '../../../types/selfAppraisal';
 import type { MockUser } from '../../../types/user';
+import { mockGoals } from './goals';
 import { mockOrganization } from './organizations';
 import { mockPerformanceCycles } from './performanceCycles';
 import { mockUsers } from './users';
@@ -50,7 +51,7 @@ export function seed(): MockSeed {
     users: mockUsers,
     organization: mockOrganization,
     performanceCycles: mockPerformanceCycles,
-    goals: [],
+    goals: mockGoals,
     goalRevisions: [],
     growthConnects: [],
     contributions: [],

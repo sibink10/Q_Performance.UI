@@ -7,6 +7,7 @@ import authReducer from './slices/authSlice';
 import performanceReducer from './slices/performanceSlice';
 import orgBrandingReducer from './slices/orgBrandingSlice';
 import performanceCycleReducer from './slices/performanceCycleSlice';
+import goalsReducer from './slices/goalsSlice';
 
 const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ const store = configureStore({
     performance: performanceReducer,
     orgBranding: orgBrandingReducer,
     performanceCycle: performanceCycleReducer,
+    goals: goalsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

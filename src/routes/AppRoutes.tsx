@@ -11,6 +11,7 @@ import MainLayout from '../layouts/MainLayout';
 import AuthGuard from '../guards/AuthGuard';
 import EmployeeGuard from '../guards/EmployeeGuard';
 import AdminGuard from '../guards/AdminGuard';
+import ManagerGuard from '../guards/ManagerGuard';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 import Login from '../pages/auth/Login';
@@ -33,6 +34,8 @@ import AssignedReviewFormEmployees from '../pages/operations/AssignedReviewFormE
 import EmployeePerformance from '../pages/employee/EmployeePerformance';
 import SelfEvaluationForm from '../pages/employee/SelfEvaluationForm';
 import MyResults from '../pages/employee/MyResults';
+import MyGoals from '../pages/employee/MyGoals';
+import GoalReviews from '../pages/manager/GoalReviews';
 import NotFound from '../pages/NotFound';
 
 const AppRoutes = () => (
@@ -58,7 +61,14 @@ const AppRoutes = () => (
         <Route path="review/:reviewId" element={<EmployeeGuard><SelfEvaluationForm /></EmployeeGuard>} />
         <Route path="results" element={<EmployeeGuard><MyResults /></EmployeeGuard>} />
         <Route path="results/:assignmentId" element={<EmployeeGuard><MyResults /></EmployeeGuard>} />
+        <Route path="goals" element={<EmployeeGuard><MyGoals /></EmployeeGuard>} />
       </Route>
+
+      {/* Manager Module */}
+      <Route
+        path="manager/performance/goal-reviews"
+        element={<ManagerGuard><GoalReviews /></ManagerGuard>}
+      />
 
       {/* Operations Module - Admin Only */}
       <Route

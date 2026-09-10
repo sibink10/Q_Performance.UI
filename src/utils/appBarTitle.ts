@@ -13,11 +13,17 @@ export function getAppBarTitle(pathname: string, search: string): string {
     if (mode === 'hr') return 'HR review';
     return 'Self evaluation';
   }
+  if (path === '/performance/goals') {
+    return 'My goals';
+  }
   if (path === '/performance/results') {
     return 'My results';
   }
   if (/^\/performance\/results\//.test(path)) {
     return 'Result details';
+  }
+  if (path === '/manager/performance/goal-reviews') {
+    return 'Goal reviews';
   }
   if (path === '/operations/performance') {
     return 'Performance dashboard';

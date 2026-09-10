@@ -38,6 +38,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
 import StarIcon from "@mui/icons-material/Star";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import FlagIcon from "@mui/icons-material/Flag";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LogoutIcon from "@mui/icons-material/Logout";
 import useAuth from "../hooks/useAuth";
@@ -52,7 +53,16 @@ const DRAWER_WIDTH = 272;
 
 const EMPLOYEE_NAV = [
   { label: "My Reviews", icon: <AssignmentIcon />, path: "/performance" },
+  { label: "My Goals", icon: <FlagIcon />, path: "/performance/goals" },
   { label: "My Results", icon: <StarIcon />, path: "/performance/results" },
+];
+
+const MANAGER_NAV = [
+  {
+    label: "Goal Reviews",
+    icon: <PeopleIcon />,
+    path: "/manager/performance/goal-reviews",
+  },
 ];
 
 const ADMIN_NAV = [
@@ -147,7 +157,7 @@ function getActiveNavPath(items, pathname) {
 const MainLayout = () => {
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isManager, logout } = useAuth();
   const branding = useSelector(selectOrgBranding);
   const navigate = useNavigate();
   const location = useLocation();
@@ -193,6 +203,7 @@ const MainLayout = () => {
   };
 
   const activeEmployeePath = getActiveNavPath(EMPLOYEE_NAV, location.pathname);
+  const activeManagerPath = getActiveNavPath(MANAGER_NAV, location.pathname);
   const drawerText = theme.palette.text.primary;
   const drawerMuted = alpha(theme.palette.text.secondary, 0.78);
   const navBtnSx = {
@@ -371,6 +382,47 @@ const MainLayout = () => {
             </ListItemButton>
           </ListItem>
         ))}
+
+        {isManager && (
+          <>
+            <Divider
+              sx={{
+                my: 1.25,
+                borderColor: alpha(theme.palette.grey[900], 0.08),
+              }}
+            />
+            <ListItem disablePadding>
+              <Typography
+                variant="overline"
+                sx={{
+                  px: 1,
+                  py: 0.75,
+                  color: alpha(theme.palette.primary.main, 0.88),
+                  fontSize: theme.typography.overline.fontSize,
+                  letterSpacing: 1.2,
+                  fontWeight: 700,
+                }}
+              >
+                Team Performance
+              </Typography>
+            </ListItem>
+            {MANAGER_NAV.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  selected={activeManagerPath === item.path}
+                  onClick={() => handleNavigate(item.path)}
+                  sx={navBtnSx}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </>
+        )}
 
         {isAdmin &&
           ADMIN_NAV.map((section) => {

@@ -10,3 +10,4 @@ export { default as StatusChip } from './StatusChip';
 export { default as TableDotStatus } from './TableDotStatus';
 export { default as RatingInput } from './RatingInput';
 export { default as RichTextEditor } from './RichTextEditor';
+export { default as WeightBadge } from './WeightBadge';
