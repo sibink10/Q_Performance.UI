@@ -6,12 +6,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import performanceReducer from './slices/performanceSlice';
 import orgBrandingReducer from './slices/orgBrandingSlice';
+import performanceCycleReducer from './slices/performanceCycleSlice';
 
 const store = configureStore({
   reducer: {
     auth: authReducer,
     performance: performanceReducer,
     orgBranding: orgBrandingReducer,
+    performanceCycle: performanceCycleReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

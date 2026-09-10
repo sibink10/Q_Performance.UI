@@ -1,6 +1,9 @@
-// @ts-nocheck
-// src/components/common/AppButton
 import { Button, CircularProgress } from '@mui/material';
+import type { ButtonProps } from '@mui/material';
+
+export type AppButtonProps = ButtonProps & {
+  loading?: boolean;
+};
 
 /**
  * Reusable Button with built-in loading state.
@@ -13,7 +16,7 @@ const AppButton = ({
   size = 'medium',
   startIcon,
   ...props
-}) => (
+}: AppButtonProps) => (
   <Button
     variant={variant}
     size={size}

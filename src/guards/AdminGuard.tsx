@@ -6,7 +6,9 @@ type AdminGuardProps = {
 };
 
 const AdminGuard = ({ children }: AdminGuardProps) => (
-  <RoleGuard allow={['ADMIN']}>{children}</RoleGuard>
+  <RoleGuard allow={['ADMIN']} fallbackPath="/not-found">
+    {children}
+  </RoleGuard>
 );
 
 export default AdminGuard;

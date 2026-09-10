@@ -3,7 +3,7 @@
  * Backend contract: GET/PATCH `/performance/org-branding` — see `performanceService` module comment.
  */
 import type { OrgBranding } from '../types/orgBranding';
-import { DEFAULT_BRAND_PRIMARY } from '../types/them';
+import { DEFAULT_BRAND_PRIMARY } from '../types/theme';
 import defaultLogo from '../assets/qubiqon_logo.png';
 
 export const DEFAULT_PERFORMANCE_REVIEW_GUIDE_URL =

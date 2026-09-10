@@ -25,7 +25,7 @@ import {
   uploadOrgBrandingAsset,
 } from '../../../app/state/slices/orgBrandingSlice';
 import type { OrgBrandingUploadKind } from '../../../types/orgBranding';
-import { DEFAULT_BRAND_PRIMARY } from '../../../types/them';
+import { DEFAULT_BRAND_PRIMARY } from '../../../types/theme';
 import { DEFAULT_ORG_BRANDING, mergeOrgBranding } from '../../../utils/orgBrandingDefaults';
 import { getApiErrorMessage } from '../../../utils/helpers';
 

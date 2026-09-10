@@ -21,6 +21,7 @@ import AppraisalConfig from '../pages/config/AppraisalConfig';
 import FocusAreas from '../pages/config/FocusAreas';
 import ReviewFormDesign from '../pages/config/ReviewFormDesign';
 import OrganizationBranding from '../pages/config/OrganizationBranding';
+import PerformanceCycles from '../pages/config/PerformanceCycles';
 
 // ── Operations Module (Admin Only) ────────────────────────────────────────────
 import OperationsPerformance from '../pages/operations/OperationsPerformance';
@@ -32,6 +33,7 @@ import AssignedReviewFormEmployees from '../pages/operations/AssignedReviewFormE
 import EmployeePerformance from '../pages/employee/EmployeePerformance';
 import SelfEvaluationForm from '../pages/employee/SelfEvaluationForm';
 import MyResults from '../pages/employee/MyResults';
+import NotFound from '../pages/NotFound';
 
 const AppRoutes = () => (
   <Routes>
@@ -83,6 +85,10 @@ const AppRoutes = () => (
         element={<AdminGuard><FinancialYearConfig /></AdminGuard>}
       />
       <Route
+        path="config/performance/cycles"
+        element={<AdminGuard><PerformanceCycles /></AdminGuard>}
+      />
+      <Route
         path="config/performance/appraisal-config"
         element={<AdminGuard><AppraisalConfig /></AdminGuard>}
       />
@@ -102,10 +108,10 @@ const AppRoutes = () => (
         path="config/performance/org-branding"
         element={<AdminGuard><OrganizationBranding /></AdminGuard>}
       />
-    </Route>
 
-    {/* Catch-all */}
-    <Route path="*" element={<Navigate to="/performance" replace />} />
+      <Route path="not-found" element={<NotFound />} />
+      <Route path="*" element={<NotFound />} />
+    </Route>
   </Routes>
 );
 

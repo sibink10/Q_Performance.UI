@@ -52,6 +52,9 @@ export function getAppBarTitle(pathname: string, search: string): string {
   if (/^\/config\/performance\/review-forms\//.test(path)) {
     return 'Edit review form';
   }
+  if (path === '/not-found') {
+    return 'Page not found';
+  }
 
   return 'Performance';
 }

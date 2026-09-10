@@ -17,7 +17,7 @@ import { registerNavigationService } from './services/navigationService';
 import { setAuthFromSso, clearAuth, setAuthLoading, selectIsAuthenticated } from './app/state/slices/authSlice';
 import { fetchOrgBranding } from './app/state/slices/orgBrandingSlice';
 import { DEFAULT_ORG_BRANDING } from './utils/orgBrandingDefaults';
-import { createAppTheme } from './types/them';
+import { createAppTheme } from './types/theme';
 import { selectOrgBranding } from './app/state/slices/orgBrandingSlice';
 
 let authBootstrapStarted = false;

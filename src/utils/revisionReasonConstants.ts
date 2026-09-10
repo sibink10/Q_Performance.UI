@@ -1,0 +1,17 @@
+export const REVISION_REASON = {
+  SCOPE_CHANGE: 'SCOPE_CHANGE',
+  TARGET_UNREALISTIC: 'TARGET_UNREALISTIC',
+  ROLE_CHANGE: 'ROLE_CHANGE',
+  BUSINESS_PRIORITY: 'BUSINESS_PRIORITY',
+  OTHER: 'OTHER',
+} as const;
+
+export type RevisionReasonKey = (typeof REVISION_REASON)[keyof typeof REVISION_REASON];
+
+export const REVISION_REASON_LABELS: Record<RevisionReasonKey, string> = {
+  [REVISION_REASON.SCOPE_CHANGE]: 'Scope Change',
+  [REVISION_REASON.TARGET_UNREALISTIC]: 'Target Unrealistic',
+  [REVISION_REASON.ROLE_CHANGE]: 'Role Change',
+  [REVISION_REASON.BUSINESS_PRIORITY]: 'Business Priority Shift',
+  [REVISION_REASON.OTHER]: 'Other',
+};
