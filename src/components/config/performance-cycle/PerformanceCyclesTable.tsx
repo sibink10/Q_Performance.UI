@@ -39,12 +39,14 @@ type PerformanceCyclesTableProps = {
   cycles: PerformanceCycle[];
   selectedCycleId: string | null;
   onSelectCycle: (cycle: PerformanceCycle) => void;
+  onViewStages: (cycle: PerformanceCycle) => void;
 };
 
 const PerformanceCyclesTable = ({
   cycles,
   selectedCycleId,
   onSelectCycle,
+  onViewStages,
 }: PerformanceCyclesTableProps) => (
   <>
     <TableContainer sx={{ mt: 2 }}>
@@ -86,10 +88,10 @@ const PerformanceCyclesTable = ({
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectCycle(row);
+                    onViewStages(row);
                   }}
                 >
-                  {selectedCycleId === row.id ? 'Viewing Stages' : 'View Stages'}
+                  View Stages
                 </AppButton>
               </TableCell>
             </TableRow>

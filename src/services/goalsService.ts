@@ -1,4 +1,5 @@
 import type { Goal, GoalStatus } from '../types/goal';
+import type { MockUser } from '../types/user';
 import { GOAL_STATUS } from '../utils/goalConstants';
 import { resolveMock } from './mock/mockClient';
 import { mockGoals } from './mock/mockData/goals';
@@ -68,6 +69,10 @@ const goalsService = {
 
   getGoalsByCycle: (cycleId: string): Promise<Goal[]> =>
     resolveMock(goals.filter((g) => g.cycleId === cycleId).map((g) => ({ ...g }))),
+
+  /** Everyone who can be assigned a goal by an Admin - all mock users except ADMIN. */
+  getAssignableEmployees: (): Promise<MockUser[]> =>
+    resolveMock(mockUsers.filter((u) => u.role !== 'ADMIN').map((u) => ({ ...u }))),
 
   getTeamGoals: (managerId: string, cycleId: string): Promise<Goal[]> => {
     const reportIds = mockUsers

@@ -30,20 +30,8 @@ export const loginRequest = {
   scopes: getMsalScopes(),
 };
 
-export const getPrimaryRole = (claims: any): string => {
-  const rawRoles = claims?.roles || claims?.role || [];
-  const roles = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
-  const normalized = roles.map((r: string) => String(r || '').toUpperCase());
-
-  if (normalized.includes('ADMIN')) return 'ADMIN';
-  if (normalized.includes('HR')) return 'HR';
-  if (normalized.includes('MANAGER')) return 'MANAGER';
-  return 'EMPLOYEE';
-};
-
 export const toAuthUser = (claims: any) => ({
   id: claims?.oid || claims?.sub || claims?.preferred_username,
   name: claims?.name || claims?.preferred_username || 'User',
   email: claims?.preferred_username || claims?.email || '',
-  role: getPrimaryRole(claims),
 });

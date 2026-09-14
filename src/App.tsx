@@ -13,6 +13,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import store from './app/state';
 import AppRoutes from './routes/AppRoutes';
 import { msalInstance, isMsalConfigured, loginRequest, toAuthUser } from './services/msalConfig';
+import { getCurrentUser } from './services/authService';
 import { registerNavigationService } from './services/navigationService';
 import { setAuthFromSso, clearAuth, setAuthLoading, selectIsAuthenticated } from './app/state/slices/authSlice';
 import { fetchOrgBranding } from './app/state/slices/orgBrandingSlice';
@@ -58,16 +59,6 @@ const AuthBootstrap = () => {
         const activeAccount = instance.getActiveAccount() || currentAccounts[0];
         instance.setActiveAccount(activeAccount);
 
-        const cachedToken = localStorage.getItem('qhrms_token');
-        if (cachedToken) {
-          dispatch(
-            setAuthFromSso({
-              token: cachedToken,
-              user: toAuthUser(activeAccount.idTokenClaims),
-            })
-          );
-        }
-
         let tokenResponse;
         try {
           tokenResponse = await instance.acquireTokenSilent({
@@ -89,10 +80,22 @@ const AuthBootstrap = () => {
         }
 
         localStorage.setItem('qhrms_token', token);
+
+        let role = 'EMPLOYEE';
+        try {
+          const me = await getCurrentUser();
+          if (me?.role) role = String(me.role).toUpperCase();
+        } catch {
+          // /auth/me unavailable - fall back to EMPLOYEE rather than blocking access
+        }
+
         dispatch(
           setAuthFromSso({
             token,
-            user: toAuthUser(tokenResponse.idTokenClaims || activeAccount.idTokenClaims),
+            user: {
+              ...toAuthUser(tokenResponse.idTokenClaims || activeAccount.idTokenClaims),
+              role,
+            },
           })
         );
       } catch {

@@ -36,6 +36,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SettingsIcon from "@mui/icons-material/Settings";
 import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import StarIcon from "@mui/icons-material/Star";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import FlagIcon from "@mui/icons-material/Flag";
@@ -67,7 +68,7 @@ const MANAGER_NAV = [
 
 const ADMIN_NAV = [
   {
-    section: "Configuration",
+    section: "Annual Configuration",
     items: [
       {
         label: "Organization branding",
@@ -99,11 +100,6 @@ const ADMIN_NAV = [
         icon: <AssignmentIcon />,
         path: "/config/performance/review-forms",
       },
-    ],
-  },
-  {
-    section: "Operations",
-    items: [
       {
         label: "Assign Review Forms",
         icon: <AssignmentIcon />,
@@ -112,6 +108,26 @@ const ADMIN_NAV = [
           "/operations/performance/assignments",
           "/operations/performance/assignments/employees",
         ],
+      },
+    ],
+  },
+  {
+    section: "Goal Configuration",
+    items: [
+      {
+        label: "Assign Goals",
+        icon: <FlagIcon />,
+        path: "/config/performance/goals",
+      },
+    ],
+  },
+  {
+    section: "User Management",
+    items: [
+      {
+        label: "Employees",
+        icon: <ManageAccountsIcon />,
+        path: "/config/performance/employees",
       },
     ],
   },

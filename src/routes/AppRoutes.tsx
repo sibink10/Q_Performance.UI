@@ -23,6 +23,8 @@ import FocusAreas from '../pages/config/FocusAreas';
 import ReviewFormDesign from '../pages/config/ReviewFormDesign';
 import OrganizationBranding from '../pages/config/OrganizationBranding';
 import PerformanceCycles from '../pages/config/PerformanceCycles';
+import Goals from '../pages/config/Goals';
+import Employees from '../pages/config/Employees';
 
 // ── Operations Module (Admin Only) ────────────────────────────────────────────
 import OperationsPerformance from '../pages/operations/OperationsPerformance';
@@ -117,6 +119,14 @@ const AppRoutes = () => (
       <Route
         path="config/performance/org-branding"
         element={<AdminGuard><OrganizationBranding /></AdminGuard>}
+      />
+      <Route
+        path="config/performance/goals"
+        element={<AdminGuard><Goals /></AdminGuard>}
+      />
+      <Route
+        path="config/performance/employees"
+        element={<AdminGuard><Employees /></AdminGuard>}
       />
 
       <Route path="not-found" element={<NotFound />} />
