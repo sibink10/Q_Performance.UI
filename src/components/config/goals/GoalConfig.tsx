@@ -1,40 +1,133 @@
-import { useEffect, useState } from 'react';
-import { Alert, Box } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Chip, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { AppCard, PageHeader } from '../../common';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import { alpha, useTheme } from '@mui/material/styles';
+import dayjs from 'dayjs';
+import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import AppButton from '../../common/AppButton';
 import usePerformanceCycle from '../../../hooks/usePerformanceCycle';
+import useGoals from '../../../hooks/useGoals';
 import goalsService from '../../../services/goalsService';
 import type { MockUser } from '../../../types/user';
+import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
+import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../utils/goalConstants';
+import { getGoalStatusColors } from '../../../utils/statusColorTokens';
+import { getMockUserById } from '../../../utils/resolveMockUserId';
+import EmployeeGoalGroup from '../../manager/goal-reviews/EmployeeGoalGroup';
+import TeamGoalsSummaryStrip from '../../manager/goal-reviews/TeamGoalsSummaryStrip';
 import AssignGoalModal, { type AssignGoalSubmitPayload } from './AssignGoalModal';
 
+const STATUS_PRIORITY: Record<GoalStatus, number> = {
+  [GOAL_STATUS.OFF_TRACK]: 0,
+  [GOAL_STATUS.NEEDS_ATTENTION]: 1,
+  [GOAL_STATUS.ON_TRACK]: 2,
+  [GOAL_STATUS.COMPLETED]: 3,
+};
+
+const QUICK_STATUS_FILTERS: (GoalStatus | 'ALL')[] = [
+  'ALL',
+  GOAL_STATUS.NEEDS_ATTENTION,
+  GOAL_STATUS.OFF_TRACK,
+  GOAL_STATUS.ON_TRACK,
+  GOAL_STATUS.COMPLETED,
+];
+
+type EmployeeGoals = { employee: MockUser; goals: Goal[] };
+
+function sortGoalsWithin(goals: Goal[]): Goal[] {
+  return [...goals].sort(
+    (a, b) =>
+      STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status] ||
+      dayjs(a.targetDate).valueOf() - dayjs(b.targetDate).valueOf(),
+  );
+}
+
+function orderGroups(groups: EmployeeGoals[]): EmployeeGoals[] {
+  return [...groups].sort((a, b) => {
+    const aMin = Math.min(...a.goals.map((g) => STATUS_PRIORITY[g.status]));
+    const bMin = Math.min(...b.goals.map((g) => STATUS_PRIORITY[g.status]));
+    return aMin - bMin;
+  });
+}
+
 const GoalConfig = () => {
+  const theme = useTheme();
   const { cycles } = usePerformanceCycle();
+  const {
+    filteredTeamGoals,
+    teamFilters,
+    isLoading,
+    isMutating,
+    error,
+    successMessage,
+    loadCycleGoals,
+    updateStatus,
+    setTeamFilters,
+    clearError,
+    clearSuccess,
+  } = useGoals();
 
   const [employees, setEmployees] = useState<MockUser[]>([]);
+  const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     goalsService.getAssignableEmployees().then(setEmployees);
   }, []);
 
+  useEffect(() => {
+    loadCycleGoals();
+  }, [loadCycleGoals]);
+
+  const searchedGoals = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return filteredTeamGoals;
+    return filteredTeamGoals.filter((goal) => {
+      const employeeName = getMockUserById(goal.employeeId)?.name ?? '';
+      return goal.title.toLowerCase().includes(query) || employeeName.toLowerCase().includes(query);
+    });
+  }, [filteredTeamGoals, search]);
+
+  const employeeGroups = useMemo(() => {
+    const groups = new Map<string, EmployeeGoals>();
+    searchedGoals.forEach((goal) => {
+      const existing = groups.get(goal.employeeId);
+      if (existing) {
+        existing.goals.push(goal);
+        return;
+      }
+      const employee = getMockUserById(goal.employeeId);
+      if (!employee) return;
+      groups.set(goal.employeeId, { employee, goals: [goal] });
+    });
+
+    const list = Array.from(groups.values()).map((group) => ({
+      ...group,
+      goals: sortGoalsWithin(group.goals),
+    }));
+
+    return orderGroups(list);
+  }, [searchedGoals]);
+
   const handleSubmit = async (payload: AssignGoalSubmitPayload) => {
     const { employeeIds, ...sharedFields } = payload;
     setIsSubmitting(true);
-    setError(null);
+    setAssignError(null);
     try {
       await Promise.all(
         employeeIds.map((employeeId) => goalsService.createGoal({ ...sharedFields, employeeId })),
       );
-      setSuccessMessage(
+      setAssignSuccess(
         `Goal assigned to ${employeeIds.length} ${employeeIds.length === 1 ? 'person' : 'people'}.`,
       );
       setIsModalOpen(false);
+      loadCycleGoals();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to assign goal.');
+      setAssignError(e instanceof Error ? e.message : 'Failed to assign goal.');
     } finally {
       setIsSubmitting(false);
     }
@@ -52,23 +145,127 @@ const GoalConfig = () => {
         }
       />
 
-      {(error || successMessage) && (
+      {(error || successMessage || assignError || assignSuccess) && (
         <Alert
-          severity={error ? 'error' : 'success'}
+          severity={error || assignError ? 'error' : 'success'}
           sx={{ mb: 2 }}
           onClose={() => {
-            setError(null);
-            setSuccessMessage(null);
+            clearError();
+            clearSuccess();
+            setAssignError(null);
+            setAssignSuccess(null);
           }}
         >
-          {error || successMessage}
+          {error || assignError || successMessage || assignSuccess}
         </Alert>
       )}
 
-      <AppCard sx={{ p: 3 }}>
-        <Box sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-          Use "Assign Goal" to create a goal and assign it to one or more employees or managers.
-        </Box>
+      <TeamGoalsSummaryStrip goals={filteredTeamGoals} />
+
+      <AppCard sx={{ p: { xs: 2, sm: 3 } }}>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} md={4}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search goal or employee…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <FormControl size="small" fullWidth>
+              <InputLabel id="filter-employee">Employee</InputLabel>
+              <Select
+                labelId="filter-employee"
+                label="Employee"
+                value={teamFilters.employeeId}
+                onChange={(e) => setTeamFilters({ employeeId: e.target.value })}
+              >
+                <MenuItem value="ALL">All employees</MenuItem>
+                {employees.map((employee) => (
+                  <MenuItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <FormControl size="small" fullWidth>
+              <InputLabel id="filter-category">Category</InputLabel>
+              <Select
+                labelId="filter-category"
+                label="Category"
+                value={teamFilters.category}
+                onChange={(e) => setTeamFilters({ category: e.target.value as GoalCategory | 'ALL' })}
+              >
+                <MenuItem value="ALL">All categories</MenuItem>
+                {Object.values(GOAL_CATEGORY).map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {GOAL_CATEGORY_LABELS[category]}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
+          {QUICK_STATUS_FILTERS.map((status) => {
+            const selected = teamFilters.status === status;
+            const colors = status !== 'ALL' ? getGoalStatusColors(theme, status) : null;
+            return (
+              <Chip
+                key={status}
+                label={status === 'ALL' ? 'All statuses' : GOAL_STATUS_LABELS[status]}
+                onClick={() => setTeamFilters({ status })}
+                sx={{
+                  fontWeight: 700,
+                  backgroundColor: selected
+                    ? colors
+                      ? colors.light
+                      : alpha(theme.palette.primary.main, 0.14)
+                    : 'transparent',
+                  color: selected ? (colors ? colors.dark : theme.palette.primary.dark) : 'text.secondary',
+                  border: '1px solid',
+                  borderColor: selected
+                    ? alpha(colors ? colors.main : theme.palette.primary.main, 0.35)
+                    : 'divider',
+                }}
+              />
+            );
+          })}
+        </Stack>
+
+        {isLoading && !filteredTeamGoals.length ? (
+          <AppLoader message="Loading goals…" />
+        ) : employeeGroups.length ? (
+          <Box>
+            {employeeGroups.map((group) => (
+              <EmployeeGoalGroup
+                key={group.employee.id}
+                employee={group.employee}
+                goals={group.goals}
+                isMutating={isMutating}
+                onStatusChange={updateStatus}
+              />
+            ))}
+          </Box>
+        ) : (
+          <EmptyState
+            variant="noContent"
+            message="No goals match the selected filters."
+            minHeight={220}
+          />
+        )}
       </AppCard>
 
       <AssignGoalModal

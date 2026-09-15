@@ -6,7 +6,7 @@ type EmployeeGuardProps = {
 };
 
 const EmployeeGuard = ({ children }: EmployeeGuardProps) => (
-  <RoleGuard allow={['EMPLOYEE', "ADMIN"]}>{children}</RoleGuard>
+  <RoleGuard allow={['EMPLOYEE', 'MANAGER', 'ADMIN']}>{children}</RoleGuard>
 );
 
 export default EmployeeGuard;

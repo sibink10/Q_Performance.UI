@@ -20,6 +20,7 @@ import {
   type TeamGoalFilters,
 } from '../app/state/slices/goalsSlice';
 import {
+  fetchGoalsByCycle,
   fetchGoalsByEmployee,
   fetchTeamGoals,
   updateGoalProgress,
@@ -51,6 +52,11 @@ const useGoals = () => {
   const loadTeamGoals = useCallback(() => {
     dispatch(fetchTeamGoals({ managerId: mockUserId, cycleId: activeCycleId }));
   }, [dispatch, mockUserId, activeCycleId]);
+
+  /** Loads every goal in the active cycle, across all employees (admin view). */
+  const loadCycleGoals = useCallback(() => {
+    dispatch(fetchGoalsByCycle(activeCycleId));
+  }, [dispatch, activeCycleId]);
 
   const selectGoal = useCallback(
     (goal: Goal | null) => {
@@ -104,6 +110,7 @@ const useGoals = () => {
     successMessage,
     loadMyGoals,
     loadTeamGoals,
+    loadCycleGoals,
     selectGoal,
     updateStatus,
     updateProgress,

@@ -399,7 +399,7 @@ const MainLayout = () => {
           </ListItem>
         ))}
 
-        {isManager && (
+        {isManager && !isAdmin && (
           <>
             <Divider
               sx={{
