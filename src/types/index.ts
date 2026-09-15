@@ -6,6 +6,7 @@ export * from './contribution';
 export * from './developmentPlan';
 export * from './finalOutcome';
 export * from './goal';
+export * from './goalHistory';
 export * from './goalRevision';
 export * from './growthConnect';
 export * from './growthDiscussion';

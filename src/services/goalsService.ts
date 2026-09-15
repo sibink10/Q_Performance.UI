@@ -29,6 +29,13 @@ export interface UpdateGoalPatch {
   targetDate?: string;
 }
 
+export type ApprovedRevisionChanges = Partial<
+  Pick<
+    Goal,
+    'title' | 'description' | 'successCriteria' | 'targetDate' | 'weight' | 'category' | 'targetValue'
+  >
+>;
+
 let goals: Goal[] = structuredClone(mockGoals);
 let nextGoalCounter = goals.length + 1;
 
@@ -104,6 +111,7 @@ const goalsService = {
       startDate: payload.startDate,
       targetDate: payload.targetDate,
       successCriteria: payload.successCriteria.trim(),
+      isFinalized: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -123,6 +131,23 @@ const goalsService = {
     goals = goals.filter((g) => g.id !== id);
     return resolveMock(undefined);
   },
+
+  /**
+   * Applies the field values approved from a GoalRevision. Kept separate from
+   * `updateGoal` so the status/progress-only mutation path used by the UI stays untouched —
+   * this is only ever called from goalRevisionService.approveRevision.
+   */
+  applyRevision: (id: string, changes: ApprovedRevisionChanges): Promise<Goal> => {
+    const current = findGoal(id);
+    const updated: Goal = {
+      ...current,
+      ...changes,
+      updatedAt: new Date().toISOString(),
+    };
+    return resolveMock(replaceGoal(updated));
+  },
+
+  getGoalById: (id: string): Promise<Goal> => resolveMock({ ...findGoal(id) }),
 };
 
 export default goalsService;

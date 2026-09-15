@@ -15,6 +15,8 @@ export interface Goal {
   startDate: string;
   targetDate: string;
   successCriteria: string;
+  targetValue?: string;
+  isFinalized: boolean;
   createdAt: string;
   updatedAt: string;
 }

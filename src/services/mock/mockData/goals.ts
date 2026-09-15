@@ -126,6 +126,7 @@ function buildGoalsForEmployee(employeeId: string, employeeIndex: number): Goal[
       startDate: '2026-04-01',
       targetDate: '2027-03-15',
       successCriteria: template.successCriteria,
+      isFinalized: true,
       createdAt: '2026-04-01T00:00:00.000Z',
       updatedAt: '2026-09-01T00:00:00.000Z',
     });

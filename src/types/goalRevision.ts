@@ -1,19 +1,38 @@
+import type { GoalCategory } from './goal';
 import type { RevisionReasonKey } from '../utils/revisionReasonConstants';
 
 export type GoalRevisionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+export interface ProposedGoalChanges {
+  title?: string;
+  description?: string;
+  targetValue?: string;
+  measurementCriteria?: string;
+  dueDate?: string;
+  weightage?: number;
+  category?: GoalCategory;
+}
+
 export interface GoalRevision {
   id: string;
   goalId: string;
-  cycleId: string;
+  goalTitle?: string;
   employeeId: string;
-  managerId: string;
-  requestedChanges: string;
+  employeeName: string;
+
+  requestedBy: string;
+  requestedByName: string;
+  requestedAt: string;
+
   reason: RevisionReasonKey;
-  reasonNotes: string;
+  otherReason?: string;
+
+  proposedChanges: ProposedGoalChanges;
+
   status: GoalRevisionStatus;
-  submittedAt: string;
-  reviewedAt: string | null;
-  reviewedById: string | null;
-  reviewNotes: string | null;
+
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: string;
+  reviewComment?: string;
 }

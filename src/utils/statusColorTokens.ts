@@ -55,6 +55,12 @@ export const GOAL_REVISION_STATUS_PALETTE_KEY: Record<
   REJECTED: 'error',
 };
 
+export const GOAL_REVISION_STATUS_LABELS: Record<GoalRevisionStatus, string> = {
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+};
+
 export const CALIBRATION_STATUS_PALETTE_KEY: Record<
   CalibrationStatus,
   'default' | 'info' | 'warning' | 'success'

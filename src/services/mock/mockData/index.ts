@@ -6,6 +6,7 @@ import type { Contribution } from '../../../types/contribution';
 import type { DevelopmentPlan } from '../../../types/developmentPlan';
 import type { FinalOutcome } from '../../../types/finalOutcome';
 import type { Goal } from '../../../types/goal';
+import type { GoalHistoryEntry } from '../../../types/goalHistory';
 import type { GoalRevision } from '../../../types/goalRevision';
 import type { GrowthConnect } from '../../../types/growthConnect';
 import type { GrowthDiscussion } from '../../../types/growthDiscussion';
@@ -17,6 +18,8 @@ import type { PerformanceImprovementPlan } from '../../../types/pip';
 import type { SelfAppraisal } from '../../../types/selfAppraisal';
 import type { MockUser } from '../../../types/user';
 import { mockGoals } from './goals';
+import { mockGoalHistory } from './goalHistory';
+import { mockGoalRevisions } from './goalRevisions';
 import { mockOrganization } from './organizations';
 import { mockPerformanceCycles } from './performanceCycles';
 import { mockUsers } from './users';
@@ -27,6 +30,7 @@ export interface MockSeed {
   performanceCycles: PerformanceCycle[];
   goals: Goal[];
   goalRevisions: GoalRevision[];
+  goalHistory: Record<string, GoalHistoryEntry[]>;
   growthConnects: GrowthConnect[];
   contributions: Contribution[];
   selfAppraisals: SelfAppraisal[];
@@ -52,7 +56,8 @@ export function seed(): MockSeed {
     organization: mockOrganization,
     performanceCycles: mockPerformanceCycles,
     goals: mockGoals,
-    goalRevisions: [],
+    goalRevisions: mockGoalRevisions,
+    goalHistory: mockGoalHistory,
     growthConnects: [],
     contributions: [],
     selfAppraisals: [],

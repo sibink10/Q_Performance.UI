@@ -14,6 +14,7 @@ type EmployeeGoalGroupProps = {
   onStatusChange: (goalId: string, status: GoalStatus) => void;
   onEdit?: (goal: Goal) => void;
   onDelete?: (goal: Goal) => void;
+  onRequestRevision?: (goal: Goal) => void;
 };
 
 function getInitials(name: string) {
@@ -29,6 +30,7 @@ const EmployeeGoalGroup = ({
   onStatusChange,
   onEdit,
   onDelete,
+  onRequestRevision,
 }: EmployeeGoalGroupProps) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -98,6 +100,7 @@ const EmployeeGoalGroup = ({
               onStatusChange={onStatusChange}
               onEdit={onEdit}
               onDelete={onDelete}
+              onRequestRevision={onRequestRevision}
             />
           ))}
         </Stack>

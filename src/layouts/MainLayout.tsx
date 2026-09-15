@@ -42,6 +42,8 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import FlagIcon from "@mui/icons-material/Flag";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LogoutIcon from "@mui/icons-material/Logout";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import RuleIcon from "@mui/icons-material/Rule";
 import useAuth from "../hooks/useAuth";
 import { MAIN_LAYOUT_APP_BAR_HEIGHT } from "../components/common/PageHeader";
 import { getAppBarTitle } from "../utils/appBarTitle";
@@ -63,6 +65,11 @@ const MANAGER_NAV = [
     label: "Goal Reviews",
     icon: <PeopleIcon />,
     path: "/manager/performance/goal-reviews",
+  },
+  {
+    label: "My Requests",
+    icon: <HistoryEduIcon />,
+    path: "/manager/performance/requests",
   },
 ];
 
@@ -128,6 +135,16 @@ const ADMIN_NAV = [
         label: "Employees",
         icon: <ManageAccountsIcon />,
         path: "/config/performance/employees",
+      },
+    ],
+  },
+  {
+    section: "Revision Requests",
+    items: [
+      {
+        label: "Revision Requests",
+        icon: <RuleIcon />,
+        path: "/operations/performance/revision-requests",
       },
     ],
   },

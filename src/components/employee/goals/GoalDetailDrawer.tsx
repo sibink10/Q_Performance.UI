@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
@@ -11,6 +11,8 @@ import {
   Drawer,
   IconButton,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -20,6 +22,7 @@ import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
 import AppButton from '../../common/AppButton';
 import WeightBadge from '../../common/WeightBadge';
+import GoalHistoryTimeline from './GoalHistoryTimeline';
 import GoalProgressBar from './GoalProgressBar';
 import GoalStatusBadge from './GoalStatusBadge';
 
@@ -79,6 +82,13 @@ function DetailSection({ icon, title, children, muted = false }: DetailSectionPr
 
 const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
   const theme = useTheme();
+  const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
+
+  useEffect(() => {
+    if (goal) {
+      setActiveTab('details');
+    }
+  }, [goal?.id]);
 
   if (!goal) {
     return (
@@ -185,8 +195,26 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
           </Box>
         </Box>
 
+        <Tabs
+          value={activeTab}
+          onChange={(_e, value) => setActiveTab(value)}
+          sx={{
+            px: 3,
+            minHeight: 40,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: theme.palette.background.paper,
+          }}
+        >
+          <Tab value="details" label="Details" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+          <Tab value="history" label="History" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+        </Tabs>
+
         {/* Scrollable body */}
         <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>
+          {activeTab === 'history' ? (
+            <GoalHistoryTimeline goalId={goal.id} />
+          ) : (
           <Stack spacing={2}>
             <DetailSection
               icon={<DescriptionOutlinedIcon sx={{ fontSize: 18 }} />}
@@ -259,6 +287,7 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
               </Box>
             </DetailSection>
           </Stack>
+          )}
         </Box>
 
         {/* Footer */}

@@ -2,6 +2,7 @@ import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
 import {
   Box,
   Chip,
@@ -32,6 +33,7 @@ type ManagerGoalCardProps = {
   onStatusChange: (goalId: string, status: GoalStatus) => void;
   onEdit?: (goal: Goal) => void;
   onDelete?: (goal: Goal) => void;
+  onRequestRevision?: (goal: Goal) => void;
 };
 
 const STATUS_OPTIONS: GoalStatus[] = [
@@ -47,6 +49,7 @@ const ManagerGoalCard = ({
   onStatusChange,
   onEdit,
   onDelete,
+  onRequestRevision,
 }: ManagerGoalCardProps) => {
   const theme = useTheme();
   const statusColors = getGoalStatusColors(theme, goal.status);
@@ -164,16 +167,16 @@ const ManagerGoalCard = ({
             </Select>
           </FormControl>
 
-          {(onEdit || onDelete) && (
+          {(onEdit || onDelete || onRequestRevision) && (
             <Stack direction="row" spacing={0.5}>
-              {onEdit && (
+              {onEdit && !goal.isFinalized && (
                 <Tooltip title="Edit goal">
                   <IconButton size="small" onClick={() => onEdit(goal)} aria-label="Edit goal">
                     <EditOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               )}
-              {onDelete && (
+              {onDelete && !goal.isFinalized && (
                 <Tooltip title="Delete goal">
                   <IconButton
                     size="small"
@@ -182,6 +185,17 @@ const ManagerGoalCard = ({
                     aria-label="Delete goal"
                   >
                     <DeleteOutlineRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {onRequestRevision && goal.isFinalized && (
+                <Tooltip title="Request revision">
+                  <IconButton
+                    size="small"
+                    onClick={() => onRequestRevision(goal)}
+                    aria-label="Request revision"
+                  >
+                    <HistoryEduOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               )}

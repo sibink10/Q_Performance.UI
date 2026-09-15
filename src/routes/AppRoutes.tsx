@@ -38,6 +38,8 @@ import SelfEvaluationForm from '../pages/employee/SelfEvaluationForm';
 import MyResults from '../pages/employee/MyResults';
 import MyGoals from '../pages/employee/MyGoals';
 import GoalReviews from '../pages/manager/GoalReviews';
+import Requests from '../pages/manager/Requests';
+import RevisionRequests from '../pages/operations/RevisionRequests';
 import NotFound from '../pages/NotFound';
 
 const AppRoutes = () => (
@@ -71,11 +73,19 @@ const AppRoutes = () => (
         path="manager/performance/goal-reviews"
         element={<ManagerGuard><GoalReviews /></ManagerGuard>}
       />
+      <Route
+        path="manager/performance/requests"
+        element={<ManagerGuard><Requests /></ManagerGuard>}
+      />
 
       {/* Operations Module - Admin Only */}
       <Route
         path="operations/performance"
         element={<AdminGuard><OperationsPerformance /></AdminGuard>}
+      />
+      <Route
+        path="operations/performance/revision-requests"
+        element={<AdminGuard><RevisionRequests /></AdminGuard>}
       />
       <Route
         path="operations/performance/assign"

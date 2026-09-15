@@ -28,6 +28,7 @@ import { getDirectReports, getMockUserById } from '../../../utils/resolveMockUse
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import useGoals from '../../../hooks/useGoals';
 import EmployeeGoalGroup from './EmployeeGoalGroup';
+import GoalRevisionRequestModal from './GoalRevisionRequestModal';
 import TeamGoalsSummaryStrip from './TeamGoalsSummaryStrip';
 
 const STATUS_PRIORITY: Record<GoalStatus, number> = {
@@ -81,6 +82,7 @@ const GoalReviews = () => {
   } = useGoals();
 
   const [search, setSearch] = useState('');
+  const [revisionGoal, setRevisionGoal] = useState<Goal | null>(null);
 
   useEffect(() => {
     loadTeamGoals();
@@ -238,6 +240,7 @@ const GoalReviews = () => {
                 goals={group.goals}
                 isMutating={isMutating}
                 onStatusChange={updateStatus}
+                onRequestRevision={setRevisionGoal}
               />
             ))}
           </Box>
@@ -249,6 +252,12 @@ const GoalReviews = () => {
           />
         )}
       </AppCard>
+
+      <GoalRevisionRequestModal
+        open={!!revisionGoal}
+        goal={revisionGoal}
+        onClose={() => setRevisionGoal(null)}
+      />
     </Box>
   );
 };
