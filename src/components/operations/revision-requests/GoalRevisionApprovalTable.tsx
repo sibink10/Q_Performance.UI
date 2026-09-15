@@ -24,7 +24,6 @@ import { REVISION_REASON_LABELS } from '../../../utils/revisionReasonConstants';
 import { getGoalRevisionStatusColor, GOAL_REVISION_STATUS_LABELS } from '../../../utils/statusColorTokens';
 import { formatProposedChanges } from '../../../utils/goalRevisionFieldLabels';
 import { AppCard, AppLoader, AppPagination, EmptyState } from '../../common';
-import useGoalRevisions from '../../../hooks/useGoalRevisions';
 import { ApproveRevisionDialog, RejectRevisionDialog, ViewRevisionDetailsDialog } from './RevisionReviewDialogs';
 import GoalHistoryDialog from './GoalHistoryDialog';
 
@@ -35,16 +34,32 @@ type GoalRevisionApprovalTableProps = {
   revisions: GoalRevision[];
   goals: Goal[];
   isLoading?: boolean;
+  approveRevision: (id: string, reviewComment: string) => Promise<GoalRevision>;
+  rejectRevision: (id: string, reviewComment: string) => Promise<GoalRevision>;
+  isMutating: boolean;
+  error: string | null;
+  successMessage: string | null;
+  clearError: () => void;
+  clearSuccess: () => void;
 };
 
 type DialogState =
   | { kind: 'approve' | 'reject' | 'history' | 'details'; revision: GoalRevision }
   | null;
 
-const GoalRevisionApprovalTable = ({ revisions, goals, isLoading = false }: GoalRevisionApprovalTableProps) => {
+const GoalRevisionApprovalTable = ({
+  revisions,
+  goals,
+  isLoading = false,
+  approveRevision,
+  rejectRevision,
+  isMutating,
+  error,
+  successMessage,
+  clearError,
+  clearSuccess,
+}: GoalRevisionApprovalTableProps) => {
   const theme = useTheme();
-  const { approveRevision, rejectRevision, isMutating, error, successMessage, clearError, clearSuccess } =
-    useGoalRevisions();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [page, setPage] = useState(1);
 
@@ -64,17 +79,21 @@ const GoalRevisionApprovalTable = ({ revisions, goals, isLoading = false }: Goal
 
   const handleApprove = async (comment: string) => {
     if (dialog?.kind !== 'approve') return;
-    const result = await approveRevision(dialog.revision.id, comment || 'Approved.');
-    if (result.type.endsWith('/fulfilled')) {
+    try {
+      await approveRevision(dialog.revision.id, comment || 'Approved.');
       closeDialog();
+    } catch {
+      // error surfaced via the `error` prop
     }
   };
 
   const handleReject = async (comment: string) => {
     if (dialog?.kind !== 'reject') return;
-    const result = await rejectRevision(dialog.revision.id, comment);
-    if (result.type.endsWith('/fulfilled')) {
+    try {
+      await rejectRevision(dialog.revision.id, comment);
       closeDialog();
+    } catch {
+      // error surfaced via the `error` prop
     }
   };
 
@@ -98,17 +117,27 @@ const GoalRevisionApprovalTable = ({ revisions, goals, isLoading = false }: Goal
       ) : sorted.length ? (
         <AppCard sx={{ overflow: 'hidden', p: 0 }}>
           <TableContainer>
-            <Table size="small">
+            <Table
+              size="small"
+              sx={{
+                tableLayout: 'fixed',
+                '& th, & td': { verticalAlign: 'top', py: 1.25 },
+              }}
+            >
               <TableHead>
                 <TableRow sx={{ '& th': { fontWeight: 700 } }}>
-                  <TableCell>Employee</TableCell>
-                  <TableCell>Goal</TableCell>
-                  <TableCell>Manager / Requester</TableCell>
-                  <TableCell>Requested Date</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>Proposed Change</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell sx={{ width: '12%' }}>Employee</TableCell>
+                  <TableCell sx={{ width: '15%' }}>Goal</TableCell>
+                  <TableCell sx={{ width: '11%' }}>Manager / Requester</TableCell>
+                  <TableCell sx={{ width: '9%' }}>Requested Date</TableCell>
+                  <TableCell sx={{ width: '20%' }}>Reason</TableCell>
+                  <TableCell sx={{ width: '13%' }}>Proposed Change</TableCell>
+                  <TableCell align="center" sx={{ width: '8%' }}>
+                    Status
+                  </TableCell>
+                  <TableCell align="center" sx={{ width: '12%', whiteSpace: 'nowrap' }}>
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -119,25 +148,29 @@ const GoalRevisionApprovalTable = ({ revisions, goals, isLoading = false }: Goal
 
                   return (
                     <TableRow key={revision.id} hover>
-                      <TableCell>
+                      <TableCell sx={{ wordBreak: 'break-word' }}>
                         <Typography variant="body2" fontWeight={600}>
                           {revision.employeeName}
                         </Typography>
                       </TableCell>
-                      <TableCell>{revision.goalTitle || revision.goalId}</TableCell>
-                      <TableCell>{revision.requestedByName}</TableCell>
-                      <TableCell>{dayjs(revision.requestedAt).format(DATE_FORMAT)}</TableCell>
-                      <TableCell>
-                        {revision.reason === 'OTHER'
-                          ? revision.otherReason
-                          : REVISION_REASON_LABELS[revision.reason]}
+                      <TableCell sx={{ wordBreak: 'break-word' }}>{revision.goalTitle || revision.goalId}</TableCell>
+                      <TableCell sx={{ wordBreak: 'break-word' }}>{revision.requestedByName}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {dayjs(revision.requestedAt).format(DATE_FORMAT)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ wordBreak: 'break-word' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {revision.reason === 'OTHER'
+                            ? revision.otherReason
+                            : REVISION_REASON_LABELS[revision.reason]}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ wordBreak: 'break-word' }}>
                         {changes.length
                           ? `${changes[0].label}${changes.length > 1 ? ` +${changes.length - 1} more` : ''}`
                           : '—'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Chip
                           size="small"
                           label={GOAL_REVISION_STATUS_LABELS[revision.status]}
@@ -148,7 +181,7 @@ const GoalRevisionApprovalTable = ({ revisions, goals, isLoading = false }: Goal
                           }}
                         />
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                         {revision.status === 'PENDING' ? (
                           <>
                             <Tooltip title="Approve">

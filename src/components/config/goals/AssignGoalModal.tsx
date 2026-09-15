@@ -11,6 +11,8 @@ import {
   Select,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { InputLabel, FormControl } from '@mui/material';
@@ -23,9 +25,12 @@ import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
+import LibraryBooksRoundedIcon from '@mui/icons-material/LibraryBooksRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import AppModal from '../../common/AppModal';
 import AppButton from '../../common/AppButton';
 import type { GoalCategory } from '../../../types/goal';
+import type { GoalTemplate } from '../../../types/goalTemplate';
 import type { MockUser } from '../../../types/user';
 import type { PerformanceCycle } from '../../../types/performanceCycle';
 import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
@@ -104,6 +109,7 @@ type AssignGoalModalProps = {
   onSubmit: (payload: AssignGoalSubmitPayload) => void;
   employees: MockUser[];
   cycles: PerformanceCycle[];
+  templates?: GoalTemplate[];
   isSubmitting?: boolean;
 };
 
@@ -113,18 +119,53 @@ const AssignGoalModal = ({
   onSubmit,
   employees,
   cycles,
+  templates = [],
   isSubmitting = false,
 }: AssignGoalModalProps) => {
   const theme = useTheme();
   const [form, setForm] = useState<AssignGoalFormValue>(defaultForm);
   const [selectedEmployees, setSelectedEmployees] = useState<MockUser[]>([]);
+  const [goalSource, setGoalSource] = useState<'CUSTOM' | 'TEMPLATE'>('CUSTOM');
+  const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplate | null>(null);
 
   useEffect(() => {
     if (open) {
       setForm(defaultForm);
       setSelectedEmployees([]);
+      setGoalSource('CUSTOM');
+      setSelectedTemplate(null);
     }
   }, [open]);
+
+  const handleGoalSourceChange = (nextSource: 'CUSTOM' | 'TEMPLATE' | null) => {
+    if (!nextSource) return;
+    setGoalSource(nextSource);
+    if (nextSource === 'CUSTOM') {
+      setSelectedTemplate(null);
+      setForm((p) => ({
+        ...p,
+        category: '',
+        title: '',
+        description: '',
+        successCriteria: '',
+        weight: '',
+      }));
+    }
+  };
+
+  const handleTemplateSelect = (template: GoalTemplate | null) => {
+    setSelectedTemplate(template);
+    if (template) {
+      setForm((p) => ({
+        ...p,
+        category: template.category,
+        title: template.title,
+        description: template.description,
+        successCriteria: template.successCriteria,
+        weight: template.weight,
+      }));
+    }
+  };
 
   const dateOrderInvalid = useMemo(
     () =>
@@ -173,7 +214,8 @@ const AssignGoalModal = ({
       title="Assign Goal"
       subtitle="Create a performance goal and assign it to one or more people."
       icon={<FlagRoundedIcon />}
-      maxWidth="sm"
+      maxWidth="md"
+      paperSx={{ maxWidth: 640 }}
       actions={
         <>
           <AppButton variant="outlined" onClick={onClose}>
@@ -190,6 +232,87 @@ const AssignGoalModal = ({
           <Box>
             <SectionHeader icon={<NotesRoundedIcon />} label="Goal details" />
             <Stack spacing={2}>
+              {templates.length > 0 && (
+                <Box>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    fullWidth
+                    value={goalSource}
+                    onChange={(_, value) => handleGoalSourceChange(value)}
+                    sx={{
+                      mb: goalSource === 'TEMPLATE' ? 1.5 : 0,
+                      '& .MuiToggleButton-root': {
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        gap: 0.75,
+                      },
+                    }}
+                  >
+                    <ToggleButton value="CUSTOM">
+                      <EditRoundedIcon sx={{ fontSize: 17 }} />
+                      Custom goal
+                    </ToggleButton>
+                    <ToggleButton value="TEMPLATE">
+                      <LibraryBooksRoundedIcon sx={{ fontSize: 17 }} />
+                      Use a template
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+
+                  {goalSource === 'TEMPLATE' && (
+                    <Autocomplete
+                      size="small"
+                      options={templates}
+                      value={selectedTemplate}
+                      onChange={(_, newValue) => handleTemplateSelect(newValue)}
+                      groupBy={(option) => GOAL_CATEGORY_LABELS[option.category]}
+                      getOptionLabel={(option) => option.title}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      renderOption={(props, option) => {
+                        const meta = GOAL_CATEGORY_META[option.category];
+                        const Icon = meta.Icon;
+                        const accent = meta.accent(theme);
+                        return (
+                          <li {...props} key={option.id}>
+                            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%', py: 0.25 }}>
+                              <Box
+                                sx={{
+                                  width: 26,
+                                  height: 26,
+                                  flexShrink: 0,
+                                  borderRadius: '8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  bgcolor: accent.soft,
+                                }}
+                              >
+                                <Icon sx={{ fontSize: 15, color: accent.main }} />
+                              </Box>
+                              <Typography variant="body2" fontWeight={600} noWrap sx={{ flex: 1 }}>
+                                {option.title}
+                              </Typography>
+                              <Chip
+                                size="small"
+                                label={`${option.weight}%`}
+                                sx={{
+                                  fontWeight: 700,
+                                  bgcolor: accent.soft,
+                                  color: accent.main,
+                                }}
+                              />
+                            </Stack>
+                          </li>
+                        );
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Goal template" placeholder="Search templates…" />
+                      )}
+                    />
+                  )}
+                </Box>
+              )}
+
               <Box>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
@@ -381,6 +504,12 @@ const AssignGoalModal = ({
               onChange={(_, newValue) => setSelectedEmployees(newValue)}
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(a, b) => a.id === b.id}
+              componentsProps={{
+                popper: {
+                  placement: 'top-start',
+                  modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
+                },
+              }}
               renderOption={(props, option) => (
                 <li {...props} key={option.id}>
                   <Stack direction="row" spacing={1.25} alignItems="center" sx={{ py: 0.25 }}>

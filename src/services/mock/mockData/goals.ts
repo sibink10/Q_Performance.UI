@@ -2,6 +2,7 @@ import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
 import { GOAL_CATEGORY, GOAL_STATUS } from '../../../utils/goalConstants';
 import { ACTIVE_CYCLE_ID } from './performanceCycles';
 import { mockUsers } from './users';
+import { groupTemplatesByCategory } from './goalTemplates';
 
 const STATUSES: GoalStatus[] = [
   GOAL_STATUS.ON_TRACK,
@@ -31,71 +32,7 @@ function progressForStatus(status: GoalStatus, seed: number): number {
   }
 }
 
-const GOAL_TEMPLATES: Record<
-  GoalCategory,
-  Array<{ title: string; description: string; successCriteria: string; weight: number }>
-> = {
-  ORGANIZATIONAL: [
-    {
-      title: 'Improve customer satisfaction score',
-      description: 'Drive CSAT improvements through faster resolution and proactive communication.',
-      successCriteria: 'Achieve CSAT ≥ 4.5/5 for Q3–Q4 measured via quarterly survey.',
-      weight: 25,
-    },
-    {
-      title: 'Reduce operational cost by 8%',
-      description: 'Identify efficiency gains across team workflows and vendor spend.',
-      successCriteria: 'Document ≥ 3 cost-saving initiatives with measurable annual impact.',
-      weight: 20,
-    },
-    {
-      title: 'Strengthen compliance with internal audit standards',
-      description: 'Ensure all processes meet updated governance requirements.',
-      successCriteria: 'Zero critical audit findings in the annual review cycle.',
-      weight: 15,
-    },
-  ],
-  ROLE: [
-    {
-      title: 'Deliver key project milestones on schedule',
-      description: 'Own delivery of assigned project phases with cross-functional coordination.',
-      successCriteria: 'Complete 100% of committed milestones by target dates.',
-      weight: 30,
-    },
-    {
-      title: 'Improve team throughput and quality',
-      description: 'Increase delivery velocity while maintaining quality gates.',
-      successCriteria: 'Reduce rework rate by 15% compared to H1 baseline.',
-      weight: 25,
-    },
-    {
-      title: 'Mentor junior team members',
-      description: 'Provide structured coaching and code/design review support.',
-      successCriteria: 'Conduct bi-weekly 1:1s and document mentee growth plans.',
-      weight: 15,
-    },
-  ],
-  DEVELOPMENT: [
-    {
-      title: 'Complete advanced certification',
-      description: 'Upskill in a domain-relevant certification program.',
-      successCriteria: 'Obtain certification by March 2027.',
-      weight: 10,
-    },
-    {
-      title: 'Build leadership and communication skills',
-      description: 'Participate in leadership workshops and present at team forums.',
-      successCriteria: 'Deliver 2 internal presentations and complete leadership module.',
-      weight: 10,
-    },
-    {
-      title: 'Learn new technology stack component',
-      description: 'Gain hands-on proficiency in assigned emerging technology.',
-      successCriteria: 'Ship one production feature using the new stack.',
-      weight: 10,
-    },
-  ],
-};
+const GOAL_TEMPLATES = groupTemplatesByCategory();
 
 function buildGoalsForEmployee(employeeId: string, employeeIndex: number): Goal[] {
   const goalCount = 5 + (employeeIndex % 4);

@@ -237,7 +237,7 @@ export function ViewRevisionDetailsDialog({
       onClose={onClose}
       title="Revision Request Details"
       subtitle={`Status: ${GOAL_REVISION_STATUS_LABELS[revision.status]}`}
-      maxWidth="sm"
+      maxWidth="md"
       actions={<AppButton onClick={onClose}>Close</AppButton>}
     >
       <Stack spacing={2.5}>

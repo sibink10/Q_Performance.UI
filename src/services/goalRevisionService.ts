@@ -120,7 +120,7 @@ const goalRevisionService = {
 
   /**
    * Returns every revision request regardless of status — the Admin/HR queue filters
-   * by status/tab client-side (matches how goalsSlice filters team goals client-side).
+   * by status/tab client-side (matches how useGoals filters team goals client-side).
    */
   fetchPendingRevisions: async (): Promise<GoalRevision[]> => {
     const enriched = await Promise.all(revisions.map(enrich));

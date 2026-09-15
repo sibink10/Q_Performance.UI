@@ -9,6 +9,7 @@ import AppButton from '../../common/AppButton';
 import ConfirmDialog from '../../common/ConfirmDialog';
 import usePerformanceCycle from '../../../hooks/usePerformanceCycle';
 import useGoals from '../../../hooks/useGoals';
+import useGoalTemplates from '../../../hooks/useGoalTemplates';
 import goalsService from '../../../services/goalsService';
 import type { MockUser } from '../../../types/user';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
@@ -55,7 +56,7 @@ function orderGroups(groups: EmployeeGoals[]): EmployeeGoals[] {
 
 const GoalConfig = () => {
   const theme = useTheme();
-  const { cycles } = usePerformanceCycle();
+  const { cycles, loadCycles } = usePerformanceCycle();
   const {
     filteredTeamGoals,
     teamFilters,
@@ -70,6 +71,7 @@ const GoalConfig = () => {
     clearSuccess,
   } = useGoals();
 
+  const { templates, loadTemplates } = useGoalTemplates();
   const [employees, setEmployees] = useState<MockUser[]>([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,6 +86,14 @@ const GoalConfig = () => {
   useEffect(() => {
     goalsService.getAssignableEmployees().then(setEmployees);
   }, []);
+
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
+
+  useEffect(() => {
+    loadCycles();
+  }, [loadCycles]);
 
   useEffect(() => {
     loadCycleGoals();
@@ -321,6 +331,7 @@ const GoalConfig = () => {
         onSubmit={handleSubmit}
         employees={employees}
         cycles={cycles}
+        templates={templates}
         isSubmitting={isSubmitting}
       />
 

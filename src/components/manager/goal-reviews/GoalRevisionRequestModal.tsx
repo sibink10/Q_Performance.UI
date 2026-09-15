@@ -122,15 +122,17 @@ const GoalRevisionRequestModal = ({ open, goal, onClose }: GoalRevisionRequestMo
 
   const handleSubmit = async () => {
     if (!goal || !reason) return;
-    const result = await submitRevisionRequest({
-      goalId: goal.id,
-      employeeId: goal.employeeId,
-      reason,
-      otherReason: otherReasonRequired ? otherReason.trim() : undefined,
-      proposedChanges,
-    });
-    if (result.type.endsWith('/fulfilled')) {
+    try {
+      await submitRevisionRequest({
+        goalId: goal.id,
+        employeeId: goal.employeeId,
+        reason,
+        otherReason: otherReasonRequired ? otherReason.trim() : undefined,
+        proposedChanges,
+      });
       setSubmitted(true);
+    } catch {
+      // error surfaced via the hook's `error` state
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Box } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { AppCard, PageHeader } from '../../common';
@@ -18,6 +18,7 @@ const PerformanceCycleConfig = () => {
     isMutating,
     error,
     successMessage,
+    loadCycles,
     createCycle,
     activateStage,
     lockStage,
@@ -30,6 +31,10 @@ const PerformanceCycleConfig = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isStagesDrawerOpen, setIsStagesDrawerOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
+  useEffect(() => {
+    loadCycles();
+  }, [loadCycles]);
 
   const handleViewStages = (cycle: (typeof cycles)[number]) => {
     selectCycle(cycle);

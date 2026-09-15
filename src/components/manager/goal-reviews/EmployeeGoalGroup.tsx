@@ -61,7 +61,7 @@ const EmployeeGoalGroup = ({
           {getInitials(employee.name)}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+          <Typography variant="subtitle1" sx={{ letterSpacing: '-0.02em' }}>
             {employee.name}
           </Typography>
           <Typography variant="caption" color="text.secondary">

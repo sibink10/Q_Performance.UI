@@ -26,13 +26,14 @@ const AppModal = ({
   actions,
   maxWidth = 'sm',
   fullWidth = true,
+  paperSx,
 }) => (
   <Dialog
     open={open}
     onClose={onClose}
     maxWidth={maxWidth}
     fullWidth={fullWidth}
-    PaperProps={{ sx: { borderRadius: '18px' } }}
+    PaperProps={{ sx: { borderRadius: '18px', ...paperSx } }}
   >
     <DialogTitle sx={{ p: 0 }}>
       <Stack direction="row" spacing={1.75} alignItems="flex-start" sx={{ pl: 3, pr: 2, py: 2.5 }}>

@@ -1,98 +1,141 @@
-import { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useCallback, useMemo, useState } from 'react';
 import type { Goal, GoalCategory, GoalStatus } from '../types/goal';
 import useAuth from './useAuth';
-import {
-  clearGoalsError,
-  clearGoalsSuccess,
-  selectActiveCycleId,
-  selectEmployeeGoals,
-  selectFilteredTeamGoals,
-  selectGoalsError,
-  selectGoalsListStatus,
-  selectGoalsMutationStatus,
-  selectGoalsSuccess,
-  selectSelectedGoal,
-  selectTeamFilters,
-  selectTeamGoals,
-  setSelectedGoal,
-  setTeamFilters,
-  type TeamGoalFilters,
-} from '../app/state/slices/goalsSlice';
-import {
-  fetchGoalsByCycle,
-  fetchGoalsByEmployee,
-  fetchTeamGoals,
-  updateGoalProgress,
-  updateGoalStatus,
-} from '../app/state/slices/goalsThunks';
+import goalsService from '../services/goalsService';
 import { resolveMockUserId } from '../utils/resolveMockUserId';
+import { ACTIVE_CYCLE_ID } from '../services/mock/mockData/performanceCycles';
+
+export type TeamGoalFilters = {
+  employeeId: string;
+  category: GoalCategory | 'ALL';
+  status: GoalStatus | 'ALL';
+};
+
+const defaultTeamFilters: TeamGoalFilters = {
+  employeeId: 'ALL',
+  category: 'ALL',
+  status: 'ALL',
+};
 
 const useGoals = () => {
-  const dispatch = useDispatch();
   const { user } = useAuth();
-
-  const employeeGoals = useSelector(selectEmployeeGoals);
-  const teamGoals = useSelector(selectTeamGoals);
-  const filteredTeamGoals = useSelector(selectFilteredTeamGoals);
-  const selectedGoal = useSelector(selectSelectedGoal);
-  const activeCycleId = useSelector(selectActiveCycleId);
-  const teamFilters = useSelector(selectTeamFilters);
-  const listStatus = useSelector(selectGoalsListStatus);
-  const mutationStatus = useSelector(selectGoalsMutationStatus);
-  const error = useSelector(selectGoalsError);
-  const successMessage = useSelector(selectGoalsSuccess);
-
   const mockUserId = resolveMockUserId(user);
+  const activeCycleId = ACTIVE_CYCLE_ID;
 
-  const loadMyGoals = useCallback(() => {
-    dispatch(fetchGoalsByEmployee({ employeeId: mockUserId, cycleId: activeCycleId }));
-  }, [dispatch, mockUserId, activeCycleId]);
+  const [employeeGoals, setEmployeeGoals] = useState<Goal[]>([]);
+  const [teamGoals, setTeamGoals] = useState<Goal[]>([]);
+  const [selectedGoal, setSelectedGoalState] = useState<Goal | null>(null);
+  const [teamFilters, setTeamFiltersState] = useState<TeamGoalFilters>(defaultTeamFilters);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const loadTeamGoals = useCallback(() => {
-    dispatch(fetchTeamGoals({ managerId: mockUserId, cycleId: activeCycleId }));
-  }, [dispatch, mockUserId, activeCycleId]);
-
-  /** Loads every goal in the active cycle, across all employees (admin view). */
-  const loadCycleGoals = useCallback(() => {
-    dispatch(fetchGoalsByCycle(activeCycleId));
-  }, [dispatch, activeCycleId]);
-
-  const selectGoal = useCallback(
-    (goal: Goal | null) => {
-      dispatch(setSelectedGoal(goal));
-    },
-    [dispatch],
+  const filteredTeamGoals = useMemo(
+    () =>
+      teamGoals.filter((goal) => {
+        if (teamFilters.employeeId !== 'ALL' && goal.employeeId !== teamFilters.employeeId) return false;
+        if (teamFilters.category !== 'ALL' && goal.category !== teamFilters.category) return false;
+        if (teamFilters.status !== 'ALL' && goal.status !== teamFilters.status) return false;
+        return true;
+      }),
+    [teamGoals, teamFilters],
   );
 
+  const loadMyGoals = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setEmployeeGoals(await goalsService.getGoalsByEmployee(mockUserId, activeCycleId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load goals.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [mockUserId, activeCycleId]);
+
+  const loadTeamGoals = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setTeamGoals(await goalsService.getTeamGoals(mockUserId, activeCycleId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load team goals.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [mockUserId, activeCycleId]);
+
+  /** Loads every goal in the active cycle, across all employees (admin view). */
+  const loadCycleGoals = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setTeamGoals(await goalsService.getGoalsByCycle(activeCycleId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load cycle goals.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeCycleId]);
+
+  const selectGoal = useCallback((goal: Goal | null) => {
+    setSelectedGoalState(goal);
+  }, []);
+
+  const applyGoalUpdate = useCallback((updated: Goal) => {
+    setEmployeeGoals((prev) =>
+      prev.some((g) => g.id === updated.id) ? prev.map((g) => (g.id === updated.id ? updated : g)) : prev,
+    );
+    setTeamGoals((prev) => {
+      if (prev.some((g) => g.id === updated.id)) {
+        return prev.map((g) => (g.id === updated.id ? updated : g));
+      }
+      return prev.some((g) => g.employeeId === updated.employeeId) ? [...prev, updated] : prev;
+    });
+    setSelectedGoalState((prev) => (prev?.id === updated.id ? updated : prev));
+  }, []);
+
   const updateStatus = useCallback(
-    (goalId: string, status: GoalStatus) => {
-      dispatch(updateGoalStatus({ goalId, status }));
+    async (goalId: string, status: GoalStatus) => {
+      setIsMutating(true);
+      setError(null);
+      try {
+        const updated = await goalsService.updateGoal(goalId, { status });
+        applyGoalUpdate(updated);
+        setSuccessMessage('Goal status updated');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to update goal status.');
+      } finally {
+        setIsMutating(false);
+      }
     },
-    [dispatch],
+    [applyGoalUpdate],
   );
 
   const updateProgress = useCallback(
-    (goalId: string, progress: number) => {
-      dispatch(updateGoalProgress({ goalId, progress }));
+    async (goalId: string, progress: number) => {
+      setIsMutating(true);
+      setError(null);
+      try {
+        const updated = await goalsService.updateGoal(goalId, { progress });
+        applyGoalUpdate(updated);
+        setSuccessMessage('Goal progress updated');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to update goal progress.');
+      } finally {
+        setIsMutating(false);
+      }
     },
-    [dispatch],
+    [applyGoalUpdate],
   );
 
-  const updateTeamFilters = useCallback(
-    (filters: Partial<TeamGoalFilters>) => {
-      dispatch(setTeamFilters(filters));
-    },
-    [dispatch],
-  );
+  const setTeamFilters = useCallback((filters: Partial<TeamGoalFilters>) => {
+    setTeamFiltersState((prev) => ({ ...prev, ...filters }));
+  }, []);
 
-  const clearError = useCallback(() => {
-    dispatch(clearGoalsError());
-  }, [dispatch]);
-
-  const clearSuccess = useCallback(() => {
-    dispatch(clearGoalsSuccess());
-  }, [dispatch]);
+  const clearError = useCallback(() => setError(null), []);
+  const clearSuccess = useCallback(() => setSuccessMessage(null), []);
 
   return {
     employeeGoals,
@@ -102,10 +145,8 @@ const useGoals = () => {
     activeCycleId,
     teamFilters,
     mockUserId,
-    listStatus,
-    mutationStatus,
-    isLoading: listStatus === 'loading',
-    isMutating: mutationStatus === 'loading',
+    isLoading,
+    isMutating,
     error,
     successMessage,
     loadMyGoals,
@@ -114,11 +155,11 @@ const useGoals = () => {
     selectGoal,
     updateStatus,
     updateProgress,
-    setTeamFilters: updateTeamFilters,
+    setTeamFilters,
     clearError,
     clearSuccess,
   };
 };
 
-export type { GoalCategory, GoalStatus, TeamGoalFilters };
+export type { GoalCategory, GoalStatus };
 export default useGoals;

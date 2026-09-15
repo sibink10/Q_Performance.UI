@@ -2,7 +2,7 @@ import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import {
   Box,
   Chip,
@@ -22,7 +22,6 @@ import { GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
 import WeightBadge from '../../common/WeightBadge';
-import GoalProgressBar from '../../employee/goals/GoalProgressBar';
 import GoalStatusBadge from '../../employee/goals/GoalStatusBadge';
 
 const DATE_FORMAT = 'DD MMM YYYY';
@@ -139,10 +138,6 @@ const ManagerGoalCard = ({
             {goal.title}
           </Typography>
 
-          <Box sx={{ maxWidth: 360, mb: 1.25 }}>
-            <GoalProgressBar progress={goal.progress} status={goal.status} size="compact" />
-          </Box>
-
           <Stack direction="row" spacing={1}>
             <GoalStatusBadge status={goal.status} />
             <WeightBadge weight={goal.weight} />
@@ -195,7 +190,7 @@ const ManagerGoalCard = ({
                     onClick={() => onRequestRevision(goal)}
                     aria-label="Request revision"
                   >
-                    <HistoryEduOutlinedIcon fontSize="small" />
+                    <RateReviewOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               )}

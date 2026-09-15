@@ -44,6 +44,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import RuleIcon from "@mui/icons-material/Rule";
+import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import useAuth from "../hooks/useAuth";
 import { MAIN_LAYOUT_APP_BAR_HEIGHT } from "../components/common/PageHeader";
 import { getAppBarTitle } from "../utils/appBarTitle";
@@ -122,9 +123,19 @@ const ADMIN_NAV = [
     section: "Goal Configuration",
     items: [
       {
+        label: "Goal Templates",
+        icon: <LibraryBooksRoundedIcon />,
+        path: "/config/performance/goal-templates",
+      },
+      {
         label: "Assign Goals",
         icon: <FlagIcon />,
         path: "/config/performance/goals",
+      },
+      {
+        label: "Revision Requests",
+        icon: <RuleIcon />,
+        path: "/operations/performance/revision-requests",
       },
     ],
   },
@@ -135,16 +146,6 @@ const ADMIN_NAV = [
         label: "Employees",
         icon: <ManageAccountsIcon />,
         path: "/config/performance/employees",
-      },
-    ],
-  },
-  {
-    section: "Revision Requests",
-    items: [
-      {
-        label: "Revision Requests",
-        icon: <RuleIcon />,
-        path: "/operations/performance/revision-requests",
       },
     ],
   },
@@ -683,7 +684,7 @@ const MainLayout = () => {
           >
             <Typography
               variant="body2"
-              fontWeight={700}
+              fontWeight={500}
               noWrap
               sx={{ color: "text.primary" }}
             >

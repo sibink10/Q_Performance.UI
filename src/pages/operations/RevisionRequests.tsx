@@ -34,7 +34,18 @@ const employeeOptions = mockUsers.filter((u) => u.role === 'EMPLOYEE');
 const managerOptions = mockUsers.filter((u) => u.role === 'MANAGER' || u.role === 'ADMIN');
 
 const RevisionRequestsPage = () => {
-  const { pendingRevisions, isLoading, getPendingRevisions } = useGoalRevisions();
+  const {
+    pendingRevisions,
+    isLoading,
+    getPendingRevisions,
+    approveRevision,
+    rejectRevision,
+    isMutating,
+    error,
+    successMessage,
+    clearError,
+    clearSuccess,
+  } = useGoalRevisions();
   const { teamGoals, loadCycleGoals } = useGoals();
 
   const [statusTab, setStatusTab] = useState<StatusTab>('PENDING');
@@ -187,7 +198,18 @@ const RevisionRequestsPage = () => {
         ))}
       </Tabs>
 
-      <GoalRevisionApprovalTable revisions={filtered} goals={teamGoals} isLoading={isLoading} />
+      <GoalRevisionApprovalTable
+        revisions={filtered}
+        goals={teamGoals}
+        isLoading={isLoading}
+        approveRevision={approveRevision}
+        rejectRevision={rejectRevision}
+        isMutating={isMutating}
+        error={error}
+        successMessage={successMessage}
+        clearError={clearError}
+        clearSuccess={clearSuccess}
+      />
     </Box>
   );
 };
