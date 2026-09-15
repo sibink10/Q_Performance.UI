@@ -12,6 +12,8 @@ type EmployeeGoalGroupProps = {
   goals: Goal[];
   isMutating?: boolean;
   onStatusChange: (goalId: string, status: GoalStatus) => void;
+  onEdit?: (goal: Goal) => void;
+  onDelete?: (goal: Goal) => void;
 };
 
 function getInitials(name: string) {
@@ -20,7 +22,14 @@ function getInitials(name: string) {
   return initials.join('') || '?';
 }
 
-const EmployeeGoalGroup = ({ employee, goals, isMutating = false, onStatusChange }: EmployeeGoalGroupProps) => {
+const EmployeeGoalGroup = ({
+  employee,
+  goals,
+  isMutating = false,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}: EmployeeGoalGroupProps) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
@@ -87,6 +96,8 @@ const EmployeeGoalGroup = ({ employee, goals, isMutating = false, onStatusChange
               goal={goal}
               isMutating={isMutating}
               onStatusChange={onStatusChange}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
         </Stack>

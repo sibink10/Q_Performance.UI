@@ -20,9 +20,13 @@ export interface CreateGoalPayload {
 export interface UpdateGoalPatch {
   status?: GoalStatus;
   progress?: number;
+  category?: Goal['category'];
   title?: string;
   description?: string;
   successCriteria?: string;
+  weight?: number;
+  startDate?: string;
+  targetDate?: string;
 }
 
 let goals: Goal[] = structuredClone(mockGoals);
@@ -112,6 +116,12 @@ const goalsService = {
     const current = findGoal(id);
     const updated = applyPatch({ ...current }, patch);
     return resolveMock(replaceGoal(updated));
+  },
+
+  deleteGoal: (id: string): Promise<void> => {
+    findGoal(id);
+    goals = goals.filter((g) => g.id !== id);
+    return resolveMock(undefined);
   },
 };
 

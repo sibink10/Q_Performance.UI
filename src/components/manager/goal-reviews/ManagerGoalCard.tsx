@@ -1,13 +1,17 @@
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {
   Box,
   Chip,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -26,6 +30,8 @@ type ManagerGoalCardProps = {
   goal: Goal;
   isMutating?: boolean;
   onStatusChange: (goalId: string, status: GoalStatus) => void;
+  onEdit?: (goal: Goal) => void;
+  onDelete?: (goal: Goal) => void;
 };
 
 const STATUS_OPTIONS: GoalStatus[] = [
@@ -35,7 +41,13 @@ const STATUS_OPTIONS: GoalStatus[] = [
   GOAL_STATUS.COMPLETED,
 ];
 
-const ManagerGoalCard = ({ goal, isMutating = false, onStatusChange }: ManagerGoalCardProps) => {
+const ManagerGoalCard = ({
+  goal,
+  isMutating = false,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}: ManagerGoalCardProps) => {
   const theme = useTheme();
   const statusColors = getGoalStatusColors(theme, goal.status);
   const categoryMeta = GOAL_CATEGORY_META[goal.category];
@@ -134,22 +146,48 @@ const ManagerGoalCard = ({ goal, isMutating = false, onStatusChange }: ManagerGo
           </Stack>
         </Box>
 
-        <FormControl size="small" sx={{ minWidth: 190, flexShrink: 0 }}>
-          <InputLabel id={`goal-status-${goal.id}`}>Update Status</InputLabel>
-          <Select
-            labelId={`goal-status-${goal.id}`}
-            label="Update Status"
-            value={goal.status}
-            disabled={isMutating}
-            onChange={(e) => onStatusChange(goal.id, e.target.value as GoalStatus)}
-          >
-            {STATUS_OPTIONS.map((status) => (
-              <MenuItem key={status} value={status}>
-                {GOAL_STATUS_LABELS[status]}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ flexShrink: 0 }}>
+          <FormControl size="small" sx={{ minWidth: 190 }}>
+            <InputLabel id={`goal-status-${goal.id}`}>Update Status</InputLabel>
+            <Select
+              labelId={`goal-status-${goal.id}`}
+              label="Update Status"
+              value={goal.status}
+              disabled={isMutating}
+              onChange={(e) => onStatusChange(goal.id, e.target.value as GoalStatus)}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {GOAL_STATUS_LABELS[status]}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {(onEdit || onDelete) && (
+            <Stack direction="row" spacing={0.5}>
+              {onEdit && (
+                <Tooltip title="Edit goal">
+                  <IconButton size="small" onClick={() => onEdit(goal)} aria-label="Edit goal">
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {onDelete && (
+                <Tooltip title="Delete goal">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => onDelete(goal)}
+                    aria-label="Delete goal"
+                  >
+                    <DeleteOutlineRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
+          )}
+        </Stack>
       </Stack>
     </Box>
   );

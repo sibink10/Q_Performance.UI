@@ -6,6 +6,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import AppButton from '../../common/AppButton';
+import ConfirmDialog from '../../common/ConfirmDialog';
 import usePerformanceCycle from '../../../hooks/usePerformanceCycle';
 import useGoals from '../../../hooks/useGoals';
 import goalsService from '../../../services/goalsService';
@@ -17,6 +18,7 @@ import { getMockUserById } from '../../../utils/resolveMockUserId';
 import EmployeeGoalGroup from '../../manager/goal-reviews/EmployeeGoalGroup';
 import TeamGoalsSummaryStrip from '../../manager/goal-reviews/TeamGoalsSummaryStrip';
 import AssignGoalModal, { type AssignGoalSubmitPayload } from './AssignGoalModal';
+import EditGoalModal, { type EditGoalSubmitPayload } from './EditGoalModal';
 
 const STATUS_PRIORITY: Record<GoalStatus, number> = {
   [GOAL_STATUS.OFF_TRACK]: 0,
@@ -74,6 +76,10 @@ const GoalConfig = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Goal | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     goalsService.getAssignableEmployees().then(setEmployees);
@@ -130,6 +136,45 @@ const GoalConfig = () => {
       setAssignError(e instanceof Error ? e.message : 'Failed to assign goal.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClose = () => setEditingGoal(null);
+
+  const handleEditSubmit = async (payload: EditGoalSubmitPayload) => {
+    if (!editingGoal) return;
+    setIsEditSubmitting(true);
+    setAssignError(null);
+    try {
+      await goalsService.updateGoal(editingGoal.id, payload);
+      setAssignSuccess('Goal updated.');
+      setEditingGoal(null);
+      loadCycleGoals();
+    } catch (e) {
+      setAssignError(e instanceof Error ? e.message : 'Failed to update goal.');
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
+  const handleDeleteClose = () => {
+    if (isDeleting) return;
+    setDeleteTarget(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setAssignError(null);
+    try {
+      await goalsService.deleteGoal(deleteTarget.id);
+      setAssignSuccess('Goal deleted.');
+      setDeleteTarget(null);
+      loadCycleGoals();
+    } catch (e) {
+      setAssignError(e instanceof Error ? e.message : 'Failed to delete goal.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -256,6 +301,8 @@ const GoalConfig = () => {
                 goals={group.goals}
                 isMutating={isMutating}
                 onStatusChange={updateStatus}
+                onEdit={setEditingGoal}
+                onDelete={setDeleteTarget}
               />
             ))}
           </Box>
@@ -275,6 +322,30 @@ const GoalConfig = () => {
         employees={employees}
         cycles={cycles}
         isSubmitting={isSubmitting}
+      />
+
+      <EditGoalModal
+        open={Boolean(editingGoal)}
+        onClose={handleEditClose}
+        onSubmit={handleEditSubmit}
+        goal={editingGoal}
+        employeeName={editingGoal ? getMockUserById(editingGoal.employeeId)?.name : undefined}
+        cycleName={editingGoal ? cycles.find((c) => c.id === editingGoal.cycleId)?.name : undefined}
+        isSubmitting={isEditSubmitting}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete goal"
+        message={
+          deleteTarget
+            ? `Delete "${deleteTarget.title}"? This action can't be undone.`
+            : 'Are you sure you want to delete this goal?'
+        }
+        confirmText="Delete"
+        onConfirm={handleDeleteConfirm}
+        onClose={handleDeleteClose}
+        loading={isDeleting}
       />
     </Box>
   );
