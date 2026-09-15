@@ -3,13 +3,8 @@ import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@m
 import type { SelectChangeEvent } from '@mui/material';
 import AppModal from '../../common/AppModal';
 import AppButton from '../../common/AppButton';
+import * as employeeService from '../../../services/employeeService';
 import type { AssignableRole, Employee } from '../../../types/user';
-
-const ROLE_OPTIONS: { value: AssignableRole; label: string }[] = [
-  { value: 'EMPLOYEE', label: 'Employee' },
-  { value: 'MANAGER', label: 'Manager' },
-  { value: 'ADMIN', label: 'Admin' },
-];
 
 type ChangeRoleModalProps = {
   open: boolean;
@@ -26,18 +21,28 @@ const ChangeRoleModal = ({
   onSubmit,
   isSubmitting = false,
 }: ChangeRoleModalProps) => {
-  const [role, setRole] = useState<AssignableRole>('EMPLOYEE');
+  const [roles, setRoles] = useState<AssignableRole[]>([]);
+  const [roleId, setRoleId] = useState<number | ''>('');
 
   useEffect(() => {
-    if (open && employee) {
-      const current = employee.role === 'ADMIN' || employee.role === 'MANAGER' ? employee.role : 'EMPLOYEE';
-      setRole(current);
+    if (!open) return;
+    employeeService
+      .getAssignableRoles()
+      .then(setRoles)
+      .catch(() => setRoles([]));
+  }, [open]);
+
+  useEffect(() => {
+    if (open && employee && roles.length > 0) {
+      const current = roles.find((r) => r.code === employee.role) ?? roles.find((r) => r.code === 'EMPLOYEE');
+      setRoleId(current?.id ?? '');
     }
-  }, [open, employee]);
+  }, [open, employee, roles]);
 
   if (!employee) return null;
 
-  const handleChange = (e: SelectChangeEvent) => setRole(e.target.value as AssignableRole);
+  const selectedRole = roles.find((r) => r.id === roleId);
+  const handleChange = (e: SelectChangeEvent<number>) => setRoleId(Number(e.target.value));
 
   return (
     <AppModal
@@ -51,8 +56,8 @@ const ChangeRoleModal = ({
             Cancel
           </AppButton>
           <AppButton
-            onClick={() => onSubmit(role)}
-            disabled={isSubmitting || role === employee.role}
+            onClick={() => selectedRole && onSubmit(selectedRole)}
+            disabled={isSubmitting || !selectedRole || selectedRole.code === employee.role}
             loading={isSubmitting}
           >
             Save
@@ -69,12 +74,12 @@ const ChangeRoleModal = ({
           <Select
             labelId="change-role-select-label"
             label="Role"
-            value={role}
+            value={roleId}
             onChange={handleChange}
           >
-            {ROLE_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
+            {roles.map((opt) => (
+              <MenuItem key={opt.id} value={opt.id}>
+                {opt.displayName}
               </MenuItem>
             ))}
           </Select>

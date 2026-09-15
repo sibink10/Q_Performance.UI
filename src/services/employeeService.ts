@@ -105,9 +105,24 @@ export async function getAllEmployees(params: {
   return { employees, ...meta };
 }
 
+/** GET /users/roles - roles an admin can assign to an employee. */
+export async function getAssignableRoles(): Promise<AssignableRole[]> {
+  const payload = await api.get('/users/roles');
+  const root = asRecord(payload) ?? {};
+  const rows = Array.isArray(root.data) ? root.data : [];
+  return rows.map((row) => {
+    const r = asRecord(row) ?? {};
+    return {
+      id: readNumber(r, ['id'], 0),
+      code: (str(r, 'code') || 'EMPLOYEE').toUpperCase() as AssignableRole['code'],
+      displayName: str(r, 'displayName') || str(r, 'code'),
+    };
+  });
+}
+
 /** PUT /users/:id/role - update an employee's role. */
-export async function updateEmployeeRole(id: string, role: AssignableRole): Promise<Employee> {
-  const payload = await api.put(`/users/${id}/role`, { roleCode: role });
+export async function updateEmployeeRole(id: string, roleId: number): Promise<Employee> {
+  const payload = await api.put(`/users/${id}/role`, { roleId });
   const root = asRecord(payload) ?? {};
   const data = asRecord(root.data) ?? root;
   return mapRawEmployee(data, 0);

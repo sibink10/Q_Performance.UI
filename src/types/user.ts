@@ -1,7 +1,11 @@
 export type UserRole = 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN';
 
-/** Roles an admin can assign from the Employees page. */
-export type AssignableRole = 'EMPLOYEE' | 'MANAGER' | 'ADMIN';
+/** A role an admin can assign from the Employees page, as returned by `GET /users/roles`. */
+export interface AssignableRole {
+  id: number;
+  code: UserRole;
+  displayName: string;
+}
 
 /** Row shape for the admin Employees list (`GET /users`). */
 export interface Employee {

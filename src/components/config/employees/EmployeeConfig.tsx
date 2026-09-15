@@ -48,9 +48,9 @@ const EmployeeConfig = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const updated = await employeeService.updateEmployeeRole(selectedEmployee.id, role);
+      const updated = await employeeService.updateEmployeeRole(selectedEmployee.id, role.id);
       setEmployees((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-      setSuccessMessage(`${updated.name}'s role was changed to ${role.charAt(0)}${role.slice(1).toLowerCase()}.`);
+      setSuccessMessage(`${updated.name}'s role was changed to ${role.displayName}.`);
       setSelectedEmployee(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update role.');
