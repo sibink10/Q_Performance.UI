@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import type { GoalHistoryAction, GoalHistoryEntry } from '../../../types/goalHistory';
 import { REVISION_FIELD_LABELS } from '../../../utils/goalRevisionFieldLabels';
 import Timeline, { type TimelineEntry, type TimelineTone } from '../../common/Timeline';
+import { AppLoader } from '../../common';
 import useGoalRevisions from '../../../hooks/useGoalRevisions';
 
 const ACTION_TONE: Record<GoalHistoryAction, TimelineTone> = {
@@ -76,7 +77,7 @@ const GoalHistoryTimeline = ({ goalId }: GoalHistoryTimelineProps) => {
   );
 
   if (isLoading && !entries.length) {
-    return null;
+    return <AppLoader message="Loading history…" minHeight={120} />;
   }
 
   return <Timeline entries={entries} emptyMessage="No revision history for this goal yet." />;

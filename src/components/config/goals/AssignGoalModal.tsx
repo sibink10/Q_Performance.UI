@@ -27,14 +27,16 @@ import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import LibraryBooksRoundedIcon from '@mui/icons-material/LibraryBooksRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import AppModal from '../../common/AppModal';
 import AppButton from '../../common/AppButton';
 import type { GoalCategory } from '../../../types/goal';
 import type { GoalTemplate } from '../../../types/goalTemplate';
-import type { MockUser } from '../../../types/user';
+import type { AssignableEmployee } from '../../../types/user';
 import type { PerformanceCycle } from '../../../types/performanceCycle';
 import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
+import { sortGoalTemplatesByCategory } from '../../../utils/goalTemplateSort';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
 
@@ -107,7 +109,7 @@ type AssignGoalModalProps = {
   open: boolean;
   onClose: () => void;
   onSubmit: (payload: AssignGoalSubmitPayload) => void;
-  employees: MockUser[];
+  employees: AssignableEmployee[];
   cycles: PerformanceCycle[];
   templates?: GoalTemplate[];
   isSubmitting?: boolean;
@@ -124,9 +126,11 @@ const AssignGoalModal = ({
 }: AssignGoalModalProps) => {
   const theme = useTheme();
   const [form, setForm] = useState<AssignGoalFormValue>(defaultForm);
-  const [selectedEmployees, setSelectedEmployees] = useState<MockUser[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<AssignableEmployee[]>([]);
   const [goalSource, setGoalSource] = useState<'CUSTOM' | 'TEMPLATE'>('CUSTOM');
   const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplate | null>(null);
+
+  const sortedTemplates = useMemo(() => sortGoalTemplatesByCategory(templates), [templates]);
 
   useEffect(() => {
     if (open) {
@@ -262,7 +266,7 @@ const AssignGoalModal = ({
                   {goalSource === 'TEMPLATE' && (
                     <Autocomplete
                       size="small"
-                      options={templates}
+                      options={sortedTemplates}
                       value={selectedTemplate}
                       onChange={(_, newValue) => handleTemplateSelect(newValue)}
                       groupBy={(option) => GOAL_CATEGORY_LABELS[option.category]}
@@ -498,6 +502,7 @@ const AssignGoalModal = ({
             </Stack>
             <Autocomplete
               multiple
+              disableCloseOnSelect
               size="small"
               options={employees}
               value={selectedEmployees}
@@ -510,9 +515,9 @@ const AssignGoalModal = ({
                   modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
                 },
               }}
-              renderOption={(props, option) => (
+              renderOption={(props, option, { selected }) => (
                 <li {...props} key={option.id}>
-                  <Stack direction="row" spacing={1.25} alignItems="center" sx={{ py: 0.25 }}>
+                  <Stack direction="row" spacing={1.25} alignItems="center" sx={{ py: 0.25, width: '100%' }}>
                     <Avatar
                       sx={{
                         width: 30,
@@ -525,7 +530,7 @@ const AssignGoalModal = ({
                     >
                       {getInitials(option.name)}
                     </Avatar>
-                    <Stack sx={{ minWidth: 0 }}>
+                    <Stack sx={{ minWidth: 0, flex: 1 }}>
                       <Typography variant="body2" fontWeight={600} noWrap>
                         {option.name}
                       </Typography>
@@ -533,6 +538,9 @@ const AssignGoalModal = ({
                         {option.role} • {option.department}
                       </Typography>
                     </Stack>
+                    {selected && (
+                      <CheckRoundedIcon sx={{ fontSize: 18, color: theme.palette.primary.main, flexShrink: 0 }} />
+                    )}
                   </Stack>
                 </li>
               )}

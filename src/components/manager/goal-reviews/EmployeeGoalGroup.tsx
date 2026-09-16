@@ -3,12 +3,12 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { Avatar, Box, Chip, Collapse, IconButton, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import type { Goal, GoalStatus } from '../../../types/goal';
-import type { MockUser } from '../../../types/user';
+import type { AssignableEmployee } from '../../../types/user';
 import { GOAL_STATUS } from '../../../utils/goalConstants';
 import ManagerGoalCard from './ManagerGoalCard';
 
 type EmployeeGoalGroupProps = {
-  employee: MockUser;
+  employee: AssignableEmployee;
   goals: Goal[];
   isMutating?: boolean;
   commentCounts?: Record<string, number>;

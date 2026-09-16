@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { AppCard, PageHeader } from '../../common';
+import { AppCard, AppLoader, PageHeader } from '../../common';
 import AppButton from '../../common/AppButton';
 import ConfirmDialog from '../../common/ConfirmDialog';
 import usePerformanceCycle from '../../../hooks/usePerformanceCycle';
-import CycleStagesDrawer from './CycleStagesDrawer';
+import type { UpdateCyclePayload } from '../../../services/performanceCycleService';
 import CreateCycleModal from './CreateCycleModal';
 import PerformanceCyclesTable from './PerformanceCyclesTable';
-import type { PendingAction } from './CycleStageTimeline';
+import type { PerformanceCycle } from '../../../types/performanceCycle';
 
 const PerformanceCycleConfig = () => {
   const {
@@ -20,54 +20,46 @@ const PerformanceCycleConfig = () => {
     successMessage,
     loadCycles,
     createCycle,
-    activateStage,
-    lockStage,
-    reopenStage,
+    updateCycle,
+    deleteCycle,
     selectCycle,
     clearError,
     clearSuccess,
   } = usePerformanceCycle();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isStagesDrawerOpen, setIsStagesDrawerOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [editingCycle, setEditingCycle] = useState<PerformanceCycle | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PerformanceCycle | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadCycles();
   }, [loadCycles]);
 
-  const handleViewStages = (cycle: (typeof cycles)[number]) => {
-    selectCycle(cycle);
-    setIsStagesDrawerOpen(true);
+  const handleEditCycle = (cycle: PerformanceCycle) => {
+    setEditingCycle(cycle);
   };
 
-  const handleCloseStagesDrawer = () => {
-    setIsStagesDrawerOpen(false);
-    selectCycle(null);
+  const handleCloseEditModal = () => {
+    setEditingCycle(null);
   };
 
-  const handleConfirmAction = () => {
-    if (!pendingAction) return;
-    if (pendingAction.type === 'lock') {
-      lockStage(pendingAction.cycleId, pendingAction.stageId);
-    } else {
-      reopenStage(pendingAction.cycleId, pendingAction.stageId);
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteCycle(deleteTarget.id);
+      setDeleteTarget(null);
+    } finally {
+      setIsDeleting(false);
     }
-    setPendingAction(null);
   };
-
-  const confirmTitle =
-    pendingAction?.type === 'lock' ? 'Lock Stage?' : 'Reopen Stage?';
-  const confirmMessage =
-    pendingAction?.type === 'lock'
-      ? `Lock "${pendingAction?.stageName}"? Employees will no longer be able to submit work for this stage until it is reopened.`
-      : `Reopen "${pendingAction?.stageName}"? This will set the stage back to Active.`;
 
   return (
     <Box>
       <PageHeader
         title="Performance Cycles"
-        subtitle="Create and manage performance cycles and their workflow stages across the organization."
+        subtitle="Create and manage performance cycles across the organization."
         actions={
           <AppButton startIcon={<AddRoundedIcon />} onClick={() => setIsCreateModalOpen(true)}>
             Create Cycle
@@ -93,13 +85,12 @@ const PerformanceCycleConfig = () => {
           cycles={cycles}
           selectedCycleId={selectedCycle?.id ?? null}
           onSelectCycle={(cycle) => selectCycle(cycle)}
-          onViewStages={handleViewStages}
+          onEditCycle={handleEditCycle}
+          onDeleteCycle={setDeleteTarget}
         />
 
         {isLoading && !cycles.length && (
-          <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-            Loading performance cycles…
-          </Box>
+          <AppLoader message="Loading performance cycles…" minHeight={160} />
         )}
       </AppCard>
 
@@ -111,25 +102,29 @@ const PerformanceCycleConfig = () => {
         successMessage={successMessage}
       />
 
-      <CycleStagesDrawer
-        open={isStagesDrawerOpen}
-        cycle={selectedCycle}
-        isMutating={isMutating}
-        onActivate={activateStage}
-        onRequestLock={setPendingAction}
-        onRequestReopen={setPendingAction}
-        onClose={handleCloseStagesDrawer}
+      <CreateCycleModal
+        open={Boolean(editingCycle)}
+        onClose={handleCloseEditModal}
+        onCreate={(payload) =>
+          editingCycle && updateCycle(editingCycle.id, payload as UpdateCyclePayload)
+        }
+        isSubmitting={isMutating}
+        successMessage={successMessage}
+        cycle={editingCycle}
       />
 
       <ConfirmDialog
-        open={Boolean(pendingAction)}
-        title={confirmTitle}
-        message={confirmMessage}
-        confirmText={pendingAction?.type === 'lock' ? 'Lock Stage' : 'Reopen Stage'}
-        confirmColor={pendingAction?.type === 'lock' ? 'error' : 'primary'}
-        onConfirm={handleConfirmAction}
-        onClose={() => setPendingAction(null)}
-        loading={isMutating}
+        open={Boolean(deleteTarget)}
+        title="Delete Performance Cycle"
+        message={
+          deleteTarget
+            ? `Delete "${deleteTarget.name}"? This action can't be undone.`
+            : 'Are you sure you want to delete this performance cycle?'
+        }
+        confirmText="Delete"
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setDeleteTarget(null)}
+        loading={isDeleting}
       />
     </Box>
   );

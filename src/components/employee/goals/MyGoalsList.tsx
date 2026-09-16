@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box } from '@mui/material';
 import type { Goal, GoalCategory } from '../../../types/goal';
 import { GOAL_CATEGORY } from '../../../utils/goalConstants';
-import { AppCard, EmptyState, PageHeader } from '../../common';
+import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import useGoals from '../../../hooks/useGoals';
 import GoalCategoryGroup from './GoalCategoryGroup';
 import GoalDetailDrawer from './GoalDetailDrawer';
@@ -78,9 +78,7 @@ const MyGoalsList = () => {
       )}
 
       {isLoading && !employeeGoals.length ? (
-        <AppCard sx={{ p: 4, textAlign: 'center', color: 'text.secondary', boxShadow: 'none' }}>
-          Loading your goals…
-        </AppCard>
+        <AppLoader message="Loading your goals…" minHeight={220} />
       ) : employeeGoals.length ? (
         <>
           <GoalsSummaryStrip goals={employeeGoals} />

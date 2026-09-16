@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Box, CircularProgress } from '@mui/material';
+import AppLoader from '../components/common/AppLoader';
 import { selectAuthLoading, selectIsAuthenticated } from '../app/state/slices/authSlice';
 
 type AuthGuardProps = {
@@ -14,11 +14,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-        <CircularProgress size={28} />
-      </Box>
-    );
+    return <AppLoader fullScreen />;
   }
 
   if (!isAuthenticated) {

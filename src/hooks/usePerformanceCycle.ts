@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
-import type { CycleStageStatus, PerformanceCycle } from '../types/performanceCycle';
-import type { CreateCyclePayload } from '../services/performanceCycleService';
+import type { PerformanceCycle } from '../types/performanceCycle';
+import type { CreateCyclePayload, UpdateCyclePayload } from '../services/performanceCycleService';
 import performanceCycleService from '../services/performanceCycleService';
+import { getApiErrorMessage } from '../utils/helpers';
 
 const usePerformanceCycle = () => {
   const [cycles, setCycles] = useState<PerformanceCycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState<PerformanceCycle | null>(null);
-  const [employeeAssignments, setEmployeeAssignments] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ const usePerformanceCycle = () => {
       setCycles(result);
       setSelectedCycle((prev) => (prev ? result.find((c) => c.id === prev.id) ?? null : prev));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load performance cycles.');
+      setError(getApiErrorMessage(e) || 'Failed to load performance cycles.');
     } finally {
       setIsLoading(false);
     }
@@ -34,7 +34,7 @@ const usePerformanceCycle = () => {
       setSelectedCycle(cycle);
       setCycles((prev) => (prev.some((c) => c.id === cycle.id) ? prev.map((c) => (c.id === cycle.id ? cycle : c)) : [...prev, cycle]));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load performance cycle.');
+      setError(getApiErrorMessage(e) || 'Failed to load performance cycle.');
     } finally {
       setIsLoading(false);
     }
@@ -53,58 +53,40 @@ const usePerformanceCycle = () => {
       setSuccessMessage('Performance cycle created');
       return created;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create performance cycle.');
+      setError(getApiErrorMessage(e) || 'Failed to create performance cycle.');
       throw e;
     } finally {
       setIsMutating(false);
     }
   }, []);
 
-  const applyStageUpdate = useCallback(
-    async (cycleId: string, stageId: string, status: CycleStageStatus) => {
-      setIsMutating(true);
-      setError(null);
-      try {
-        const updated = await performanceCycleService.updateStage(cycleId, stageId, { status });
-        setCycles((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-        setSelectedCycle((prev) => (prev?.id === updated.id ? updated : prev));
-        setSuccessMessage('Stage updated');
-        return updated;
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to update stage.');
-        throw e;
-      } finally {
-        setIsMutating(false);
-      }
-    },
-    [],
-  );
-
-  const activateStage = useCallback(
-    (cycleId: string, stageId: string) => applyStageUpdate(cycleId, stageId, 'ACTIVE'),
-    [applyStageUpdate],
-  );
-
-  const lockStage = useCallback(
-    (cycleId: string, stageId: string) => applyStageUpdate(cycleId, stageId, 'LOCKED'),
-    [applyStageUpdate],
-  );
-
-  const reopenStage = useCallback(
-    (cycleId: string, stageId: string) => applyStageUpdate(cycleId, stageId, 'ACTIVE'),
-    [applyStageUpdate],
-  );
-
-  const assignEmployees = useCallback(async (cycleId: string, employeeIds: string[]) => {
+  const updateCycle = useCallback(async (cycleId: string, payload: UpdateCyclePayload) => {
     setIsMutating(true);
     setError(null);
     try {
-      const result = await performanceCycleService.assignEmployees(cycleId, employeeIds);
-      setEmployeeAssignments((prev) => ({ ...prev, [cycleId]: employeeIds }));
-      setSuccessMessage('Employees assigned to cycle');
-      return result;
+      const updated = await performanceCycleService.updateCycle(cycleId, payload);
+      setCycles((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setSelectedCycle((prev) => (prev?.id === updated.id ? updated : prev));
+      setSuccessMessage('Performance cycle updated');
+      return updated;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to assign employees to cycle.');
+      setError(getApiErrorMessage(e) || 'Failed to update performance cycle.');
+      throw e;
+    } finally {
+      setIsMutating(false);
+    }
+  }, []);
+
+  const deleteCycle = useCallback(async (cycleId: string) => {
+    setIsMutating(true);
+    setError(null);
+    try {
+      await performanceCycleService.deleteCycle(cycleId);
+      setCycles((prev) => prev.filter((c) => c.id !== cycleId));
+      setSelectedCycle((prev) => (prev?.id === cycleId ? null : prev));
+      setSuccessMessage('Performance cycle deleted');
+    } catch (e) {
+      setError(getApiErrorMessage(e) || 'Failed to delete performance cycle.');
       throw e;
     } finally {
       setIsMutating(false);
@@ -117,7 +99,6 @@ const usePerformanceCycle = () => {
   return {
     cycles,
     selectedCycle,
-    employeeAssignments,
     isLoading,
     isMutating,
     error,
@@ -126,10 +107,8 @@ const usePerformanceCycle = () => {
     loadCycleById,
     selectCycle,
     createCycle,
-    activateStage,
-    lockStage,
-    reopenStage,
-    assignEmployees,
+    updateCycle,
+    deleteCycle,
     clearError,
     clearSuccess,
   };

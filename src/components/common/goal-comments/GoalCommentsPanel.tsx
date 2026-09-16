@@ -7,7 +7,6 @@ import {
   Avatar,
   Box,
   Chip,
-  CircularProgress,
   IconButton,
   Stack,
   TextField,
@@ -19,6 +18,7 @@ import dayjs from 'dayjs';
 import type { GoalComment } from '../../../types/goalComment';
 import type { UserRole } from '../../../types/user';
 import AppButton from '../AppButton';
+import AppLoader from '../AppLoader';
 import ConfirmDialog from '../ConfirmDialog';
 import useGoalComments from '../../../hooks/useGoalComments';
 
@@ -150,9 +150,7 @@ const GoalCommentsPanel = ({ goalId, onChanged }: GoalCommentsPanelProps) => {
       )}
 
       {isLoading && !sortedComments.length ? (
-        <Stack alignItems="center" sx={{ py: 3 }}>
-          <CircularProgress size={28} />
-        </Stack>
+        <AppLoader message="Loading comments…" size={28} minHeight={120} />
       ) : sortedComments.length ? (
         <Stack spacing={2}>
           {sortedComments.map((comment) => {

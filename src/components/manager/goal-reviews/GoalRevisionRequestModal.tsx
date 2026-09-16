@@ -16,9 +16,10 @@ import type { SelectChangeEvent } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import type { Goal, GoalCategory } from '../../../types/goal';
 import type { ProposedGoalChanges } from '../../../types/goalRevision';
+import type { AssignableEmployee } from '../../../types/user';
 import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { REVISION_REASON, REVISION_REASON_LABELS, type RevisionReasonKey } from '../../../utils/revisionReasonConstants';
-import { getMockUserById } from '../../../utils/resolveMockUserId';
+import { findEmployee } from '../../../utils/resolveEmployee';
 import useGoalRevisions from '../../../hooks/useGoalRevisions';
 import AppButton from '../../common/AppButton';
 import AppModal from '../../common/AppModal';
@@ -26,6 +27,7 @@ import AppModal from '../../common/AppModal';
 type GoalRevisionRequestModalProps = {
   open: boolean;
   goal: Goal | null;
+  employees: AssignableEmployee[];
   onClose: () => void;
 };
 
@@ -56,7 +58,7 @@ function FieldRow({ label, current, children }: FieldRowProps) {
   );
 }
 
-const GoalRevisionRequestModal = ({ open, goal, onClose }: GoalRevisionRequestModalProps) => {
+const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisionRequestModalProps) => {
   const theme = useTheme();
   const { submitRevisionRequest, isMutating, error, successMessage, clearError, clearSuccess } =
     useGoalRevisions();
@@ -72,8 +74,8 @@ const GoalRevisionRequestModal = ({ open, goal, onClose }: GoalRevisionRequestMo
   const [category, setCategory] = useState<GoalCategory | ''>('');
   const [submitted, setSubmitted] = useState(false);
 
-  const employee = goal ? getMockUserById(goal.employeeId) : null;
-  const manager = employee?.managerId ? getMockUserById(employee.managerId) : null;
+  const employee = goal ? findEmployee(employees, goal.employeeId) : null;
+  const manager = employee?.managerId ? findEmployee(employees, employee.managerId) : null;
 
   useEffect(() => {
     if (open && goal) {

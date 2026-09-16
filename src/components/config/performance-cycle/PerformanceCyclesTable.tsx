@@ -1,15 +1,19 @@
 import {
   Chip,
+  IconButton,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from '@mui/material';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import dayjs from 'dayjs';
-import type { CycleStage, PerformanceCycle } from '../../../types/performanceCycle';
-import AppButton from '../../common/AppButton';
+import type { PerformanceCycle } from '../../../types/performanceCycle';
 import { EmptyState } from '../../common';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
@@ -29,24 +33,20 @@ const CYCLE_STATUS_COLORS: Record<
   CLOSED: 'warning',
 };
 
-export function getCycleCompletionPercent(stages: CycleStage[]): number {
-  if (!stages.length) return 0;
-  const completed = stages.filter((s) => s.status === 'COMPLETED').length;
-  return Math.round((completed / stages.length) * 100);
-}
-
 type PerformanceCyclesTableProps = {
   cycles: PerformanceCycle[];
   selectedCycleId: string | null;
   onSelectCycle: (cycle: PerformanceCycle) => void;
-  onViewStages: (cycle: PerformanceCycle) => void;
+  onEditCycle: (cycle: PerformanceCycle) => void;
+  onDeleteCycle: (cycle: PerformanceCycle) => void;
 };
 
 const PerformanceCyclesTable = ({
   cycles,
   selectedCycleId,
   onSelectCycle,
-  onViewStages,
+  onEditCycle,
+  onDeleteCycle,
 }: PerformanceCyclesTableProps) => (
   <>
     <TableContainer sx={{ mt: 2 }}>
@@ -56,7 +56,6 @@ const PerformanceCyclesTable = ({
             <TableCell>Name</TableCell>
             <TableCell>Dates</TableCell>
             <TableCell>Status</TableCell>
-            <TableCell>Completion %</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>
@@ -81,18 +80,34 @@ const PerformanceCyclesTable = ({
                   color={CYCLE_STATUS_COLORS[row.status]}
                 />
               </TableCell>
-              <TableCell>{getCycleCompletionPercent(row.stages)}%</TableCell>
               <TableCell align="right">
-                <AppButton
-                  variant="outlined"
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewStages(row);
-                  }}
-                >
-                  View Stages
-                </AppButton>
+                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                  <Tooltip title="Edit cycle">
+                    <IconButton
+                      size="small"
+                      aria-label="Edit cycle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditCycle(row);
+                      }}
+                    >
+                      <EditOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete cycle">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label="Delete cycle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteCycle(row);
+                      }}
+                    >
+                      <DeleteOutlineRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               </TableCell>
             </TableRow>
           ))}

@@ -1,33 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Stack, TextField } from '@mui/material';
+import { FormControl, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { type Dayjs } from 'dayjs';
 import AppModal from '../../common/AppModal';
 import AppButton from '../../common/AppButton';
-import type { CreateCyclePayload } from '../../../services/performanceCycleService';
+import type { CreateCyclePayload, UpdateCyclePayload } from '../../../services/performanceCycleService';
+import type { PerformanceCycle, PerformanceCycleStatus } from '../../../types/performanceCycle';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
+
+const CYCLE_STATUS_OPTIONS: { value: PerformanceCycleStatus; label: string }[] = [
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'CLOSED', label: 'Closed' },
+];
 
 type CreateCycleFormValue = {
   name: string;
   startDate: string | null;
   endDate: string | null;
+  status: PerformanceCycleStatus;
 };
 
 const defaultForm: CreateCycleFormValue = {
   name: '',
   startDate: null,
   endDate: null,
+  status: 'DRAFT',
 };
 
 type CreateCycleModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreate: (payload: CreateCyclePayload) => void;
+  onCreate: (payload: CreateCyclePayload | UpdateCyclePayload) => void;
   isSubmitting?: boolean;
   successMessage?: string | null;
+  cycle?: PerformanceCycle | null;
 };
 
 const CreateCycleModal = ({
@@ -36,14 +47,21 @@ const CreateCycleModal = ({
   onCreate,
   isSubmitting = false,
   successMessage,
+  cycle = null,
 }: CreateCycleModalProps) => {
+  const isEditMode = Boolean(cycle);
   const [form, setForm] = useState<CreateCycleFormValue>(defaultForm);
 
   useEffect(() => {
     if (open) {
-      setForm(defaultForm);
+      setForm(
+        cycle
+          ? { name: cycle.name, startDate: cycle.startDate, endDate: cycle.endDate, status: cycle.status }
+          : defaultForm,
+      );
     }
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cycle]);
 
   useEffect(() => {
     if (successMessage && !isSubmitting && open) {
@@ -63,18 +81,27 @@ const CreateCycleModal = ({
 
   const handleCreate = () => {
     if (!canCreate || !form.startDate || !form.endDate) return;
-    onCreate({
-      name: form.name.trim(),
-      startDate: form.startDate,
-      endDate: form.endDate,
-    });
+    if (isEditMode) {
+      onCreate({
+        name: form.name.trim(),
+        startDate: form.startDate,
+        endDate: form.endDate,
+        status: form.status,
+      });
+    } else {
+      onCreate({
+        name: form.name.trim(),
+        startDate: form.startDate,
+        endDate: form.endDate,
+      });
+    }
   };
 
   return (
     <AppModal
       open={open}
       onClose={onClose}
-      title="Create Performance Cycle"
+      title={isEditMode ? 'Edit Performance Cycle' : 'Create Performance Cycle'}
       maxWidth="sm"
       actions={
         <>
@@ -82,7 +109,7 @@ const CreateCycleModal = ({
             Cancel
           </AppButton>
           <AppButton onClick={handleCreate} disabled={!canCreate || isSubmitting} loading={isSubmitting}>
-            Create Cycle
+            {isEditMode ? 'Save Changes' : 'Create Cycle'}
           </AppButton>
         </>
       }
@@ -115,6 +142,25 @@ const CreateCycleModal = ({
             format={DATE_FORMAT}
             slotProps={{ textField: { size: 'small', fullWidth: true } }}
           />
+          {isEditMode && (
+            <FormControl size="small" fullWidth>
+              <InputLabel id="cycle-status-label">Status</InputLabel>
+              <Select
+                labelId="cycle-status-label"
+                label="Status"
+                value={form.status}
+                onChange={(e: SelectChangeEvent<PerformanceCycleStatus>) =>
+                  setForm((p) => ({ ...p, status: e.target.value as PerformanceCycleStatus }))
+                }
+              >
+                {CYCLE_STATUS_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Stack>
       </LocalizationProvider>
     </AppModal>

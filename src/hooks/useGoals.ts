@@ -2,8 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { Goal, GoalCategory, GoalStatus } from '../types/goal';
 import useAuth from './useAuth';
 import goalsService from '../services/goalsService';
-import { resolveMockUserId } from '../utils/resolveMockUserId';
-import { ACTIVE_CYCLE_ID } from '../services/mock/mockData/performanceCycles';
+import { getApiErrorMessage } from '../utils/helpers';
 
 export type TeamGoalFilters = {
   employeeId: string;
@@ -19,8 +18,7 @@ const defaultTeamFilters: TeamGoalFilters = {
 
 const useGoals = () => {
   const { user } = useAuth();
-  const mockUserId = resolveMockUserId(user);
-  const activeCycleId = ACTIVE_CYCLE_ID;
+  const currentUserId: string | null = user?.employeeId ?? null;
 
   const [employeeGoals, setEmployeeGoals] = useState<Goal[]>([]);
   const [teamGoals, setTeamGoals] = useState<Goal[]>([]);
@@ -43,41 +41,43 @@ const useGoals = () => {
   );
 
   const loadMyGoals = useCallback(async () => {
+    if (!currentUserId) return;
     setIsLoading(true);
     setError(null);
     try {
-      setEmployeeGoals(await goalsService.getGoalsByEmployee(mockUserId, activeCycleId));
+      setEmployeeGoals(await goalsService.getGoalsByEmployee(currentUserId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load goals.');
+      setError(getApiErrorMessage(e) || 'Failed to load goals.');
     } finally {
       setIsLoading(false);
     }
-  }, [mockUserId, activeCycleId]);
+  }, [currentUserId]);
 
   const loadTeamGoals = useCallback(async () => {
+    if (!currentUserId) return;
     setIsLoading(true);
     setError(null);
     try {
-      setTeamGoals(await goalsService.getTeamGoals(mockUserId, activeCycleId));
+      setTeamGoals(await goalsService.getTeamGoals(currentUserId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load team goals.');
+      setError(getApiErrorMessage(e) || 'Failed to load team goals.');
     } finally {
       setIsLoading(false);
     }
-  }, [mockUserId, activeCycleId]);
+  }, [currentUserId]);
 
-  /** Loads every goal in the active cycle, across all employees (admin view). */
+  /** Loads every goal across the org (admin "all goals" view). */
   const loadCycleGoals = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      setTeamGoals(await goalsService.getGoalsByCycle(activeCycleId));
+      setTeamGoals(await goalsService.getAllGoals());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load cycle goals.');
+      setError(getApiErrorMessage(e) || 'Failed to load goals.');
     } finally {
       setIsLoading(false);
     }
-  }, [activeCycleId]);
+  }, []);
 
   const selectGoal = useCallback((goal: Goal | null) => {
     setSelectedGoalState(goal);
@@ -101,28 +101,11 @@ const useGoals = () => {
       setIsMutating(true);
       setError(null);
       try {
-        const updated = await goalsService.updateGoal(goalId, { status });
+        const updated = await goalsService.updateStatus(goalId, status);
         applyGoalUpdate(updated);
         setSuccessMessage('Goal status updated');
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to update goal status.');
-      } finally {
-        setIsMutating(false);
-      }
-    },
-    [applyGoalUpdate],
-  );
-
-  const updateProgress = useCallback(
-    async (goalId: string, progress: number) => {
-      setIsMutating(true);
-      setError(null);
-      try {
-        const updated = await goalsService.updateGoal(goalId, { progress });
-        applyGoalUpdate(updated);
-        setSuccessMessage('Goal progress updated');
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to update goal progress.');
+        setError(getApiErrorMessage(e) || 'Failed to update goal status.');
       } finally {
         setIsMutating(false);
       }
@@ -142,9 +125,8 @@ const useGoals = () => {
     teamGoals,
     filteredTeamGoals,
     selectedGoal,
-    activeCycleId,
     teamFilters,
-    mockUserId,
+    currentUserId,
     isLoading,
     isMutating,
     error,
@@ -154,7 +136,6 @@ const useGoals = () => {
     loadCycleGoals,
     selectGoal,
     updateStatus,
-    updateProgress,
     setTeamFilters,
     clearError,
     clearSuccess,

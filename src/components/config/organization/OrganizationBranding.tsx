@@ -16,7 +16,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useDispatch, useSelector } from 'react-redux';
 import AppButton from '../../common/AppButton';
-import { AppCard, PageHeader } from '../../common';
+import { AppCard, AppLoader, PageHeader } from '../../common';
 import {
   selectOrgBrandingFetchStatus,
   selectOrgBrandingRemote,
@@ -217,6 +217,10 @@ const OrganizationBranding = () => {
       )}
 
       <AppCard sx={{ p: 3 }}>
+       {loading && !remote ? (
+        <AppLoader message="Loading branding…" minHeight={300} />
+       ) : (
+        <>
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
           Preview
         </Typography>
@@ -464,6 +468,8 @@ const OrganizationBranding = () => {
             </AppButton>
           </Grid>
         </Grid>
+        </>
+       )}
       </AppCard>
     </Box>
   );

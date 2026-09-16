@@ -1,245 +1,170 @@
-import type { Goal } from '../types/goal';
-import type { GoalHistoryEntry } from '../types/goalHistory';
-import type { GoalRevision, ProposedGoalChanges } from '../types/goalRevision';
+import api from './api';
+import type { GoalHistoryAction, GoalHistoryEntry } from '../types/goalHistory';
+import type { GoalRevision, GoalRevisionStatus, ProposedGoalChanges } from '../types/goalRevision';
 import type { RevisionReasonKey } from '../utils/revisionReasonConstants';
-import { REVISION_REASON_LABELS } from '../utils/revisionReasonConstants';
-import { getDirectReports, getMockUserById } from '../utils/resolveMockUserId';
-import goalsService, { type ApprovedRevisionChanges } from './goalsService';
-import { resolveMock } from './mock/mockClient';
-import { mockGoalHistory } from './mock/mockData/goalHistory';
-import { mockGoalRevisions } from './mock/mockData/goalRevisions';
+import goalCategoriesService from './goalCategoriesService';
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function coerceItems(payload: unknown): unknown[] {
+  if (payload == null) return [];
+  if (Array.isArray(payload)) return payload;
+
+  const root = asRecord(payload);
+  if (!root) return [];
+
+  const inner = asRecord(root.data);
+  if (inner && Array.isArray(inner.data)) return inner.data;
+
+  return Array.isArray(root.data) ? root.data : [];
+}
+
+/** Resolves a `GOAL_CATEGORY` code (e.g. "ORGANIZATIONAL") to its real `performance.GoalCategories.Id`. */
+async function getCategoryIdByCode(code: string): Promise<string> {
+  const categories = await goalCategoriesService.getActiveGoalCategories();
+  const match = categories.find((c) => c.code === code);
+  if (!match) throw new Error(`Goal category "${code}" was not found.`);
+  return match.id;
+}
+
+async function buildProposedChangesBody(changes: ProposedGoalChanges) {
+  return {
+    title: changes.title,
+    description: changes.description,
+    targetValue: changes.targetValue,
+    measurementCriteria: changes.measurementCriteria,
+    dueDate: changes.dueDate,
+    weightage: changes.weightage,
+    categoryId: changes.category ? await getCategoryIdByCode(changes.category) : undefined,
+  };
+}
+
+function mapRevision(raw: Record<string, unknown>): GoalRevision {
+  const pc = asRecord(raw.proposedChanges) ?? {};
+  return {
+    id: String(raw.id ?? ''),
+    goalId: String(raw.goalId ?? ''),
+    goalTitle: raw.goalTitle != null ? String(raw.goalTitle) : undefined,
+    employeeId: String(raw.employeeId ?? ''),
+    employeeName: String(raw.employeeName ?? ''),
+    requestedBy: String(raw.requestedById ?? ''),
+    requestedByName: String(raw.requestedByName ?? ''),
+    requestedAt: String(raw.requestedAt ?? ''),
+    reason: String(raw.reason ?? '') as RevisionReasonKey,
+    otherReason: raw.otherReason != null ? String(raw.otherReason) : undefined,
+    proposedChanges: {
+      title: pc.title != null ? String(pc.title) : undefined,
+      description: pc.description != null ? String(pc.description) : undefined,
+      targetValue: pc.targetValue != null ? String(pc.targetValue) : undefined,
+      measurementCriteria: pc.measurementCriteria != null ? String(pc.measurementCriteria) : undefined,
+      dueDate: pc.dueDate != null ? String(pc.dueDate) : undefined,
+      weightage: pc.weightage != null ? Number(pc.weightage) : undefined,
+      category: pc.category != null ? String(pc.category) : undefined,
+    },
+    status: (String(raw.status ?? '') || 'PENDING') as GoalRevisionStatus,
+    reviewedBy: raw.reviewedById != null ? String(raw.reviewedById) : undefined,
+    reviewedByName: raw.reviewedByName != null ? String(raw.reviewedByName) : undefined,
+    reviewedAt: raw.reviewedAt != null ? String(raw.reviewedAt) : undefined,
+    reviewComment: raw.reviewComment != null ? String(raw.reviewComment) : undefined,
+  };
+}
+
+function mapHistoryEntry(raw: Record<string, unknown>): GoalHistoryEntry {
+  return {
+    id: String(raw.id ?? ''),
+    goalId: String(raw.goalId ?? ''),
+    date: String(raw.createdAt ?? ''),
+    action: String(raw.action ?? '') as GoalHistoryAction,
+    field: raw.field != null ? String(raw.field) : undefined,
+    oldValue: raw.oldValue != null ? String(raw.oldValue) : undefined,
+    newValue: raw.newValue != null ? String(raw.newValue) : undefined,
+    reason: raw.reason != null ? String(raw.reason) : undefined,
+    requestedBy: raw.requestedById != null ? String(raw.requestedById) : undefined,
+    requestedByName: raw.requestedByName != null ? String(raw.requestedByName) : undefined,
+    approvedBy: raw.approvedById != null ? String(raw.approvedById) : undefined,
+    approvedByName: raw.approvedByName != null ? String(raw.approvedByName) : undefined,
+    comment: raw.comment != null ? String(raw.comment) : undefined,
+    revisionRequestId: raw.revisionRequestId != null ? String(raw.revisionRequestId) : undefined,
+  };
+}
 
 export interface SubmitRevisionRequestPayload {
   goalId: string;
   employeeId: string;
-  requestedBy: string;
   reason: RevisionReasonKey;
   otherReason?: string;
   proposedChanges: ProposedGoalChanges;
 }
 
 export interface ReviewRevisionPayload {
-  reviewerId: string;
-  reviewComment: string;
+  reviewComment?: string;
 }
 
-let revisions: GoalRevision[] = structuredClone(mockGoalRevisions);
-let history: Record<string, GoalHistoryEntry[]> = structuredClone(mockGoalHistory);
-let nextRevisionCounter = revisions.length + 1;
-let nextHistoryCounter = 1;
-
-/** Maps a ProposedGoalChanges key to the Goal field it patches on approval. */
-const PROPOSED_TO_GOAL_FIELD: Array<[keyof ProposedGoalChanges, keyof Goal]> = [
-  ['title', 'title'],
-  ['description', 'description'],
-  ['measurementCriteria', 'successCriteria'],
-  ['dueDate', 'targetDate'],
-  ['weightage', 'weight'],
-  ['category', 'category'],
-  ['targetValue', 'targetValue'],
-];
-
-function findRevision(id: string): GoalRevision {
-  const revision = revisions.find((r) => r.id === id);
-  if (!revision) {
-    throw new Error('Revision request not found');
-  }
-  return revision;
+/** POST /performance/goal-revisions — submitted by the goal's employee's manager. */
+export async function submitRevisionRequest(payload: SubmitRevisionRequestPayload): Promise<GoalRevision> {
+  const proposedChanges = await buildProposedChangesBody(payload.proposedChanges);
+  const response = await api.post('/performance/goal-revisions', {
+    goalId: payload.goalId,
+    reason: payload.reason,
+    otherReason: payload.otherReason,
+    proposedChanges,
+  });
+  const root = asRecord(response) ?? {};
+  return mapRevision(asRecord(root.data) ?? {});
 }
 
-function replaceRevision(updated: GoalRevision): GoalRevision {
-  revisions = revisions.map((r) => (r.id === updated.id ? updated : r));
-  return updated;
+/** GET /performance/goal-revisions — the full admin/HR approval queue. */
+export async function fetchPendingRevisions(): Promise<GoalRevision[]> {
+  const payload = await api.get('/performance/goal-revisions', { params: { pageSize: 100 } });
+  return coerceItems(payload).map((row) => mapRevision(asRecord(row) ?? {}));
 }
 
-/** Attaches display names/title at read time rather than duplicating them in the mock seed. */
-async function enrich(revision: GoalRevision): Promise<GoalRevision> {
-  const employee = getMockUserById(revision.employeeId);
-  const requester = getMockUserById(revision.requestedBy);
-  const reviewer = revision.reviewedBy ? getMockUserById(revision.reviewedBy) : null;
-  const goal = await goalsService.getGoalById(revision.goalId).catch(() => null);
-  return {
-    ...revision,
-    goalTitle: goal?.title ?? revision.goalTitle,
-    employeeName: employee?.name ?? revision.employeeName,
-    requestedByName: requester?.name ?? revision.requestedByName,
-    reviewedByName: reviewer?.name ?? revision.reviewedByName,
-  };
+/** GET /performance/goal-revisions/mine — the signed-in manager's own submissions. */
+export async function fetchManagerRevisionRequests(): Promise<GoalRevision[]> {
+  const payload = await api.get('/performance/goal-revisions/mine');
+  const root = asRecord(payload) ?? {};
+  const rows = Array.isArray(root.data) ? root.data : [];
+  return rows.map((row) => mapRevision(asRecord(row) ?? {}));
 }
 
-function appendHistory(goalId: string, entry: Omit<GoalHistoryEntry, 'id' | 'goalId'>): void {
-  const goalEntries = history[goalId] ? [...history[goalId]] : [];
-  if (!goalEntries.some((e) => e.action === 'Goal Created')) {
-    goalEntries.unshift({
-      id: `hist-${goalId}-${nextHistoryCounter++}`,
-      goalId,
-      date: new Date().toISOString(),
-      action: 'Goal Created',
-    });
-  }
-  goalEntries.push({ id: `hist-${goalId}-${nextHistoryCounter++}`, goalId, ...entry });
-  history = { ...history, [goalId]: goalEntries };
+/** POST /performance/goal-revisions/{id}/approve */
+export async function approveRevision(id: string, payload: ReviewRevisionPayload): Promise<GoalRevision> {
+  const response = await api.post(`/performance/goal-revisions/${id}/approve`, {
+    reviewComment: payload.reviewComment,
+  });
+  const root = asRecord(response) ?? {};
+  return mapRevision(asRecord(root.data) ?? {});
+}
+
+/** POST /performance/goal-revisions/{id}/reject */
+export async function rejectRevision(id: string, payload: ReviewRevisionPayload): Promise<GoalRevision> {
+  const response = await api.post(`/performance/goal-revisions/${id}/reject`, {
+    reviewComment: payload.reviewComment,
+  });
+  const root = asRecord(response) ?? {};
+  return mapRevision(asRecord(root.data) ?? {});
+}
+
+/** GET /performance/goals/{goalId}/history */
+export async function fetchGoalHistory(goalId: string): Promise<GoalHistoryEntry[]> {
+  const payload = await api.get(`/performance/goals/${goalId}/history`);
+  const root = asRecord(payload) ?? {};
+  const rows = Array.isArray(root.data) ? root.data : [];
+  return rows.map((row) => mapHistoryEntry(asRecord(row) ?? {}));
 }
 
 const goalRevisionService = {
-  submitRevisionRequest: async (payload: SubmitRevisionRequestPayload): Promise<GoalRevision> => {
-    const directReports = getDirectReports(payload.requestedBy);
-    if (!directReports.some((report) => report.id === payload.employeeId)) {
-      throw new Error('You are not authorized to request a revision for this employee.');
-    }
-
-    const revision: GoalRevision = {
-      id: `rev-new-${nextRevisionCounter++}`,
-      goalId: payload.goalId,
-      employeeId: payload.employeeId,
-      employeeName: '',
-      requestedBy: payload.requestedBy,
-      requestedByName: '',
-      requestedAt: new Date().toISOString(),
-      reason: payload.reason,
-      otherReason: payload.otherReason,
-      proposedChanges: payload.proposedChanges,
-      status: 'PENDING',
-    };
-
-    revisions = [...revisions, revision];
-
-    const requester = getMockUserById(payload.requestedBy);
-    appendHistory(payload.goalId, {
-      date: revision.requestedAt,
-      action: 'Revision Requested',
-      reason: REVISION_REASON_LABELS[payload.reason],
-      requestedBy: payload.requestedBy,
-      requestedByName: requester?.name,
-      revisionRequestId: revision.id,
-    });
-
-    const enriched = await enrich(revision);
-    return resolveMock(enriched);
-  },
-
-  /**
-   * Returns every revision request regardless of status — the Admin/HR queue filters
-   * by status/tab client-side (matches how useGoals filters team goals client-side).
-   */
-  fetchPendingRevisions: async (): Promise<GoalRevision[]> => {
-    const enriched = await Promise.all(revisions.map(enrich));
-    return resolveMock(enriched);
-  },
-
-  fetchManagerRevisionRequests: async (managerId: string): Promise<GoalRevision[]> => {
-    const enriched = await Promise.all(
-      revisions.filter((r) => r.requestedBy === managerId).map(enrich),
-    );
-    return resolveMock(enriched);
-  },
-
-  approveRevision: async (
-    id: string,
-    { reviewerId, reviewComment }: ReviewRevisionPayload,
-  ): Promise<GoalRevision> => {
-    const current = findRevision(id);
-    if (current.status !== 'PENDING') {
-      throw new Error('This revision request has already been reviewed.');
-    }
-    if (reviewerId === current.requestedBy) {
-      throw new Error('You cannot approve a revision request you submitted yourself.');
-    }
-
-    const goal = await goalsService.getGoalById(current.goalId);
-    const changes: ApprovedRevisionChanges = {};
-    const fieldChanges: Array<{ field: string; oldValue: string; newValue: string }> = [];
-
-    PROPOSED_TO_GOAL_FIELD.forEach(([proposedKey, goalKey]) => {
-      const newValue = current.proposedChanges[proposedKey];
-      if (newValue === undefined) return;
-      const oldValue = goal[goalKey];
-      (changes as Record<string, unknown>)[goalKey] = newValue;
-      fieldChanges.push({
-        field: goalKey,
-        oldValue: oldValue === undefined || oldValue === null ? '' : String(oldValue),
-        newValue: String(newValue),
-      });
-    });
-
-    await goalsService.applyRevision(current.goalId, changes);
-
-    const reviewer = getMockUserById(reviewerId);
-    const reviewedAt = new Date().toISOString();
-    const updated = replaceRevision({
-      ...current,
-      status: 'APPROVED',
-      reviewedBy: reviewerId,
-      reviewedByName: reviewer?.name ?? '',
-      reviewedAt,
-      reviewComment,
-    });
-
-    appendHistory(current.goalId, {
-      date: reviewedAt,
-      action: 'Revision Approved',
-      approvedBy: reviewerId,
-      approvedByName: reviewer?.name,
-      comment: reviewComment,
-      revisionRequestId: current.id,
-    });
-
-    fieldChanges.forEach((fieldChange) => {
-      appendHistory(current.goalId, {
-        date: reviewedAt,
-        action: 'Goal Updated',
-        field: fieldChange.field,
-        oldValue: fieldChange.oldValue,
-        newValue: fieldChange.newValue,
-        revisionRequestId: current.id,
-      });
-    });
-
-    const enrichedApproved = await enrich(updated);
-    return resolveMock(enrichedApproved);
-  },
-
-  rejectRevision: async (
-    id: string,
-    { reviewerId, reviewComment }: ReviewRevisionPayload,
-  ): Promise<GoalRevision> => {
-    const current = findRevision(id);
-    if (current.status !== 'PENDING') {
-      throw new Error('This revision request has already been reviewed.');
-    }
-    if (reviewerId === current.requestedBy) {
-      throw new Error('You cannot reject a revision request you submitted yourself.');
-    }
-    if (!reviewComment || !reviewComment.trim()) {
-      throw new Error('A rejection comment is required.');
-    }
-
-    const reviewer = getMockUserById(reviewerId);
-    const reviewedAt = new Date().toISOString();
-    const updated = replaceRevision({
-      ...current,
-      status: 'REJECTED',
-      reviewedBy: reviewerId,
-      reviewedByName: reviewer?.name ?? '',
-      reviewedAt,
-      reviewComment,
-    });
-
-    appendHistory(current.goalId, {
-      date: reviewedAt,
-      action: 'Revision Rejected',
-      approvedBy: reviewerId,
-      approvedByName: reviewer?.name,
-      comment: reviewComment,
-      revisionRequestId: current.id,
-    });
-
-    const enrichedRejected = await enrich(updated);
-    return resolveMock(enrichedRejected);
-  },
-
-  fetchGoalHistory: (goalId: string): Promise<GoalHistoryEntry[]> =>
-    resolveMock([...(history[goalId] ?? [])]),
+  submitRevisionRequest,
+  fetchPendingRevisions,
+  fetchManagerRevisionRequests,
+  approveRevision,
+  rejectRevision,
+  fetchGoalHistory,
 };
 
 export default goalRevisionService;

@@ -1,13 +1,19 @@
 import { useCallback, useState } from 'react';
 import type { GoalComment } from '../types/goalComment';
+import type { UserRole } from '../types/user';
 import useAuth from './useAuth';
 import goalCommentsService from '../services/goalCommentsService';
-import { getMockUserById, resolveMockUserId } from '../utils/resolveMockUserId';
+import { getApiErrorMessage } from '../utils/helpers';
 
 const useGoalComments = () => {
   const { user } = useAuth();
-  const mockUserId = resolveMockUserId(user);
-  const currentUser = getMockUserById(mockUserId);
+  const currentUser = user
+    ? {
+        id: user.employeeId ?? '',
+        name: user.name ?? '',
+        role: String(user.role ?? 'EMPLOYEE').toUpperCase() as UserRole,
+      }
+    : null;
 
   const [comments, setComments] = useState<GoalComment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +27,7 @@ const useGoalComments = () => {
     try {
       setComments(await goalCommentsService.getCommentsByGoal(goalId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load comments.');
+      setError(getApiErrorMessage(e) || 'Failed to load comments.');
     } finally {
       setIsLoading(false);
     }
@@ -29,30 +35,21 @@ const useGoalComments = () => {
 
   const addComment = useCallback(
     async (goalId: string, text: string) => {
-      if (!currentUser) {
-        setError('Unable to identify the current user.');
-        return;
-      }
       setIsMutating(true);
       setError(null);
       try {
-        const comment = await goalCommentsService.addComment(goalId, {
-          authorId: currentUser.id,
-          authorName: currentUser.name,
-          authorRole: currentUser.role,
-          text,
-        });
+        const comment = await goalCommentsService.addComment(goalId, { text });
         setComments((prev) => [...prev, comment]);
         setSuccessMessage('Comment posted.');
         return comment;
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to post comment.');
+        setError(getApiErrorMessage(e) || 'Failed to post comment.');
         throw e;
       } finally {
         setIsMutating(false);
       }
     },
-    [currentUser],
+    [],
   );
 
   const deleteComment = useCallback(async (id: string) => {
@@ -62,7 +59,7 @@ const useGoalComments = () => {
       await goalCommentsService.deleteComment(id);
       setComments((prev) => prev.filter((c) => c.id !== id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to delete comment.');
+      setError(getApiErrorMessage(e) || 'Failed to delete comment.');
     } finally {
       setIsMutating(false);
     }

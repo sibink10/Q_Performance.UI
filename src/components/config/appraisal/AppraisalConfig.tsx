@@ -23,7 +23,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AppButton from '../../common/AppButton';
-import { AppCard, EmptyState, PageHeader } from '../../common';
+import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import performanceService from '../../../services/performanceService';
 import useFinancialYears from '../../../hooks/useFinancialYears';
 import { getApiErrorMessage, toArrayFromPayload, getDefaultRatingBands, validateRatingBands, normalizeRatingBandRow } from '../../../utils/helpers';
@@ -49,6 +49,7 @@ const defaultCfg = {
 const AppraisalConfig = () => {
   const { financialYears } = useFinancialYears();
   const [configs, setConfigs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialForm, setModalInitialForm] = useState(defaultCfg);
   const [editConfigId, setEditConfigId] = useState('');
@@ -61,12 +62,15 @@ const AppraisalConfig = () => {
   const [deleteSaving, setDeleteSaving] = useState(false);
 
   const loadConfigs = async () => {
+    setIsLoading(true);
     try {
       const payload = await performanceService.getAllAppraisalConfigs();
       setConfigs(toArrayFromPayload(payload));
     } catch (e) {
       setPageError(getApiErrorMessage(e));
       setConfigs([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -192,57 +196,63 @@ const AppraisalConfig = () => {
         )}
 
         <AppCard sx={{ p: 3 }}>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Review period</TableCell>
-                  <TableCell>Cycle</TableCell>
-                  <TableCell>Scale</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {configs.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>
-                      {row.financialYearName
-                        || financialYears.find((y) => y.id === row.financialYearId)?.name
-                        || '-'}
-                    </TableCell>
-                    <TableCell>{row.cycleType}</TableCell>
-                    <TableCell>{row.ratingScale}</TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => openEditModal(row)} aria-label="Edit appraisal config">
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => requestDelete(row.id)}
-                            aria-label="Delete appraisal config"
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {!configs.length && (
-            <EmptyState
-              variant="box"
-              message="No appraisal configurations yet. Click Add to create one."
-              minHeight={220}
-              sx={{ mt: 1 }}
-            />
+          {isLoading && !configs.length ? (
+            <AppLoader message="Loading appraisal configs…" minHeight={220} />
+          ) : (
+            <>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Review period</TableCell>
+                      <TableCell>Cycle</TableCell>
+                      <TableCell>Scale</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {configs.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          {row.financialYearName
+                            || financialYears.find((y) => y.id === row.financialYearId)?.name
+                            || '-'}
+                        </TableCell>
+                        <TableCell>{row.cycleType}</TableCell>
+                        <TableCell>{row.ratingScale}</TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => openEditModal(row)} aria-label="Edit appraisal config">
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => requestDelete(row.id)}
+                                aria-label="Delete appraisal config"
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              {!configs.length && (
+                <EmptyState
+                  variant="box"
+                  message="No appraisal configurations yet. Click Add to create one."
+                  minHeight={220}
+                  sx={{ mt: 1 }}
+                />
+              )}
+            </>
           )}
         </AppCard>
 

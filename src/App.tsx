@@ -82,9 +82,13 @@ const AuthBootstrap = () => {
         localStorage.setItem('qhrms_token', token);
 
         let role = 'EMPLOYEE';
+        let employeeId = null;
+        let isManager = false;
         try {
           const me = await getCurrentUser();
           if (me?.role) role = String(me.role).toUpperCase();
+          if (me?.employeeId) employeeId = me.employeeId;
+          isManager = Boolean(me?.isManager);
         } catch {
           // /auth/me unavailable - fall back to EMPLOYEE rather than blocking access
         }
@@ -95,6 +99,8 @@ const AuthBootstrap = () => {
             user: {
               ...toAuthUser(tokenResponse.idTokenClaims || activeAccount.idTokenClaims),
               role,
+              employeeId,
+              isManager,
             },
           })
         );

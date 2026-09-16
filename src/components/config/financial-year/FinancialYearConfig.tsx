@@ -12,7 +12,7 @@ import {
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AppButton from '../../common/AppButton';
-import { AppCard, PageHeader } from '../../common';
+import { AppCard, AppLoader, PageHeader } from '../../common';
 import performanceService from '../../../services/performanceService';
 import useFinancialYears from '../../../hooks/useFinancialYears';
 import { getApiErrorMessage } from '../../../utils/helpers';
@@ -22,7 +22,7 @@ import FinancialYearsTable from './FinancialYearsTable';
 const defaultFy = { name: '', startDate: null, endDate: null, isActive: false };
 
 const FinancialYearConfig = () => {
-  const { financialYears, reloadFinancialYears } = useFinancialYears();
+  const { financialYears, financialYearsLoading, reloadFinancialYears } = useFinancialYears();
   const [financialYearForm, setFinancialYearForm] = useState(defaultFy);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -87,7 +87,11 @@ const FinancialYearConfig = () => {
             onCreate={saveFinancialYear}
             canCreate={canCreate}
           />
-          <FinancialYearsTable financialYears={financialYears} onDelete={openDeleteConfirm} />
+          {financialYearsLoading && !financialYears.length ? (
+            <AppLoader message="Loading review periods…" minHeight={160} />
+          ) : (
+            <FinancialYearsTable financialYears={financialYears} onDelete={openDeleteConfirm} />
+          )}
         </AppCard>
 
         <Dialog open={Boolean(deleteConfirmId)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>

@@ -13,11 +13,11 @@ import {
 import type { SelectChangeEvent } from '@mui/material';
 import dayjs from 'dayjs';
 import type { GoalRevisionStatus } from '../../types/goalRevision';
+import type { AssignableEmployee } from '../../types/user';
 import { REVISION_REASON, REVISION_REASON_LABELS } from '../../utils/revisionReasonConstants';
-import { mockUsers } from '../../services/mock/mockData/users';
-import { DEPARTMENTS } from '../../services/mock/mockData';
 import { AppCard, PageHeader } from '../../components/common';
 import GoalRevisionApprovalTable from '../../components/operations/revision-requests/GoalRevisionApprovalTable';
+import goalsService from '../../services/goalsService';
 import useGoalRevisions from '../../hooks/useGoalRevisions';
 import useGoals from '../../hooks/useGoals';
 
@@ -29,9 +29,6 @@ const STATUS_TABS: { value: StatusTab; label: string }[] = [
   { value: 'REJECTED', label: 'Rejected' },
   { value: 'ALL', label: 'All' },
 ];
-
-const employeeOptions = mockUsers.filter((u) => u.role === 'EMPLOYEE');
-const managerOptions = mockUsers.filter((u) => u.role === 'MANAGER' || u.role === 'ADMIN');
 
 const RevisionRequestsPage = () => {
   const {
@@ -48,18 +45,28 @@ const RevisionRequestsPage = () => {
   } = useGoalRevisions();
   const { teamGoals, loadCycleGoals } = useGoals();
 
+  const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
   const [statusTab, setStatusTab] = useState<StatusTab>('PENDING');
   const [employeeFilter, setEmployeeFilter] = useState('ALL');
   const [managerFilter, setManagerFilter] = useState('ALL');
-  const [departmentFilter, setDepartmentFilter] = useState('ALL');
   const [reasonFilter, setReasonFilter] = useState('ALL');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
+    goalsService.getAssignableEmployees().then(setEmployees);
+  }, []);
+
+  useEffect(() => {
     getPendingRevisions();
     loadCycleGoals();
   }, [getPendingRevisions, loadCycleGoals]);
+
+  const employeeOptions = useMemo(() => employees.filter((e) => e.role === 'EMPLOYEE'), [employees]);
+  const managerOptions = useMemo(
+    () => employees.filter((e) => e.role === 'MANAGER' || e.role === 'ADMIN'),
+    [employees],
+  );
 
   const filtered = useMemo(() => {
     return pendingRevisions.filter((revision) => {
@@ -67,15 +74,23 @@ const RevisionRequestsPage = () => {
       if (employeeFilter !== 'ALL' && revision.employeeId !== employeeFilter) return false;
       if (managerFilter !== 'ALL' && revision.requestedBy !== managerFilter) return false;
       if (reasonFilter !== 'ALL' && revision.reason !== reasonFilter) return false;
-      if (departmentFilter !== 'ALL') {
-        const employee = mockUsers.find((u) => u.id === revision.employeeId);
-        if (employee?.department !== departmentFilter) return false;
-      }
       if (dateFrom && dayjs(revision.requestedAt).isBefore(dayjs(dateFrom), 'day')) return false;
       if (dateTo && dayjs(revision.requestedAt).isAfter(dayjs(dateTo), 'day')) return false;
       return true;
     });
-  }, [pendingRevisions, statusTab, employeeFilter, managerFilter, departmentFilter, reasonFilter, dateFrom, dateTo]);
+  }, [pendingRevisions, statusTab, employeeFilter, managerFilter, reasonFilter, dateFrom, dateTo]);
+
+  const handleApprove = async (id: string, reviewComment: string) => {
+    const result = await approveRevision(id, reviewComment);
+    loadCycleGoals();
+    return result;
+  };
+
+  const handleReject = async (id: string, reviewComment: string) => {
+    const result = await rejectRevision(id, reviewComment);
+    loadCycleGoals();
+    return result;
+  };
 
   return (
     <Box>
@@ -117,24 +132,6 @@ const RevisionRequestsPage = () => {
                 {managerOptions.map((mgr) => (
                   <MenuItem key={mgr.id} value={mgr.id}>
                     {mgr.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="filter-department">Department</InputLabel>
-              <Select
-                labelId="filter-department"
-                label="Department"
-                value={departmentFilter}
-                onChange={(e: SelectChangeEvent<string>) => setDepartmentFilter(e.target.value)}
-              >
-                <MenuItem value="ALL">All departments</MenuItem>
-                {DEPARTMENTS.map((dept) => (
-                  <MenuItem key={dept} value={dept}>
-                    {dept}
                   </MenuItem>
                 ))}
               </Select>
@@ -202,8 +199,8 @@ const RevisionRequestsPage = () => {
         revisions={filtered}
         goals={teamGoals}
         isLoading={isLoading}
-        approveRevision={approveRevision}
-        rejectRevision={rejectRevision}
+        approveRevision={handleApprove}
+        rejectRevision={handleReject}
         isMutating={isMutating}
         error={error}
         successMessage={successMessage}

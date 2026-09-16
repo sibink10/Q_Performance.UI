@@ -27,6 +27,16 @@ export interface MockUser {
   department: string;
 }
 
+/** Employee assignable to a goal, as returned by `GET /performance/goals/assignable-employees`. */
+export interface AssignableEmployee {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  managerId: string | null;
+  department: string;
+}
+
 /** Current user's DB-sourced role/profile, as returned by GET /auth/me. */
 export interface CurrentUserFromToken {
   id: string | null;

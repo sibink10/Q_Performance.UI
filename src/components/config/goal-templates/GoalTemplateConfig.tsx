@@ -31,6 +31,7 @@ import useGoalCategories from '../../../hooks/useGoalCategories';
 import type { GoalTemplate } from '../../../types/goalTemplate';
 import { getCategoryMeta } from '../../../utils/goalCategoryMeta';
 import { formatCategoryLabel } from '../../../utils/goalConstants';
+import { sortGoalTemplatesByCategory } from '../../../utils/goalTemplateSort';
 import GoalTemplateModal, { type GoalTemplateSubmitPayload } from './GoalTemplateModal';
 
 const GoalTemplateConfig = () => {
@@ -64,11 +65,12 @@ const GoalTemplateConfig = () => {
 
   const filteredTemplates = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return templates.filter((template) => {
+    const filtered = templates.filter((template) => {
       const matchesCategory = categoryFilter === 'ALL' || template.categoryId === categoryFilter;
       const matchesSearch = !query || template.title.toLowerCase().includes(query);
       return matchesCategory && matchesSearch;
     });
+    return sortGoalTemplatesByCategory(filtered);
   }, [templates, search, categoryFilter]);
 
   const openCreateModal = () => {

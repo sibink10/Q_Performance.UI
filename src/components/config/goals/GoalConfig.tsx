@@ -7,17 +7,17 @@ import dayjs from 'dayjs';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import AppButton from '../../common/AppButton';
 import ConfirmDialog from '../../common/ConfirmDialog';
-import usePerformanceCycle from '../../../hooks/usePerformanceCycle';
 import useGoals from '../../../hooks/useGoals';
 import useGoalTemplates from '../../../hooks/useGoalTemplates';
 import goalsService from '../../../services/goalsService';
 import goalCommentsService from '../../../services/goalCommentsService';
 import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
-import type { MockUser } from '../../../types/user';
+import type { AssignableEmployee } from '../../../types/user';
+import type { PerformanceCycle } from '../../../types/performanceCycle';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
 import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../utils/goalConstants';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
-import { getMockUserById } from '../../../utils/resolveMockUserId';
+import { findEmployee } from '../../../utils/resolveEmployee';
 import EmployeeGoalGroup from '../../manager/goal-reviews/EmployeeGoalGroup';
 import TeamGoalsSummaryStrip from '../../manager/goal-reviews/TeamGoalsSummaryStrip';
 import AssignGoalModal, { type AssignGoalSubmitPayload } from './AssignGoalModal';
@@ -38,7 +38,7 @@ const QUICK_STATUS_FILTERS: (GoalStatus | 'ALL')[] = [
   GOAL_STATUS.COMPLETED,
 ];
 
-type EmployeeGoals = { employee: MockUser; goals: Goal[] };
+type EmployeeGoals = { employee: AssignableEmployee; goals: Goal[] };
 
 function sortGoalsWithin(goals: Goal[]): Goal[] {
   return [...goals].sort(
@@ -58,7 +58,7 @@ function orderGroups(groups: EmployeeGoals[]): EmployeeGoals[] {
 
 const GoalConfig = () => {
   const theme = useTheme();
-  const { cycles, loadCycles } = usePerformanceCycle();
+  const [cycles, setCycles] = useState<PerformanceCycle[]>([]);
   const {
     filteredTeamGoals,
     teamFilters,
@@ -74,7 +74,8 @@ const GoalConfig = () => {
   } = useGoals();
 
   const { templates, loadTemplates } = useGoalTemplates();
-  const [employees, setEmployees] = useState<MockUser[]>([]);
+  const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
+  const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,7 +89,11 @@ const GoalConfig = () => {
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    goalsService.getAssignableEmployees().then(setEmployees);
+    setIsEmployeesLoading(true);
+    goalsService
+      .getAssignableEmployees()
+      .then(setEmployees)
+      .finally(() => setIsEmployeesLoading(false));
   }, []);
 
   const refreshCommentCounts = useCallback(() => {
@@ -110,8 +115,8 @@ const GoalConfig = () => {
   }, [loadTemplates]);
 
   useEffect(() => {
-    loadCycles();
-  }, [loadCycles]);
+    goalsService.getCycles().then(setCycles);
+  }, []);
 
   useEffect(() => {
     loadCycleGoals();
@@ -121,10 +126,10 @@ const GoalConfig = () => {
     const query = search.trim().toLowerCase();
     if (!query) return filteredTeamGoals;
     return filteredTeamGoals.filter((goal) => {
-      const employeeName = getMockUserById(goal.employeeId)?.name ?? '';
+      const employeeName = findEmployee(employees, goal.employeeId)?.name ?? '';
       return goal.title.toLowerCase().includes(query) || employeeName.toLowerCase().includes(query);
     });
-  }, [filteredTeamGoals, search]);
+  }, [filteredTeamGoals, search, employees]);
 
   const employeeGroups = useMemo(() => {
     const groups = new Map<string, EmployeeGoals>();
@@ -134,7 +139,7 @@ const GoalConfig = () => {
         existing.goals.push(goal);
         return;
       }
-      const employee = getMockUserById(goal.employeeId);
+      const employee = findEmployee(employees, goal.employeeId);
       if (!employee) return;
       groups.set(goal.employeeId, { employee, goals: [goal] });
     });
@@ -145,18 +150,15 @@ const GoalConfig = () => {
     }));
 
     return orderGroups(list);
-  }, [searchedGoals]);
+  }, [searchedGoals, employees]);
 
   const handleSubmit = async (payload: AssignGoalSubmitPayload) => {
-    const { employeeIds, ...sharedFields } = payload;
     setIsSubmitting(true);
     setAssignError(null);
     try {
-      await Promise.all(
-        employeeIds.map((employeeId) => goalsService.createGoal({ ...sharedFields, employeeId })),
-      );
+      const created = await goalsService.assignGoal(payload);
       setAssignSuccess(
-        `Goal assigned to ${employeeIds.length} ${employeeIds.length === 1 ? 'person' : 'people'}.`,
+        `Goal assigned to ${created.length} ${created.length === 1 ? 'person' : 'people'}.`,
       );
       setIsModalOpen(false);
       loadCycleGoals();
@@ -174,7 +176,11 @@ const GoalConfig = () => {
     setIsEditSubmitting(true);
     setAssignError(null);
     try {
-      await goalsService.updateGoal(editingGoal.id, payload);
+      await goalsService.updateGoal(editingGoal.id, {
+        ...payload,
+        status: editingGoal.status,
+        targetValue: editingGoal.targetValue,
+      });
       setAssignSuccess('Goal updated.');
       setEditingGoal(null);
       loadCycleGoals();
@@ -318,7 +324,7 @@ const GoalConfig = () => {
           })}
         </Stack>
 
-        {isLoading && !filteredTeamGoals.length ? (
+        {(isLoading || isEmployeesLoading) && !employeeGroups.length ? (
           <AppLoader message="Loading goals…" />
         ) : employeeGroups.length ? (
           <Box>
@@ -360,7 +366,7 @@ const GoalConfig = () => {
         onClose={handleEditClose}
         onSubmit={handleEditSubmit}
         goal={editingGoal}
-        employeeName={editingGoal ? getMockUserById(editingGoal.employeeId)?.name : undefined}
+        employeeName={editingGoal ? findEmployee(employees, editingGoal.employeeId)?.name : undefined}
         cycleName={editingGoal ? cycles.find((c) => c.id === editingGoal.cycleId)?.name : undefined}
         isSubmitting={isEditSubmitting}
       />
@@ -382,7 +388,7 @@ const GoalConfig = () => {
       <GoalCommentsDialog
         open={Boolean(commentsGoal)}
         goal={commentsGoal}
-        employeeName={commentsGoal ? getMockUserById(commentsGoal.employeeId)?.name : undefined}
+        employeeName={commentsGoal ? findEmployee(employees, commentsGoal.employeeId)?.name : undefined}
         onClose={() => {
           setCommentsGoal(null);
           refreshCommentCounts();

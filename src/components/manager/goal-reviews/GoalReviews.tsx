@@ -16,7 +16,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
-import type { MockUser } from '../../../types/user';
+import type { AssignableEmployee } from '../../../types/user';
 import {
   GOAL_CATEGORY,
   GOAL_CATEGORY_LABELS,
@@ -24,9 +24,10 @@ import {
   GOAL_STATUS_LABELS,
 } from '../../../utils/goalConstants';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
-import { getDirectReports, getMockUserById } from '../../../utils/resolveMockUserId';
+import { directReportsOf, findEmployee } from '../../../utils/resolveEmployee';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import useGoals from '../../../hooks/useGoals';
+import goalsService from '../../../services/goalsService';
 import goalCommentsService from '../../../services/goalCommentsService';
 import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
 import EmployeeGoalGroup from './EmployeeGoalGroup';
@@ -48,7 +49,7 @@ const QUICK_STATUS_FILTERS: (GoalStatus | 'ALL')[] = [
   GOAL_STATUS.COMPLETED,
 ];
 
-type EmployeeGoals = { employee: MockUser; goals: Goal[] };
+type EmployeeGoals = { employee: AssignableEmployee; goals: Goal[] };
 
 function sortGoalsWithin(goals: Goal[]): Goal[] {
   return [...goals].sort(
@@ -71,7 +72,7 @@ const GoalReviews = () => {
   const {
     filteredTeamGoals,
     teamFilters,
-    mockUserId,
+    currentUserId,
     isLoading,
     isMutating,
     error,
@@ -83,10 +84,20 @@ const GoalReviews = () => {
     clearSuccess,
   } = useGoals();
 
+  const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
+  const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [revisionGoal, setRevisionGoal] = useState<Goal | null>(null);
   const [commentsGoal, setCommentsGoal] = useState<Goal | null>(null);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setIsEmployeesLoading(true);
+    goalsService
+      .getAssignableEmployees()
+      .then(setEmployees)
+      .finally(() => setIsEmployeesLoading(false));
+  }, []);
 
   useEffect(() => {
     loadTeamGoals();
@@ -106,18 +117,21 @@ const GoalReviews = () => {
     refreshCommentCounts();
   }, [refreshCommentCounts]);
 
-  const directReports = useMemo(() => getDirectReports(mockUserId), [mockUserId]);
+  const directReports = useMemo(
+    () => directReportsOf(employees, currentUserId),
+    [employees, currentUserId],
+  );
 
   const searchedGoals = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return filteredTeamGoals;
     return filteredTeamGoals.filter((goal) => {
-      const employeeName = getMockUserById(goal.employeeId)?.name ?? '';
+      const employeeName = findEmployee(employees, goal.employeeId)?.name ?? '';
       return (
         goal.title.toLowerCase().includes(query) || employeeName.toLowerCase().includes(query)
       );
     });
-  }, [filteredTeamGoals, search]);
+  }, [filteredTeamGoals, search, employees]);
 
   const employeeGroups = useMemo(() => {
     const groups = new Map<string, EmployeeGoals>();
@@ -127,7 +141,7 @@ const GoalReviews = () => {
         existing.goals.push(goal);
         return;
       }
-      const employee = getMockUserById(goal.employeeId);
+      const employee = findEmployee(employees, goal.employeeId);
       if (!employee) return;
       groups.set(goal.employeeId, { employee, goals: [goal] });
     });
@@ -138,7 +152,7 @@ const GoalReviews = () => {
     }));
 
     return orderGroups(list);
-  }, [searchedGoals]);
+  }, [searchedGoals, employees]);
 
   return (
     <Box>
@@ -247,7 +261,7 @@ const GoalReviews = () => {
           })}
         </Stack>
 
-        {isLoading && !filteredTeamGoals.length ? (
+        {(isLoading || isEmployeesLoading) && !employeeGroups.length ? (
           <AppLoader message="Loading team goals…" />
         ) : employeeGroups.length ? (
           <Box>
@@ -276,13 +290,14 @@ const GoalReviews = () => {
       <GoalRevisionRequestModal
         open={!!revisionGoal}
         goal={revisionGoal}
+        employees={employees}
         onClose={() => setRevisionGoal(null)}
       />
 
       <GoalCommentsDialog
         open={Boolean(commentsGoal)}
         goal={commentsGoal}
-        employeeName={commentsGoal ? getMockUserById(commentsGoal.employeeId)?.name : undefined}
+        employeeName={commentsGoal ? findEmployee(employees, commentsGoal.employeeId)?.name : undefined}
         onClose={() => {
           setCommentsGoal(null);
           refreshCommentCounts();
