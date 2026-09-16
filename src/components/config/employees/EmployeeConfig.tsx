@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Alert, Box } from '@mui/material';
-import { AppCard, AppPagination, PageHeader } from '../../common';
+import { AppCard, AppLoader, AppPagination, PageHeader } from '../../common';
 import AppInput from '../../common/AppInput';
 import * as employeeService from '../../../services/employeeService';
 import useAuth from '../../../hooks/useAuth';
@@ -21,6 +21,7 @@ const EmployeeConfig = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -34,13 +35,15 @@ const EmployeeConfig = () => {
   }, [debouncedSearch]);
 
   useEffect(() => {
+    setIsLoading(true);
     employeeService
       .getAllEmployees({ page, pageSize, search: debouncedSearch })
       .then((result) => {
         setEmployees(result.employees);
         setTotalCount(result.totalCount);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load employees.'));
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load employees.'))
+      .finally(() => setIsLoading(false));
   }, [page, pageSize, debouncedSearch]);
 
   const handleRoleChange = async (role: AssignableRole) => {
@@ -89,21 +92,27 @@ const EmployeeConfig = () => {
       )}
 
       <AppCard sx={{ p: 3 }}>
-        <EmployeesTable
-          employees={employees}
-          currentUserId={user?.id ?? null}
-          onChangeRole={setSelectedEmployee}
-        />
-        <AppPagination
-          page={page}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-        />
+        {isLoading ? (
+          <AppLoader message="Loading employees…" />
+        ) : (
+          <>
+            <EmployeesTable
+              employees={employees}
+              currentUserId={user?.id ?? null}
+              onChangeRole={setSelectedEmployee}
+            />
+            <AppPagination
+              page={page}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </>
+        )}
       </AppCard>
 
       <ChangeRoleModal

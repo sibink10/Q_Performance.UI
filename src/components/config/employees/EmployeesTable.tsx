@@ -44,7 +44,7 @@ const EmployeesTable = ({ employees, currentUserId, onChangeRole }: EmployeesTab
           <TableRow>
             <TableCell>Name</TableCell>
             <TableCell>Email</TableCell>
-            <TableCell>Department</TableCell>
+            <TableCell>Phone Number</TableCell>
             <TableCell>Role</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
@@ -56,7 +56,7 @@ const EmployeesTable = ({ employees, currentUserId, onChangeRole }: EmployeesTab
               <TableRow key={row.id} hover>
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.email}</TableCell>
-                <TableCell>{row.department || '-'}</TableCell>
+                <TableCell>{row.phoneNumber || '-'}</TableCell>
                 <TableCell>
                   <Chip size="small" label={ROLE_LABELS[row.role]} color={ROLE_COLORS[row.role]} />
                 </TableCell>

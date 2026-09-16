@@ -14,6 +14,7 @@ export interface Employee {
   email: string;
   department: string;
   designation?: string;
+  phoneNumber: string;
   role: UserRole;
 }
 
