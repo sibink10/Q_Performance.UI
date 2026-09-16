@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
@@ -7,6 +6,7 @@ import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutl
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import {
   Box,
+  Chip,
   Divider,
   Drawer,
   IconButton,
@@ -22,6 +22,8 @@ import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
 import AppButton from '../../common/AppButton';
 import WeightBadge from '../../common/WeightBadge';
+import GoalCommentsPanel from '../../common/goal-comments/GoalCommentsPanel';
+import goalCommentsService from '../../../services/goalCommentsService';
 import GoalHistoryTimeline from './GoalHistoryTimeline';
 import GoalProgressBar from './GoalProgressBar';
 import GoalStatusBadge from './GoalStatusBadge';
@@ -82,12 +84,24 @@ function DetailSection({ icon, title, children, muted = false }: DetailSectionPr
 
 const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
   const theme = useTheme();
-  const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments'>('details');
+  const [commentCount, setCommentCount] = useState(0);
 
   useEffect(() => {
     if (goal) {
       setActiveTab('details');
     }
+  }, [goal?.id]);
+
+  useEffect(() => {
+    if (!goal) return undefined;
+    let isMounted = true;
+    goalCommentsService.getCommentCounts([goal.id]).then((counts) => {
+      if (isMounted) setCommentCount(counts[goal.id] ?? 0);
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [goal?.id]);
 
   if (!goal) {
@@ -207,6 +221,22 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
           }}
         >
           <Tab value="details" label="Details" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+          <Tab
+            value="comments"
+            label={
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <span>Comments</span>
+                {commentCount > 0 && (
+                  <Chip
+                    size="small"
+                    label={commentCount}
+                    sx={{ height: 18, minWidth: 18, fontSize: '0.65rem' }}
+                  />
+                )}
+              </Stack>
+            }
+            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
+          />
           <Tab value="history" label="History" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
         </Tabs>
 
@@ -214,6 +244,15 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
         <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>
           {activeTab === 'history' ? (
             <GoalHistoryTimeline goalId={goal.id} />
+          ) : activeTab === 'comments' ? (
+            <GoalCommentsPanel
+              goalId={goal.id}
+              onChanged={() =>
+                goalCommentsService
+                  .getCommentCounts([goal.id])
+                  .then((counts) => setCommentCount(counts[goal.id] ?? 0))
+              }
+            />
           ) : (
           <Stack spacing={2}>
             <DetailSection
@@ -254,16 +293,6 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
                   </Typography>
                 </Box>
               </Stack>
-            </DetailSection>
-
-            <DetailSection
-              icon={<ChatBubbleOutlineOutlinedIcon sx={{ fontSize: 18 }} />}
-              title="Comments"
-              muted
-            >
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                Comments and manager feedback will appear here in a later release.
-              </Typography>
             </DetailSection>
 
             <DetailSection

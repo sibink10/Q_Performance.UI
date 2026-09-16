@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Alert,
@@ -27,6 +27,8 @@ import { getGoalStatusColors } from '../../../utils/statusColorTokens';
 import { getDirectReports, getMockUserById } from '../../../utils/resolveMockUserId';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import useGoals from '../../../hooks/useGoals';
+import goalCommentsService from '../../../services/goalCommentsService';
+import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
 import EmployeeGoalGroup from './EmployeeGoalGroup';
 import GoalRevisionRequestModal from './GoalRevisionRequestModal';
 import TeamGoalsSummaryStrip from './TeamGoalsSummaryStrip';
@@ -83,10 +85,26 @@ const GoalReviews = () => {
 
   const [search, setSearch] = useState('');
   const [revisionGoal, setRevisionGoal] = useState<Goal | null>(null);
+  const [commentsGoal, setCommentsGoal] = useState<Goal | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadTeamGoals();
   }, [loadTeamGoals]);
+
+  const refreshCommentCounts = useCallback(() => {
+    if (!filteredTeamGoals.length) {
+      setCommentCounts({});
+      return;
+    }
+    goalCommentsService
+      .getCommentCounts(filteredTeamGoals.map((g) => g.id))
+      .then(setCommentCounts);
+  }, [filteredTeamGoals]);
+
+  useEffect(() => {
+    refreshCommentCounts();
+  }, [refreshCommentCounts]);
 
   const directReports = useMemo(() => getDirectReports(mockUserId), [mockUserId]);
 
@@ -239,8 +257,10 @@ const GoalReviews = () => {
                 employee={group.employee}
                 goals={group.goals}
                 isMutating={isMutating}
+                commentCounts={commentCounts}
                 onStatusChange={updateStatus}
                 onRequestRevision={setRevisionGoal}
+                onViewComments={setCommentsGoal}
               />
             ))}
           </Box>
@@ -257,6 +277,16 @@ const GoalReviews = () => {
         open={!!revisionGoal}
         goal={revisionGoal}
         onClose={() => setRevisionGoal(null)}
+      />
+
+      <GoalCommentsDialog
+        open={Boolean(commentsGoal)}
+        goal={commentsGoal}
+        employeeName={commentsGoal ? getMockUserById(commentsGoal.employeeId)?.name : undefined}
+        onClose={() => {
+          setCommentsGoal(null);
+          refreshCommentCounts();
+        }}
       />
     </Box>
   );

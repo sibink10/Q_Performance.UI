@@ -11,10 +11,12 @@ type EmployeeGoalGroupProps = {
   employee: MockUser;
   goals: Goal[];
   isMutating?: boolean;
+  commentCounts?: Record<string, number>;
   onStatusChange: (goalId: string, status: GoalStatus) => void;
   onEdit?: (goal: Goal) => void;
   onDelete?: (goal: Goal) => void;
   onRequestRevision?: (goal: Goal) => void;
+  onViewComments?: (goal: Goal) => void;
 };
 
 function getInitials(name: string) {
@@ -27,10 +29,12 @@ const EmployeeGoalGroup = ({
   employee,
   goals,
   isMutating = false,
+  commentCounts,
   onStatusChange,
   onEdit,
   onDelete,
   onRequestRevision,
+  onViewComments,
 }: EmployeeGoalGroupProps) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -97,10 +101,12 @@ const EmployeeGoalGroup = ({
               key={goal.id}
               goal={goal}
               isMutating={isMutating}
+              commentCount={commentCounts?.[goal.id] ?? 0}
               onStatusChange={onStatusChange}
               onEdit={onEdit}
               onDelete={onDelete}
               onRequestRevision={onRequestRevision}
+              onViewComments={onViewComments}
             />
           ))}
         </Stack>

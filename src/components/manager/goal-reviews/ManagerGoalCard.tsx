@@ -1,9 +1,11 @@
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import {
+  Badge,
   Box,
   Chip,
   FormControl,
@@ -29,10 +31,12 @@ const DATE_FORMAT = 'DD MMM YYYY';
 type ManagerGoalCardProps = {
   goal: Goal;
   isMutating?: boolean;
+  commentCount?: number;
   onStatusChange: (goalId: string, status: GoalStatus) => void;
   onEdit?: (goal: Goal) => void;
   onDelete?: (goal: Goal) => void;
   onRequestRevision?: (goal: Goal) => void;
+  onViewComments?: (goal: Goal) => void;
 };
 
 const STATUS_OPTIONS: GoalStatus[] = [
@@ -45,10 +49,12 @@ const STATUS_OPTIONS: GoalStatus[] = [
 const ManagerGoalCard = ({
   goal,
   isMutating = false,
+  commentCount = 0,
   onStatusChange,
   onEdit,
   onDelete,
   onRequestRevision,
+  onViewComments,
 }: ManagerGoalCardProps) => {
   const theme = useTheme();
   const statusColors = getGoalStatusColors(theme, goal.status);
@@ -162,8 +168,27 @@ const ManagerGoalCard = ({
             </Select>
           </FormControl>
 
-          {(onEdit || onDelete || onRequestRevision) && (
+          {(onEdit || onDelete || onRequestRevision || onViewComments) && (
             <Stack direction="row" spacing={0.5}>
+              {onViewComments && (
+                <Tooltip title="Comments">
+                  <IconButton
+                    size="small"
+                    onClick={() => onViewComments(goal)}
+                    aria-label="View comments"
+                  >
+                    <Badge
+                      badgeContent={commentCount}
+                      color="primary"
+                      max={99}
+                      invisible={!commentCount}
+                      sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16 } }}
+                    >
+                      <ChatBubbleOutlineOutlinedIcon fontSize="small" />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
               {onEdit && !goal.isFinalized && (
                 <Tooltip title="Edit goal">
                   <IconButton size="small" onClick={() => onEdit(goal)} aria-label="Edit goal">

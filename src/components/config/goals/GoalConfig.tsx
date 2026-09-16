@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -11,6 +11,8 @@ import usePerformanceCycle from '../../../hooks/usePerformanceCycle';
 import useGoals from '../../../hooks/useGoals';
 import useGoalTemplates from '../../../hooks/useGoalTemplates';
 import goalsService from '../../../services/goalsService';
+import goalCommentsService from '../../../services/goalCommentsService';
+import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
 import type { MockUser } from '../../../types/user';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
 import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../utils/goalConstants';
@@ -82,10 +84,26 @@ const GoalConfig = () => {
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Goal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [commentsGoal, setCommentsGoal] = useState<Goal | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     goalsService.getAssignableEmployees().then(setEmployees);
   }, []);
+
+  const refreshCommentCounts = useCallback(() => {
+    if (!filteredTeamGoals.length) {
+      setCommentCounts({});
+      return;
+    }
+    goalCommentsService
+      .getCommentCounts(filteredTeamGoals.map((g) => g.id))
+      .then(setCommentCounts);
+  }, [filteredTeamGoals]);
+
+  useEffect(() => {
+    refreshCommentCounts();
+  }, [refreshCommentCounts]);
 
   useEffect(() => {
     loadTemplates();
@@ -310,9 +328,11 @@ const GoalConfig = () => {
                 employee={group.employee}
                 goals={group.goals}
                 isMutating={isMutating}
+                commentCounts={commentCounts}
                 onStatusChange={updateStatus}
                 onEdit={setEditingGoal}
                 onDelete={setDeleteTarget}
+                onViewComments={setCommentsGoal}
               />
             ))}
           </Box>
@@ -357,6 +377,16 @@ const GoalConfig = () => {
         onConfirm={handleDeleteConfirm}
         onClose={handleDeleteClose}
         loading={isDeleting}
+      />
+
+      <GoalCommentsDialog
+        open={Boolean(commentsGoal)}
+        goal={commentsGoal}
+        employeeName={commentsGoal ? getMockUserById(commentsGoal.employeeId)?.name : undefined}
+        onClose={() => {
+          setCommentsGoal(null);
+          refreshCommentCounts();
+        }}
       />
     </Box>
   );
