@@ -1,10 +1,10 @@
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import type { SvgIconComponent } from '@mui/icons-material';
 import type { Theme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
-import type { GoalCategory } from '../types/goal';
 import { GOAL_CATEGORY } from './goalConstants';
 
 type CategoryMeta = {
@@ -12,7 +12,17 @@ type CategoryMeta = {
   accent: (theme: Theme) => { main: string; soft: string; border: string };
 };
 
-export const GOAL_CATEGORY_META: Record<GoalCategory, CategoryMeta> = {
+/** Fallback for any category code beyond the 3 curated below (categories are now an open, admin-managed list). */
+export const DEFAULT_CATEGORY_META: CategoryMeta = {
+  Icon: CategoryOutlinedIcon,
+  accent: (theme) => ({
+    main: theme.palette.text.secondary,
+    soft: alpha(theme.palette.text.secondary, 0.08),
+    border: alpha(theme.palette.text.secondary, 0.18),
+  }),
+};
+
+export const GOAL_CATEGORY_META: Record<string, CategoryMeta> = {
   [GOAL_CATEGORY.ORGANIZATIONAL]: {
     Icon: BusinessCenterOutlinedIcon,
     accent: (theme) => ({
@@ -38,3 +48,7 @@ export const GOAL_CATEGORY_META: Record<GoalCategory, CategoryMeta> = {
     }),
   },
 };
+
+export function getCategoryMeta(code: string): CategoryMeta {
+  return GOAL_CATEGORY_META[code] ?? DEFAULT_CATEGORY_META;
+}

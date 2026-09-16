@@ -45,6 +45,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import RuleIcon from "@mui/icons-material/Rule";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import useAuth from "../hooks/useAuth";
 import { MAIN_LAYOUT_APP_BAR_HEIGHT } from "../components/common/PageHeader";
 import { getAppBarTitle } from "../utils/appBarTitle";
@@ -126,6 +127,11 @@ const ADMIN_NAV = [
         label: "Goal Templates",
         icon: <LibraryBooksRoundedIcon />,
         path: "/config/performance/goal-templates",
+      },
+      {
+        label: "Goal Categories",
+        icon: <CategoryRoundedIcon />,
+        path: "/config/performance/goal-categories",
       },
       {
         label: "Assign Goals",

@@ -75,6 +75,7 @@ export const mockGoalTemplates: GoalTemplate[] = (
 ).flatMap(([category, templates]) =>
   templates.map((template, index) => ({
     id: `tpl-${category.toLowerCase()}-${index + 1}`,
+    categoryId: `cat-${category.toLowerCase()}`,
     category,
     ...template,
     createdAt: SEED_AT,

@@ -25,3 +25,16 @@ export const GOAL_CATEGORY_LABELS: Record<GoalCategory, string> = {
   [GOAL_CATEGORY.ROLE]: 'Role',
   [GOAL_CATEGORY.DEVELOPMENT]: 'Development',
 };
+
+/**
+ * Category codes are stored upper case (e.g. "ORGANIZATIONAL"). For display, use the
+ * curated label above when known, otherwise auto-format: first letter capitalized, the
+ * rest lower case (e.g. "SOME_CATEGORY" -> "Some category").
+ */
+export function formatCategoryLabel(code: string): string {
+  if (!code) return '';
+  if (GOAL_CATEGORY_LABELS[code]) return GOAL_CATEGORY_LABELS[code];
+
+  const normalized = code.toLowerCase().replace(/_/g, ' ').trim();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}

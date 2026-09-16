@@ -4,6 +4,7 @@ import goalTemplatesService, {
   type CreateGoalTemplatePayload,
   type UpdateGoalTemplatePatch,
 } from '../services/goalTemplatesService';
+import { getApiErrorMessage } from '../utils/helpers';
 
 export default function useGoalTemplates() {
   const [templates, setTemplates] = useState<GoalTemplate[]>([]);
@@ -22,7 +23,7 @@ export default function useGoalTemplates() {
       const result = await goalTemplatesService.getGoalTemplates();
       setTemplates(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load goal templates.');
+      setError(getApiErrorMessage(e) || 'Failed to load goal templates.');
     } finally {
       setIsLoading(false);
     }
@@ -37,7 +38,7 @@ export default function useGoalTemplates() {
       setSuccessMessage('Goal template created.');
       return created;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create goal template.');
+      setError(getApiErrorMessage(e) || 'Failed to create goal template.');
       throw e;
     } finally {
       setIsMutating(false);
@@ -53,7 +54,7 @@ export default function useGoalTemplates() {
       setSuccessMessage('Goal template updated.');
       return updated;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update goal template.');
+      setError(getApiErrorMessage(e) || 'Failed to update goal template.');
       throw e;
     } finally {
       setIsMutating(false);
@@ -68,7 +69,7 @@ export default function useGoalTemplates() {
       setTemplates((prev) => prev.filter((t) => t.id !== id));
       setSuccessMessage('Goal template deleted.');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to delete goal template.');
+      setError(getApiErrorMessage(e) || 'Failed to delete goal template.');
       throw e;
     } finally {
       setIsMutating(false);

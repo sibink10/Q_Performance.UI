@@ -1,4 +1,5 @@
-export type GoalCategory = 'ORGANIZATIONAL' | 'ROLE' | 'DEVELOPMENT';
+/** Category code (e.g. "ORGANIZATIONAL"). Backend-managed list, not a fixed enum — see GoalCategoryDto. */
+export type GoalCategory = string;
 
 export type GoalStatus = 'ON_TRACK' | 'NEEDS_ATTENTION' | 'OFF_TRACK' | 'COMPLETED';
 

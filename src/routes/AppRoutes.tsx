@@ -25,6 +25,7 @@ import OrganizationBranding from '../pages/config/OrganizationBranding';
 import PerformanceCycles from '../pages/config/PerformanceCycles';
 import Goals from '../pages/config/Goals';
 import GoalTemplates from '../pages/config/GoalTemplates';
+import GoalCategories from '../pages/config/GoalCategories';
 import Employees from '../pages/config/Employees';
 
 // ── Operations Module (Admin Only) ────────────────────────────────────────────
@@ -134,6 +135,10 @@ const AppRoutes = () => (
       <Route
         path="config/performance/goal-templates"
         element={<AdminGuard><GoalTemplates /></AdminGuard>}
+      />
+      <Route
+        path="config/performance/goal-categories"
+        element={<AdminGuard><GoalCategories /></AdminGuard>}
       />
       <Route
         path="config/performance/goals"

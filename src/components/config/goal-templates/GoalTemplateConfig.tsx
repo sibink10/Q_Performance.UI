@@ -27,18 +27,11 @@ import AppButton from '../../common/AppButton';
 import ConfirmDialog from '../../common/ConfirmDialog';
 import WeightBadge from '../../common/WeightBadge';
 import useGoalTemplates from '../../../hooks/useGoalTemplates';
-import type { GoalCategory } from '../../../types/goal';
+import useGoalCategories from '../../../hooks/useGoalCategories';
 import type { GoalTemplate } from '../../../types/goalTemplate';
-import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
-import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
+import { getCategoryMeta } from '../../../utils/goalCategoryMeta';
+import { formatCategoryLabel } from '../../../utils/goalConstants';
 import GoalTemplateModal, { type GoalTemplateSubmitPayload } from './GoalTemplateModal';
-
-const CATEGORY_FILTERS: (GoalCategory | 'ALL')[] = [
-  'ALL',
-  GOAL_CATEGORY.ORGANIZATIONAL,
-  GOAL_CATEGORY.ROLE,
-  GOAL_CATEGORY.DEVELOPMENT,
-];
 
 const GoalTemplateConfig = () => {
   const theme = useTheme();
@@ -54,9 +47,10 @@ const GoalTemplateConfig = () => {
     clearError,
     clearSuccess,
   } = useGoalTemplates();
+  const { categories, loadCategories } = useGoalCategories();
 
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<GoalCategory | 'ALL'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<GoalTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,12 +59,13 @@ const GoalTemplateConfig = () => {
 
   useEffect(() => {
     loadTemplates();
-  }, [loadTemplates]);
+    loadCategories();
+  }, [loadTemplates, loadCategories]);
 
   const filteredTemplates = useMemo(() => {
     const query = search.trim().toLowerCase();
     return templates.filter((template) => {
-      const matchesCategory = categoryFilter === 'ALL' || template.category === categoryFilter;
+      const matchesCategory = categoryFilter === 'ALL' || template.categoryId === categoryFilter;
       const matchesSearch = !query || template.title.toLowerCase().includes(query);
       return matchesCategory && matchesSearch;
     });
@@ -173,14 +168,14 @@ const GoalTemplateConfig = () => {
         </Grid>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
-          {CATEGORY_FILTERS.map((category) => {
-            const selected = categoryFilter === category;
-            const accent = category !== 'ALL' ? GOAL_CATEGORY_META[category].accent(theme) : null;
+          {[{ id: 'ALL', code: 'All categories' }, ...categories].map((category) => {
+            const selected = categoryFilter === category.id;
+            const accent = category.id !== 'ALL' ? getCategoryMeta(category.code).accent(theme) : null;
             return (
               <Chip
-                key={category}
-                label={category === 'ALL' ? 'All categories' : GOAL_CATEGORY_LABELS[category]}
-                onClick={() => setCategoryFilter(category)}
+                key={category.id}
+                label={category.id === 'ALL' ? category.code : formatCategoryLabel(category.code)}
+                onClick={() => setCategoryFilter(category.id)}
                 sx={{
                   fontWeight: 700,
                   backgroundColor: selected
@@ -215,7 +210,7 @@ const GoalTemplateConfig = () => {
               </TableHead>
               <TableBody>
                 {filteredTemplates.map((template) => {
-                  const meta = GOAL_CATEGORY_META[template.category];
+                  const meta = getCategoryMeta(template.category);
                   const Icon = meta.Icon;
                   const accent = meta.accent(theme);
                   return (
@@ -232,7 +227,7 @@ const GoalTemplateConfig = () => {
                         <Chip
                           size="small"
                           icon={<Icon sx={{ fontSize: '16px !important', color: `${accent.main} !important` }} />}
-                          label={GOAL_CATEGORY_LABELS[template.category]}
+                          label={formatCategoryLabel(template.category)}
                           sx={{
                             fontWeight: 600,
                             bgcolor: accent.soft,
@@ -285,6 +280,7 @@ const GoalTemplateConfig = () => {
         onClose={handleModalClose}
         onSubmit={handleSubmit}
         template={editingTemplate}
+        categories={categories}
         isSubmitting={isSubmitting}
       />
 

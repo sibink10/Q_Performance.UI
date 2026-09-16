@@ -6,13 +6,13 @@ import LibraryAddRoundedIcon from '@mui/icons-material/LibraryAddRounded';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import AppModal from '../../common/AppModal';
 import AppButton from '../../common/AppButton';
-import type { GoalCategory } from '../../../types/goal';
 import type { GoalTemplate } from '../../../types/goalTemplate';
-import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
-import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
+import type { GoalCategoryDto } from '../../../types/goalCategory';
+import { getCategoryMeta } from '../../../utils/goalCategoryMeta';
+import { formatCategoryLabel } from '../../../utils/goalConstants';
 
 type GoalTemplateFormValue = {
-  category: GoalCategory | '';
+  categoryId: string;
   title: string;
   description: string;
   successCriteria: string;
@@ -20,7 +20,7 @@ type GoalTemplateFormValue = {
 };
 
 export type GoalTemplateSubmitPayload = {
-  category: GoalCategory;
+  categoryId: string;
   title: string;
   description: string;
   successCriteria: string;
@@ -28,7 +28,7 @@ export type GoalTemplateSubmitPayload = {
 };
 
 const emptyForm: GoalTemplateFormValue = {
-  category: '',
+  categoryId: '',
   title: '',
   description: '',
   successCriteria: '',
@@ -38,7 +38,7 @@ const emptyForm: GoalTemplateFormValue = {
 function formFromTemplate(template: GoalTemplate | null): GoalTemplateFormValue {
   if (!template) return emptyForm;
   return {
-    category: template.category,
+    categoryId: template.categoryId,
     title: template.title,
     description: template.description,
     successCriteria: template.successCriteria,
@@ -76,6 +76,7 @@ type GoalTemplateModalProps = {
   onClose: () => void;
   onSubmit: (payload: GoalTemplateSubmitPayload) => void;
   template?: GoalTemplate | null;
+  categories: GoalCategoryDto[];
   isSubmitting?: boolean;
 };
 
@@ -84,6 +85,7 @@ const GoalTemplateModal = ({
   onClose,
   onSubmit,
   template = null,
+  categories,
   isSubmitting = false,
 }: GoalTemplateModalProps) => {
   const theme = useTheme();
@@ -97,7 +99,7 @@ const GoalTemplateModal = ({
 
   const canSubmit = useMemo(
     () =>
-      Boolean(form.category) &&
+      Boolean(form.categoryId) &&
       Boolean(form.title.trim()) &&
       typeof form.weight === 'number' &&
       form.weight > 0 &&
@@ -108,7 +110,7 @@ const GoalTemplateModal = ({
   const handleSubmit = () => {
     if (!canSubmit) return;
     onSubmit({
-      category: form.category as GoalCategory,
+      categoryId: form.categoryId,
       title: form.title.trim(),
       description: form.description.trim(),
       successCriteria: form.successCriteria.trim(),
@@ -143,8 +145,8 @@ const GoalTemplateModal = ({
               <InputLabel>Category</InputLabel>
               <Select
                 label="Category"
-                value={form.category}
-                onChange={(e) => setForm((p) => ({ ...p, category: e.target.value as GoalCategory }))}
+                value={form.categoryId}
+                onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
                 sx={{
                   '& .MuiSelect-select': {
                     display: 'flex',
@@ -153,24 +155,25 @@ const GoalTemplateModal = ({
                   },
                 }}
                 renderValue={(value) => {
-                  if (!value) return '';
-                  const meta = GOAL_CATEGORY_META[value as GoalCategory];
+                  const selected = categories.find((c) => c.id === value);
+                  if (!selected) return '';
+                  const meta = getCategoryMeta(selected.code);
                   const Icon = meta.Icon;
                   const accent = meta.accent(theme);
                   return (
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Icon sx={{ fontSize: 17, color: accent.main }} />
-                      <span>{GOAL_CATEGORY_LABELS[value as GoalCategory]}</span>
+                      <span>{formatCategoryLabel(selected.code)}</span>
                     </Stack>
                   );
                 }}
               >
-                {Object.entries(GOAL_CATEGORY_LABELS).map(([value, label]) => {
-                  const meta = GOAL_CATEGORY_META[value as GoalCategory];
+                {categories.map((cat) => {
+                  const meta = getCategoryMeta(cat.code);
                   const Icon = meta.Icon;
                   const accent = meta.accent(theme);
                   return (
-                    <MenuItem key={value} value={value}>
+                    <MenuItem key={cat.id} value={cat.id}>
                       <Stack direction="row" spacing={1.25} alignItems="center">
                         <Box
                           sx={{
@@ -185,7 +188,7 @@ const GoalTemplateModal = ({
                         >
                           <Icon sx={{ fontSize: 15, color: accent.main }} />
                         </Box>
-                        <span>{label}</span>
+                        <span>{formatCategoryLabel(cat.code)}</span>
                       </Stack>
                     </MenuItem>
                   );

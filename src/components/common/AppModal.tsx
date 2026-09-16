@@ -26,7 +26,7 @@ const AppModal = ({
   actions,
   maxWidth = 'sm',
   fullWidth = true,
-  paperSx,
+  paperSx = undefined,
 }) => (
   <Dialog
     open={open}
