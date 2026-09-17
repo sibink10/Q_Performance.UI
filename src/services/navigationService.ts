@@ -40,3 +40,14 @@ export function navigateToLoginAfterUnauthorized() {
     window.location.assign('/login');
   }
 }
+
+/** Authenticated but not permitted (403) - SPA navigate to Not Found. Auth state is left untouched. */
+export function navigateToForbidden() {
+  if (window.location.pathname === '/not-found') return;
+
+  if (typeof navigateFn === 'function') {
+    navigateFn('/not-found', { replace: true });
+  } else {
+    window.location.assign('/not-found');
+  }
+}

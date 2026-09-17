@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { msalInstance } from './msalConfig'; // your MSAL instance
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
-import { navigateToLoginAfterUnauthorized } from './navigationService';
+import { navigateToLoginAfterUnauthorized, navigateToForbidden } from './navigationService';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -108,7 +108,12 @@ api.interceptors.response.use(
     }
 
     if (status === 403) {
-      console.error('Access denied: insufficient permissions');
+      // Data-fetch (GET) calls can't render anyway - send the user to Not Found.
+      // Mutations (POST/PUT/DELETE) keep rejecting so callers can show inline errors.
+      const method = (originalRequest?.method || 'get').toLowerCase();
+      if (method === 'get') {
+        navigateToForbidden();
+      }
     }
 
     if (status === 500) {

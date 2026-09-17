@@ -6,7 +6,7 @@ type EmployeeGuardProps = {
 };
 
 const EmployeeGuard = ({ children }: EmployeeGuardProps) => (
-  <RoleGuard allow={['EMPLOYEE', 'MANAGER', 'ADMIN']}>{children}</RoleGuard>
+  <RoleGuard allow={['EMPLOYEE', 'MANAGER', 'ADMIN']} fallbackPath="/not-found">{children}</RoleGuard>
 );
 
 export default EmployeeGuard;

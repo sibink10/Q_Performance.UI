@@ -144,9 +144,11 @@ const AppRoutes = () => (
         element={<AdminGuard><Employees /></AdminGuard>}
       />
 
-      <Route path="not-found" element={<NotFound />} />
-      <Route path="*" element={<NotFound />} />
     </Route>
+
+    {/* Not Found - standalone, no sidebar/header */}
+    <Route path="not-found" element={<NotFound />} />
+    <Route path="*" element={<NotFound />} />
   </Routes>
 );
 

@@ -6,7 +6,7 @@ type ManagerGuardProps = {
 };
 
 const ManagerGuard = ({ children }: ManagerGuardProps) => (
-  <RoleGuard allow={['ADMIN', 'MANAGER']}>{children}</RoleGuard>
+  <RoleGuard allow={['ADMIN', 'MANAGER']} fallbackPath="/not-found">{children}</RoleGuard>
 );
 
 export default ManagerGuard;
