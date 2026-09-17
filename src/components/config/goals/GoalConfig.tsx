@@ -9,11 +9,11 @@ import AppButton from '../../common/AppButton';
 import ConfirmDialog from '../../common/ConfirmDialog';
 import useGoals from '../../../hooks/useGoals';
 import useGoalTemplates from '../../../hooks/useGoalTemplates';
+import useFinancialYears from '../../../hooks/useFinancialYears';
 import goalsService from '../../../services/goalsService';
 import goalCommentsService from '../../../services/goalCommentsService';
 import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
 import type { AssignableEmployee } from '../../../types/user';
-import type { PerformanceCycle } from '../../../types/performanceCycle';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
 import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../utils/goalConstants';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
@@ -58,7 +58,7 @@ function orderGroups(groups: EmployeeGoals[]): EmployeeGoals[] {
 
 const GoalConfig = () => {
   const theme = useTheme();
-  const [cycles, setCycles] = useState<PerformanceCycle[]>([]);
+  const { financialYears } = useFinancialYears();
   const {
     filteredTeamGoals,
     teamFilters,
@@ -113,10 +113,6 @@ const GoalConfig = () => {
   useEffect(() => {
     loadTemplates();
   }, [loadTemplates]);
-
-  useEffect(() => {
-    goalsService.getCycles().then(setCycles);
-  }, []);
 
   useEffect(() => {
     loadCycleGoals();
@@ -356,7 +352,7 @@ const GoalConfig = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         employees={employees}
-        cycles={cycles}
+        financialYears={financialYears}
         templates={templates}
         isSubmitting={isSubmitting}
       />
@@ -367,7 +363,9 @@ const GoalConfig = () => {
         onSubmit={handleEditSubmit}
         goal={editingGoal}
         employeeName={editingGoal ? findEmployee(employees, editingGoal.employeeId)?.name : undefined}
-        cycleName={editingGoal ? cycles.find((c) => c.id === editingGoal.cycleId)?.name : undefined}
+        reviewPeriodName={
+          editingGoal ? financialYears.find((f) => f.id === editingGoal.financialYearId)?.name : undefined
+        }
         isSubmitting={isEditSubmitting}
       />
 

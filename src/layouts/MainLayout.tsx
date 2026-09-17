@@ -90,11 +90,6 @@ const ADMIN_NAV = [
         path: "/config/performance/financial-years",
       },
       {
-        label: "Performance Cycles",
-        icon: <SettingsIcon />,
-        path: "/config/performance/cycles",
-      },
-      {
         label: "Appraisal Config",
         icon: <SettingsIcon />,
         path: "/config/performance/appraisal-config",

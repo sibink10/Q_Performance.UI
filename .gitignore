@@ -1,5 +1,12 @@
 dist/
 .cursor/
+.claude/
 node_modules
 .env
-dist
+.env.local
+*.local
+.vite/
+coverage/
+*.log
+.DS_Store
+Thumbs.db

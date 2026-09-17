@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { GoalHistoryAction, GoalHistoryEntry } from '../../../types/goalHistory';
 import { REVISION_FIELD_LABELS } from '../../../utils/goalRevisionFieldLabels';
+import { formatDateOnly } from '../../../utils/helpers';
 import Timeline, { type TimelineEntry, type TimelineTone } from '../../common/Timeline';
 import { AppLoader } from '../../common';
 import useGoalRevisions from '../../../hooks/useGoalRevisions';
@@ -17,9 +18,12 @@ function toTimelineEntry(entry: GoalHistoryEntry): TimelineEntry {
   const meta: TimelineEntry['meta'] = [];
 
   if (entry.field) {
+    const isDueDate = entry.field === 'dueDate' || entry.field === 'targetDate';
+    const oldDisplay = isDueDate ? formatDateOnly(entry.oldValue) : entry.oldValue;
+    const newDisplay = isDueDate ? formatDateOnly(entry.newValue) : entry.newValue;
     meta.push({
       label: REVISION_FIELD_LABELS[entry.field] ?? entry.field,
-      value: `${entry.oldValue || '—'} → ${entry.newValue || '—'}`,
+      value: `${oldDisplay || '—'} → ${newDisplay || '—'}`,
     });
   }
 
