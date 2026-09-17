@@ -17,21 +17,6 @@ const CATEGORIES: GoalCategory[] = [
   GOAL_CATEGORY.DEVELOPMENT,
 ];
 
-function progressForStatus(status: GoalStatus, seed: number): number {
-  switch (status) {
-    case GOAL_STATUS.COMPLETED:
-      return 100;
-    case GOAL_STATUS.ON_TRACK:
-      return 65 + (seed % 26);
-    case GOAL_STATUS.NEEDS_ATTENTION:
-      return 40 + (seed % 21);
-    case GOAL_STATUS.OFF_TRACK:
-      return 5 + (seed % 31);
-    default:
-      return 0;
-  }
-}
-
 const GOAL_TEMPLATES = groupTemplatesByCategory();
 
 function buildGoalsForEmployee(employeeId: string, employeeIndex: number): Goal[] {
@@ -46,7 +31,6 @@ function buildGoalsForEmployee(employeeId: string, employeeIndex: number): Goal[
     templateIndex += 1;
 
     const status = STATUSES[(employeeIndex + i) % STATUSES.length];
-    const progress = progressForStatus(status, employeeIndex + i);
     const goalNum = i + 1;
     const id = `goal-${employeeId.replace('usr-', '')}-${goalNum}`;
 
@@ -59,7 +43,6 @@ function buildGoalsForEmployee(employeeId: string, employeeIndex: number): Goal[
       description: template.description,
       weight: template.weight,
       status,
-      progress,
       startDate: '2026-04-01',
       targetDate: '2027-03-15',
       successCriteria: template.successCriteria,

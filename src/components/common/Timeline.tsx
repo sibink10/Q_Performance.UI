@@ -1,8 +1,6 @@
 import { Box, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import dayjs from 'dayjs';
-
-const DATE_FORMAT = 'DD MMM YYYY, h:mm A';
+import DateTimeStamp from './DateTimeStamp';
 
 export type TimelineTone = 'default' | 'success' | 'warning' | 'error' | 'info';
 
@@ -94,9 +92,7 @@ const Timeline = ({ entries, emptyMessage = 'No history yet.' }: TimelineProps) 
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   {entry.title}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {dayjs(entry.date).format(DATE_FORMAT)}
-                </Typography>
+                <DateTimeStamp date={entry.date} />
               </Stack>
 
               {entry.subtitle && (

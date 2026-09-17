@@ -25,7 +25,6 @@ import WeightBadge from '../../common/WeightBadge';
 import GoalCommentsPanel from '../../common/goal-comments/GoalCommentsPanel';
 import goalCommentsService from '../../../services/goalCommentsService';
 import GoalHistoryTimeline from './GoalHistoryTimeline';
-import GoalProgressBar from './GoalProgressBar';
 import GoalStatusBadge from './GoalStatusBadge';
 
 const DATE_FORMAT = 'DD MMM YYYY';
@@ -203,10 +202,6 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
             <GoalStatusBadge status={goal.status} size="small" />
             <WeightBadge weight={goal.weight} />
           </Stack>
-
-          <Box sx={{ mt: 2.5 }}>
-            <GoalProgressBar progress={goal.progress} status={goal.status} size="large" />
-          </Box>
         </Box>
 
         <Tabs

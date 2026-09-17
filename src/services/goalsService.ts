@@ -25,14 +25,6 @@ function coerceItems(payload: unknown): unknown[] {
   return Array.isArray(root.data) ? root.data : [];
 }
 
-/** Display-only progress derived from status — the backend has no Progress column. */
-const STATUS_PROGRESS: Record<GoalStatus, number> = {
-  COMPLETED: 100,
-  ON_TRACK: 70,
-  NEEDS_ATTENTION: 45,
-  OFF_TRACK: 20,
-};
-
 function mapGoal(raw: Record<string, unknown>): Goal {
   const status = (String(raw.status ?? '') || 'ON_TRACK') as GoalStatus;
   return {
@@ -44,7 +36,6 @@ function mapGoal(raw: Record<string, unknown>): Goal {
     description: String(raw.description ?? ''),
     weight: Number(raw.weight ?? 0),
     status,
-    progress: STATUS_PROGRESS[status] ?? 0,
     startDate: String(raw.startDate ?? ''),
     targetDate: String(raw.targetDate ?? ''),
     successCriteria: String(raw.successCriteria ?? ''),
@@ -59,6 +50,7 @@ function mapGoal(raw: Record<string, unknown>): Goal {
 function mapEmployee(raw: Record<string, unknown>): AssignableEmployee {
   return {
     id: String(raw.id ?? ''),
+    employeeId: String(raw.employeeId ?? ''),
     name: String(raw.fullName ?? '') || 'Unnamed user',
     email: String(raw.email ?? ''),
     role: (String(raw.role ?? '') || 'EMPLOYEE').toUpperCase() as UserRole,

@@ -117,6 +117,18 @@ export const formatDate = (date, format = 'DD/MM/YYYY') =>
   date ? dayjs(date).format(format) : '-';
 
 /**
+ * Format only the date portion of a date/time value (drops any time component).
+ */
+export const formatDateOnly = (date, format = 'DD MMM YYYY') =>
+  date ? dayjs(date).format(format) : '-';
+
+/**
+ * Format only the time portion of a date/time value.
+ */
+export const formatTimeOnly = (date, format = 'h:mm A') =>
+  date ? dayjs(date).format(format) : '-';
+
+/**
  * Get a rating label based on score and scale.
  * e.g., 4.5/5 → "Exceeds Expectations"
  */

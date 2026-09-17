@@ -6,7 +6,6 @@ import dayjs from 'dayjs';
 import type { Goal } from '../../../types/goal';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
 import WeightBadge from '../../common/WeightBadge';
-import GoalProgressBar from './GoalProgressBar';
 import GoalStatusBadge from './GoalStatusBadge';
 
 const DATE_FORMAT = 'DD MMM YYYY';
@@ -78,10 +77,6 @@ const GoalCard = ({ goal, onClick }: GoalCardProps) => {
           </Box>
         </Box>
         <WeightBadge weight={goal.weight} />
-      </Box>
-
-      <Box sx={{ mb: 1.75 }}>
-        <GoalProgressBar progress={goal.progress} status={goal.status} size="default" />
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

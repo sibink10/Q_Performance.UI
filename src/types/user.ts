@@ -30,6 +30,7 @@ export interface MockUser {
 /** Employee assignable to a goal, as returned by `GET /performance/goals/assignable-employees`. */
 export interface AssignableEmployee {
   id: string;
+  employeeId: string;
   name: string;
   email: string;
   role: UserRole;

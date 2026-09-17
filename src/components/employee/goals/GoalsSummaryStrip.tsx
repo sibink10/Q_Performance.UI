@@ -75,9 +75,6 @@ function StatCard({
 
 const GoalsSummaryStrip = ({ goals }: GoalsSummaryStripProps) => {
   const total = goals.length;
-  const avgProgress = total
-    ? Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / total)
-    : 0;
   const onTrack = goals.filter((g) => g.status === GOAL_STATUS.ON_TRACK).length;
   const completed = goals.filter((g) => g.status === GOAL_STATUS.COMPLETED).length;
 
@@ -90,20 +87,17 @@ const GoalsSummaryStrip = ({ goals }: GoalsSummaryStripProps) => {
       }}
     >
       <Grid container spacing={2}>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={12} sm={4}>
           <StatCard label="Total goals" value={total} hint="Across all categories" accent="primary" />
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Avg. progress" value={`${avgProgress}%`} hint="Weighted performance" accent="info" />
-        </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} sm={4}>
           <StatCard
             label={GOAL_STATUS_LABELS[GOAL_STATUS.ON_TRACK]}
             value={onTrack}
             status={GOAL_STATUS.ON_TRACK}
           />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} sm={4}>
           <StatCard
             label={GOAL_STATUS_LABELS[GOAL_STATUS.COMPLETED]}
             value={completed}

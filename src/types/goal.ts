@@ -12,7 +12,6 @@ export interface Goal {
   description: string;
   weight: number;
   status: GoalStatus;
-  progress: number;
   startDate: string;
   targetDate: string;
   successCriteria: string;

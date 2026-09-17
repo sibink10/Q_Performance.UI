@@ -20,6 +20,7 @@ import type { AssignableEmployee } from '../../../types/user';
 import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { REVISION_REASON, REVISION_REASON_LABELS, type RevisionReasonKey } from '../../../utils/revisionReasonConstants';
 import { findEmployee } from '../../../utils/resolveEmployee';
+import { formatDateOnly } from '../../../utils/helpers';
 import useGoalRevisions from '../../../hooks/useGoalRevisions';
 import AppButton from '../../common/AppButton';
 import AppModal from '../../common/AppModal';
@@ -188,15 +189,15 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
                   Employee ID
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {employee.id}
+                  {employee.employeeId || '—'}
                 </Typography>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary">
-                  Department
+                  Email
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {employee.department}
+                  {employee.email}
                 </Typography>
               </Grid>
               <Grid item xs={6} sm={3}>
@@ -227,7 +228,7 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
                 <Typography variant="caption" color="text.secondary">
                   Due Date
                 </Typography>
-                <Typography variant="body2">{goal.targetDate}</Typography>
+                <Typography variant="body2">{formatDateOnly(goal.targetDate)}</Typography>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary">
@@ -330,7 +331,7 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
               />
             </FieldRow>
 
-            <FieldRow label="Due Date" current={goal.targetDate}>
+            <FieldRow label="Due Date" current={formatDateOnly(goal.targetDate)}>
               <TextField
                 fullWidth
                 size="small"

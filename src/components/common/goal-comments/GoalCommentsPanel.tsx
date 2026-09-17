@@ -20,9 +20,8 @@ import type { UserRole } from '../../../types/user';
 import AppButton from '../AppButton';
 import AppLoader from '../AppLoader';
 import ConfirmDialog from '../ConfirmDialog';
+import DateTimeStamp from '../DateTimeStamp';
 import useGoalComments from '../../../hooks/useGoalComments';
-
-const DATE_FORMAT = 'DD MMM YYYY, h:mm A';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   EMPLOYEE: 'Employee',
@@ -193,9 +192,7 @@ const GoalCommentsPanel = ({ goalId, onChanged }: GoalCommentsPanelProps) => {
                       label={ROLE_LABELS[comment.authorRole]}
                       sx={{ height: 20, fontSize: '0.7rem' }}
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      {dayjs(comment.createdAt).format(DATE_FORMAT)}
-                    </Typography>
+                    <DateTimeStamp date={comment.createdAt} />
                     {canDelete(comment) && (
                       <Tooltip title="Delete comment">
                         <IconButton
