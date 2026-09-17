@@ -1,7 +1,6 @@
 import type { Theme } from '@mui/material/styles';
 import type { PaletteColor } from '@mui/material/styles';
 import type { GoalStatus } from '../types/goal';
-import type { CycleStageStatus } from '../types/performanceCycle';
 import type { GoalRevisionStatus } from '../types/goalRevision';
 import type { CalibrationStatus } from '../types/calibration';
 import { GOAL_STATUS } from './goalConstants';
@@ -34,16 +33,6 @@ export const FINAL_RATING_PALETTE_KEY: Record<
   [FINAL_RATING.MEETS_EXPECTATIONS]: 'meetsExpectations',
   [FINAL_RATING.NEEDS_IMPROVEMENT]: 'needsImprovement',
   [FINAL_RATING.UNSATISFACTORY]: 'unsatisfactory',
-};
-
-export const CYCLE_STAGE_STATUS_PALETTE_KEY: Record<
-  CycleStageStatus,
-  'default' | 'info' | 'success' | 'warning'
-> = {
-  UPCOMING: 'default',
-  ACTIVE: 'info',
-  COMPLETED: 'success',
-  LOCKED: 'warning',
 };
 
 export const GOAL_REVISION_STATUS_PALETTE_KEY: Record<
@@ -79,14 +68,6 @@ export function getGoalStatusColors(theme: Theme, status: GoalStatus): StatusCol
 export function getFinalRatingColors(theme: Theme, rating: FinalRatingKey): StatusColorSet {
   const key = FINAL_RATING_PALETTE_KEY[rating];
   return toColorSet(theme.palette.ratingScale[key]);
-}
-
-export function getCycleStageStatusColor(
-  theme: Theme,
-  status: CycleStageStatus,
-): StatusColorSet {
-  const key = CYCLE_STAGE_STATUS_PALETTE_KEY[status];
-  return toColorSet(theme.palette[key]);
 }
 
 export function getGoalRevisionStatusColor(

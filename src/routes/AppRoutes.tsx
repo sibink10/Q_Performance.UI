@@ -22,7 +22,6 @@ import AppraisalConfig from '../pages/config/AppraisalConfig';
 import FocusAreas from '../pages/config/FocusAreas';
 import ReviewFormDesign from '../pages/config/ReviewFormDesign';
 import OrganizationBranding from '../pages/config/OrganizationBranding';
-import PerformanceCycles from '../pages/config/PerformanceCycles';
 import Goals from '../pages/config/Goals';
 import GoalTemplates from '../pages/config/GoalTemplates';
 import GoalCategories from '../pages/config/GoalCategories';
@@ -107,10 +106,6 @@ const AppRoutes = () => (
       <Route
         path="config/performance/financial-years"
         element={<AdminGuard><FinancialYearConfig /></AdminGuard>}
-      />
-      <Route
-        path="config/performance/cycles"
-        element={<AdminGuard><PerformanceCycles /></AdminGuard>}
       />
       <Route
         path="config/performance/appraisal-config"

@@ -1,4 +1,5 @@
 import type { ProposedGoalChanges } from '../types/goalRevision';
+import { formatDateOnly } from './helpers';
 
 /** Covers both ProposedGoalChanges keys (manager-facing) and Goal field keys (audit-facing). */
 export const REVISION_FIELD_LABELS: Record<string, string> = {
@@ -22,6 +23,6 @@ export function formatProposedChanges(changes: ProposedGoalChanges): FormattedFi
     .map(([field, value]) => ({
       field,
       label: REVISION_FIELD_LABELS[field] ?? field,
-      value: String(value),
+      value: field === 'dueDate' ? formatDateOnly(value as string) : String(value),
     }));
 }

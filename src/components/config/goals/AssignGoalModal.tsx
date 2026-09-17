@@ -33,7 +33,7 @@ import AppButton from '../../common/AppButton';
 import type { GoalCategory } from '../../../types/goal';
 import type { GoalTemplate } from '../../../types/goalTemplate';
 import type { AssignableEmployee } from '../../../types/user';
-import type { PerformanceCycle } from '../../../types/performanceCycle';
+import type { FinancialYearOption } from '../../../hooks/useFinancialYears';
 import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
 import { sortGoalTemplatesByCategory } from '../../../utils/goalTemplateSort';
@@ -41,7 +41,7 @@ import { sortGoalTemplatesByCategory } from '../../../utils/goalTemplateSort';
 const DATE_FORMAT = 'DD/MM/YYYY';
 
 export type AssignGoalFormValue = {
-  cycleId: string;
+  financialYearId: string;
   category: GoalCategory | '';
   title: string;
   description: string;
@@ -52,7 +52,7 @@ export type AssignGoalFormValue = {
 };
 
 export type AssignGoalSubmitPayload = {
-  cycleId: string;
+  financialYearId: string;
   category: GoalCategory;
   title: string;
   description: string;
@@ -64,7 +64,7 @@ export type AssignGoalSubmitPayload = {
 };
 
 const defaultForm: AssignGoalFormValue = {
-  cycleId: '',
+  financialYearId: '',
   category: '',
   title: '',
   description: '',
@@ -110,7 +110,7 @@ type AssignGoalModalProps = {
   onClose: () => void;
   onSubmit: (payload: AssignGoalSubmitPayload) => void;
   employees: AssignableEmployee[];
-  cycles: PerformanceCycle[];
+  financialYears: FinancialYearOption[];
   templates?: GoalTemplate[];
   isSubmitting?: boolean;
 };
@@ -120,7 +120,7 @@ const AssignGoalModal = ({
   onClose,
   onSubmit,
   employees,
-  cycles,
+  financialYears,
   templates = [],
   isSubmitting = false,
 }: AssignGoalModalProps) => {
@@ -181,7 +181,7 @@ const AssignGoalModal = ({
 
   const canSubmit = useMemo(
     () =>
-      Boolean(form.cycleId) &&
+      Boolean(form.financialYearId) &&
       Boolean(form.category) &&
       Boolean(form.title.trim()) &&
       Boolean(form.startDate) &&
@@ -197,7 +197,7 @@ const AssignGoalModal = ({
   const handleSubmit = () => {
     if (!canSubmit) return;
     onSubmit({
-      cycleId: form.cycleId,
+      financialYearId: form.financialYearId,
       category: form.category as GoalCategory,
       title: form.title.trim(),
       description: form.description.trim(),
@@ -321,15 +321,15 @@ const AssignGoalModal = ({
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Performance Cycle</InputLabel>
+                      <InputLabel>Review Period</InputLabel>
                       <Select
-                        label="Performance Cycle"
-                        value={form.cycleId}
-                        onChange={(e) => setForm((p) => ({ ...p, cycleId: e.target.value }))}
+                        label="Review Period"
+                        value={form.financialYearId}
+                        onChange={(e) => setForm((p) => ({ ...p, financialYearId: e.target.value }))}
                       >
-                        {cycles.map((cycle) => (
-                          <MenuItem key={cycle.id} value={cycle.id}>
-                            {cycle.name}
+                        {financialYears.map((year) => (
+                          <MenuItem key={year.id} value={year.id}>
+                            {year.name}
                           </MenuItem>
                         ))}
                       </Select>

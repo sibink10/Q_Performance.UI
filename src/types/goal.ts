@@ -5,7 +5,7 @@ export type GoalStatus = 'ON_TRACK' | 'NEEDS_ATTENTION' | 'OFF_TRACK' | 'COMPLET
 
 export interface Goal {
   id: string;
-  cycleId: string;
+  financialYearId: string;
   employeeId: string;
   category: GoalCategory;
   title: string;

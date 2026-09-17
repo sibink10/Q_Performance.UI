@@ -91,7 +91,7 @@ type EditGoalModalProps = {
   onSubmit: (payload: EditGoalSubmitPayload) => void;
   goal: Goal | null;
   employeeName?: string;
-  cycleName?: string;
+  reviewPeriodName?: string;
   isSubmitting?: boolean;
 };
 
@@ -101,7 +101,7 @@ const EditGoalModal = ({
   onSubmit,
   goal,
   employeeName,
-  cycleName,
+  reviewPeriodName,
   isSubmitting = false,
 }: EditGoalModalProps) => {
   const theme = useTheme();
@@ -147,7 +147,7 @@ const EditGoalModal = ({
     });
   };
 
-  const contextLine = [employeeName, cycleName].filter(Boolean).join(' · ');
+  const contextLine = [employeeName, reviewPeriodName].filter(Boolean).join(' · ');
 
   return (
     <AppModal

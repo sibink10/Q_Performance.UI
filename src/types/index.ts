@@ -14,7 +14,6 @@ export * from './managerAssessment';
 export * from './notification';
 export * from './orgBranding';
 export * from './organization';
-export * from './performanceCycle';
 export * from './pip';
 export * from './selfAppraisal';
 export * from './theme';

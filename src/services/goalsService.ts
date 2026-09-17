@@ -1,7 +1,6 @@
 import api from './api';
 import type { Goal, GoalStatus } from '../types/goal';
 import type { AssignableEmployee, UserRole } from '../types/user';
-import type { PerformanceCycle, PerformanceCycleStatus } from '../types/performanceCycle';
 import goalCategoriesService from './goalCategoriesService';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -29,7 +28,7 @@ function mapGoal(raw: Record<string, unknown>): Goal {
   const status = (String(raw.status ?? '') || 'ON_TRACK') as GoalStatus;
   return {
     id: String(raw.id ?? ''),
-    cycleId: String(raw.cycleId ?? ''),
+    financialYearId: String(raw.financialYearId ?? ''),
     employeeId: String(raw.employeeId ?? ''),
     category: String(raw.category ?? ''),
     title: String(raw.title ?? ''),
@@ -59,18 +58,6 @@ function mapEmployee(raw: Record<string, unknown>): AssignableEmployee {
   };
 }
 
-function mapCycle(raw: Record<string, unknown>): PerformanceCycle {
-  return {
-    id: String(raw.id ?? ''),
-    name: String(raw.name ?? ''),
-    startDate: String(raw.startDate ?? ''),
-    endDate: String(raw.endDate ?? ''),
-    status: (String(raw.status ?? '') || 'DRAFT') as PerformanceCycleStatus,
-    // Stage timelines belong to the separate (still-mocked) Performance Cycles config page.
-    stages: [],
-  };
-}
-
 /** Resolves a `GOAL_CATEGORY` code (e.g. "ORGANIZATIONAL") to its real `performance.GoalCategories.Id`. */
 async function getCategoryIdByCode(code: string): Promise<string> {
   const categories = await goalCategoriesService.getActiveGoalCategories();
@@ -80,7 +67,7 @@ async function getCategoryIdByCode(code: string): Promise<string> {
 }
 
 export interface AssignGoalPayload {
-  cycleId: string;
+  financialYearId: string;
   category: Goal['category'];
   title: string;
   description: string;
@@ -110,14 +97,6 @@ export async function getAssignableEmployees(): Promise<AssignableEmployee[]> {
   const root = asRecord(payload) ?? {};
   const rows = Array.isArray(root.data) ? root.data : [];
   return rows.map((row) => mapEmployee(asRecord(row) ?? {}));
-}
-
-/** GET /performance/cycles — feeds the Assign Goal modal's cycle picker only. */
-export async function getCycles(): Promise<PerformanceCycle[]> {
-  const payload = await api.get('/performance/cycles');
-  const root = asRecord(payload) ?? {};
-  const rows = Array.isArray(root.data) ? root.data : [];
-  return rows.map((row) => mapCycle(asRecord(row) ?? {}));
 }
 
 /** GET /performance/goals?employeeId=... */
@@ -151,7 +130,7 @@ export async function getGoalById(id: string): Promise<Goal> {
 export async function assignGoal(payload: AssignGoalPayload): Promise<Goal[]> {
   const categoryId = await getCategoryIdByCode(payload.category);
   const response = await api.post('/performance/goals/assign', {
-    cycleId: payload.cycleId,
+    financialYearId: payload.financialYearId,
     categoryId,
     title: payload.title,
     description: payload.description,
@@ -199,7 +178,6 @@ export async function deleteGoal(id: string): Promise<void> {
 
 const goalsService = {
   getAssignableEmployees,
-  getCycles,
   getGoalsByEmployee,
   getAllGoals,
   getTeamGoals,

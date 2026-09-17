@@ -5,6 +5,7 @@ import type { GoalRevision } from '../../../types/goalRevision';
 import { REVISION_REASON_LABELS } from '../../../utils/revisionReasonConstants';
 import { GOAL_REVISION_STATUS_LABELS } from '../../../utils/statusColorTokens';
 import { formatProposedChanges, REVISION_FIELD_LABELS } from '../../../utils/goalRevisionFieldLabels';
+import { formatDateOnly } from '../../../utils/helpers';
 import AppButton from '../../common/AppButton';
 import AppModal from '../../common/AppModal';
 
@@ -74,7 +75,9 @@ export function RevisionSummary({ revision, goal }: { revision: GoalRevision; go
                 <Typography variant="body2">
                   <span style={{ opacity: 0.6 }}>
                     {currentValue !== undefined && currentValue !== null && currentValue !== ''
-                      ? String(currentValue)
+                      ? change.field === 'dueDate'
+                        ? formatDateOnly(currentValue as string)
+                        : String(currentValue)
                       : '—'}
                   </span>
                   {'  →  '}

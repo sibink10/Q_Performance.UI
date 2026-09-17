@@ -11,37 +11,41 @@ import {
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AppButton from '../../common/AppButton';
 import { AppCard, AppLoader, PageHeader } from '../../common';
 import performanceService from '../../../services/performanceService';
 import useFinancialYears from '../../../hooks/useFinancialYears';
 import { getApiErrorMessage } from '../../../utils/helpers';
-import FinancialYearForm from './FinancialYearForm';
+import FinancialYearModal from './FinancialYearModal';
 import FinancialYearsTable from './FinancialYearsTable';
-
-const defaultFy = { name: '', startDate: null, endDate: null, isActive: false };
 
 const FinancialYearConfig = () => {
   const { financialYears, financialYearsLoading, reloadFinancialYears } = useFinancialYears();
-  const [financialYearForm, setFinancialYearForm] = useState(defaultFy);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const canCreate =
-    Boolean(financialYearForm.name?.trim()) &&
-    Boolean(financialYearForm.startDate) &&
-    Boolean(financialYearForm.endDate);
+  const openCreateModal = () => setIsModalOpen(true);
+  const closeCreateModal = () => {
+    if (isSubmitting) return;
+    setIsModalOpen(false);
+  };
 
-  const saveFinancialYear = async () => {
+  const saveFinancialYear = async (payload) => {
+    setIsSubmitting(true);
     try {
-      await performanceService.createFinancialYear(financialYearForm);
-      setFinancialYearForm(defaultFy);
+      await performanceService.createFinancialYear(payload);
       await reloadFinancialYears();
       setMessage('Review period created');
+      setIsModalOpen(false);
     } catch (e) {
       setError(getApiErrorMessage(e));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -73,7 +77,15 @@ const FinancialYearConfig = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box>
-        <PageHeader title="Review Periods" subtitle="Create and manage Review Periods used across appraisal workflows." />
+        <PageHeader
+          title="Review Periods"
+          subtitle="Create and manage Review Periods used across appraisal workflows."
+          actions={
+            <AppButton startIcon={<AddRoundedIcon />} onClick={openCreateModal}>
+              New Review Period
+            </AppButton>
+          }
+        />
         {(error || message) && (
           <Alert severity={error ? 'error' : 'success'} sx={{ mb: 2 }} onClose={() => { setError(''); setMessage(''); }}>
             {error || message}
@@ -81,18 +93,19 @@ const FinancialYearConfig = () => {
         )}
 
         <AppCard sx={{ p: 3 }}>
-          <FinancialYearForm
-            value={financialYearForm}
-            onChange={setFinancialYearForm}
-            onCreate={saveFinancialYear}
-            canCreate={canCreate}
-          />
           {financialYearsLoading && !financialYears.length ? (
             <AppLoader message="Loading review periods…" minHeight={160} />
           ) : (
             <FinancialYearsTable financialYears={financialYears} onDelete={openDeleteConfirm} />
           )}
         </AppCard>
+
+        <FinancialYearModal
+          open={isModalOpen}
+          onClose={closeCreateModal}
+          onSubmit={saveFinancialYear}
+          isSubmitting={isSubmitting}
+        />
 
         <Dialog open={Boolean(deleteConfirmId)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
           <DialogTitle>Delete Review Period?</DialogTitle>
