@@ -25,7 +25,6 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import AppButton from '../../common/AppButton';
 import ConfirmDialog from '../../common/ConfirmDialog';
-import WeightBadge from '../../common/WeightBadge';
 import useGoalTemplates from '../../../hooks/useGoalTemplates';
 import useGoalCategories from '../../../hooks/useGoalCategories';
 import type { GoalTemplate } from '../../../types/goalTemplate';
@@ -206,7 +205,6 @@ const GoalTemplateConfig = () => {
                   <TableCell sx={{ fontWeight: 600 }}>Template</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Success criteria</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Weight</TableCell>
                   <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -244,9 +242,6 @@ const GoalTemplateConfig = () => {
                             {template.successCriteria}
                           </Typography>
                         </Tooltip>
-                      </TableCell>
-                      <TableCell align="right">
-                        <WeightBadge weight={template.weight} />
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">

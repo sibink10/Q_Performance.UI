@@ -25,7 +25,6 @@ const useGoals = () => {
   const [selectedGoal, setSelectedGoalState] = useState<Goal | null>(null);
   const [teamFilters, setTeamFiltersState] = useState<TeamGoalFilters>(defaultTeamFilters);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -96,23 +95,6 @@ const useGoals = () => {
     setSelectedGoalState((prev) => (prev?.id === updated.id ? updated : prev));
   }, []);
 
-  const updateStatus = useCallback(
-    async (goalId: string, status: GoalStatus) => {
-      setIsMutating(true);
-      setError(null);
-      try {
-        const updated = await goalsService.updateStatus(goalId, status);
-        applyGoalUpdate(updated);
-        setSuccessMessage('Goal status updated');
-      } catch (e) {
-        setError(getApiErrorMessage(e) || 'Failed to update goal status.');
-      } finally {
-        setIsMutating(false);
-      }
-    },
-    [applyGoalUpdate],
-  );
-
   const setTeamFilters = useCallback((filters: Partial<TeamGoalFilters>) => {
     setTeamFiltersState((prev) => ({ ...prev, ...filters }));
   }, []);
@@ -128,14 +110,12 @@ const useGoals = () => {
     teamFilters,
     currentUserId,
     isLoading,
-    isMutating,
     error,
     successMessage,
     loadMyGoals,
     loadTeamGoals,
     loadCycleGoals,
     selectGoal,
-    updateStatus,
     setTeamFilters,
     clearError,
     clearSuccess,

@@ -7,7 +7,6 @@ export interface GoalTemplate {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,60 +1,36 @@
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
+import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
-import {
-  Badge,
-  Box,
-  Chip,
-  FormControl,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Box, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
-import type { Goal, GoalStatus } from '../../../types/goal';
-import { GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../utils/goalConstants';
+import type { Goal } from '../../../types/goal';
+import { GOAL_CATEGORY_LABELS, GOAL_STATUS } from '../../../utils/goalConstants';
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
-import WeightBadge from '../../common/WeightBadge';
 import GoalStatusBadge from '../../employee/goals/GoalStatusBadge';
 
 const DATE_FORMAT = 'DD MMM YYYY';
 
 type ManagerGoalCardProps = {
   goal: Goal;
-  isMutating?: boolean;
-  commentCount?: number;
-  onStatusChange: (goalId: string, status: GoalStatus) => void;
+  onOpenDetails?: (goal: Goal) => void;
   onEdit?: (goal: Goal) => void;
   onDelete?: (goal: Goal) => void;
   onRequestRevision?: (goal: Goal) => void;
-  onViewComments?: (goal: Goal) => void;
+  onViewGrowthConnect?: (goal: Goal) => void;
 };
-
-const STATUS_OPTIONS: GoalStatus[] = [
-  GOAL_STATUS.ON_TRACK,
-  GOAL_STATUS.NEEDS_ATTENTION,
-  GOAL_STATUS.OFF_TRACK,
-  GOAL_STATUS.COMPLETED,
-];
 
 const ManagerGoalCard = ({
   goal,
-  isMutating = false,
-  commentCount = 0,
-  onStatusChange,
+  onOpenDetails,
   onEdit,
   onDelete,
   onRequestRevision,
-  onViewComments,
+  onViewGrowthConnect,
 }: ManagerGoalCardProps) => {
   const theme = useTheme();
   const statusColors = getGoalStatusColors(theme, goal.status);
@@ -66,8 +42,10 @@ const ManagerGoalCard = ({
 
   return (
     <Box
+      onClick={() => onOpenDetails?.(goal)}
       sx={{
         position: 'relative',
+        height: '100%',
         p: 2.25,
         pl: 2.75,
         borderRadius: 2.5,
@@ -75,6 +53,7 @@ const ManagerGoalCard = ({
         borderColor: 'divider',
         backgroundColor: 'transparent',
         overflow: 'hidden',
+        cursor: onOpenDetails ? 'pointer' : undefined,
         transition: 'border-color 0.2s ease',
         '&::before': {
           content: '""',
@@ -95,7 +74,8 @@ const ManagerGoalCard = ({
         direction={{ xs: 'column', md: 'row' }}
         spacing={2}
         justifyContent="space-between"
-        alignItems={{ xs: 'stretch', md: 'flex-start' }}
+        alignItems={{ xs: 'stretch', md: 'center' }}
+        sx={{ height: '100%' }}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
@@ -146,52 +126,36 @@ const ManagerGoalCard = ({
 
           <Stack direction="row" spacing={1}>
             <GoalStatusBadge status={goal.status} />
-            <WeightBadge weight={goal.weight} />
           </Stack>
         </Box>
 
         <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ flexShrink: 0 }}>
-          <FormControl size="small" sx={{ minWidth: 190 }}>
-            <InputLabel id={`goal-status-${goal.id}`}>Update Status</InputLabel>
-            <Select
-              labelId={`goal-status-${goal.id}`}
-              label="Update Status"
-              value={goal.status}
-              disabled={isMutating}
-              onChange={(e) => onStatusChange(goal.id, e.target.value as GoalStatus)}
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {GOAL_STATUS_LABELS[status]}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {(onEdit || onDelete || onRequestRevision || onViewComments) && (
+          {(onEdit || onDelete || onRequestRevision || onViewGrowthConnect) && (
             <Stack direction="row" spacing={0.5}>
-              {onViewComments && (
-                <Tooltip title="Comments">
+              {onViewGrowthConnect && (
+                <Tooltip title="Growth Connect">
                   <IconButton
                     size="small"
-                    onClick={() => onViewComments(goal)}
-                    aria-label="View comments"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewGrowthConnect(goal);
+                    }}
+                    aria-label="View Growth Connect"
                   >
-                    <Badge
-                      badgeContent={commentCount}
-                      color="primary"
-                      max={99}
-                      invisible={!commentCount}
-                      sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16 } }}
-                    >
-                      <ChatBubbleOutlineOutlinedIcon fontSize="small" />
-                    </Badge>
+                    <TimelineOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               )}
               {onEdit && !goal.isFinalized && (
                 <Tooltip title="Edit goal">
-                  <IconButton size="small" onClick={() => onEdit(goal)} aria-label="Edit goal">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(goal);
+                    }}
+                    aria-label="Edit goal"
+                  >
                     <EditOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -201,7 +165,10 @@ const ManagerGoalCard = ({
                   <IconButton
                     size="small"
                     color="error"
-                    onClick={() => onDelete(goal)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(goal);
+                    }}
                     aria-label="Delete goal"
                   >
                     <DeleteOutlineRoundedIcon fontSize="small" />
@@ -212,7 +179,10 @@ const ManagerGoalCard = ({
                 <Tooltip title="Request revision">
                   <IconButton
                     size="small"
-                    onClick={() => onRequestRevision(goal)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRequestRevision(goal);
+                    }}
                     aria-label="Request revision"
                   >
                     <RateReviewOutlinedIcon fontSize="small" />

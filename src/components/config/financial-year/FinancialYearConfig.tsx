@@ -19,29 +19,46 @@ import useFinancialYears from '../../../hooks/useFinancialYears';
 import { getApiErrorMessage } from '../../../utils/helpers';
 import FinancialYearModal from './FinancialYearModal';
 import FinancialYearsTable from './FinancialYearsTable';
+import GrowthConnectCyclesPanel from '../growth-connect/GrowthConnectCyclesPanel';
 
 const FinancialYearConfig = () => {
   const { financialYears, financialYearsLoading, reloadFinancialYears } = useFinancialYears();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingFinancialYear, setEditingFinancialYear] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [growthConnectReviewPeriod, setGrowthConnectReviewPeriod] = useState(null);
 
-  const openCreateModal = () => setIsModalOpen(true);
-  const closeCreateModal = () => {
+  const openCreateModal = () => {
+    setEditingFinancialYear(null);
+    setIsModalOpen(true);
+  };
+  const openEditModal = (row) => {
+    setEditingFinancialYear(row);
+    setIsModalOpen(true);
+  };
+  const closeModal = () => {
     if (isSubmitting) return;
     setIsModalOpen(false);
+    setEditingFinancialYear(null);
   };
 
   const saveFinancialYear = async (payload) => {
     setIsSubmitting(true);
     try {
-      await performanceService.createFinancialYear(payload);
+      if (editingFinancialYear) {
+        await performanceService.updateFinancialYear(editingFinancialYear.id, payload);
+        setMessage('Review period updated');
+      } else {
+        await performanceService.createFinancialYear(payload);
+        setMessage('Review period created');
+      }
       await reloadFinancialYears();
-      setMessage('Review period created');
       setIsModalOpen(false);
+      setEditingFinancialYear(null);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -96,15 +113,27 @@ const FinancialYearConfig = () => {
           {financialYearsLoading && !financialYears.length ? (
             <AppLoader message="Loading review periods…" minHeight={160} />
           ) : (
-            <FinancialYearsTable financialYears={financialYears} onDelete={openDeleteConfirm} />
+            <FinancialYearsTable
+              financialYears={financialYears}
+              onEdit={openEditModal}
+              onDelete={openDeleteConfirm}
+              onManageGrowthConnect={setGrowthConnectReviewPeriod}
+            />
           )}
         </AppCard>
 
         <FinancialYearModal
           open={isModalOpen}
-          onClose={closeCreateModal}
+          editingFinancialYear={editingFinancialYear}
+          onClose={closeModal}
           onSubmit={saveFinancialYear}
           isSubmitting={isSubmitting}
+        />
+
+        <GrowthConnectCyclesPanel
+          open={Boolean(growthConnectReviewPeriod)}
+          reviewPeriod={growthConnectReviewPeriod}
+          onClose={() => setGrowthConnectReviewPeriod(null)}
         />
 
         <Dialog open={Boolean(deleteConfirmId)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>

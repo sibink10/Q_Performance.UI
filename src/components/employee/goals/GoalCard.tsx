@@ -5,7 +5,6 @@ import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import type { Goal } from '../../../types/goal';
 import { getGoalStatusColors } from '../../../utils/statusColorTokens';
-import WeightBadge from '../../common/WeightBadge';
 import GoalStatusBadge from './GoalStatusBadge';
 
 const DATE_FORMAT = 'DD MMM YYYY';
@@ -76,7 +75,6 @@ const GoalCard = ({ goal, onClick }: GoalCardProps) => {
             </Typography>
           </Box>
         </Box>
-        <WeightBadge weight={goal.weight} />
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

@@ -62,9 +62,7 @@ export function RevisionSummary({ revision, goal }: { revision: GoalRevision; go
                 ? 'successCriteria'
                 : change.field === 'dueDate'
                   ? 'targetDate'
-                  : change.field === 'weightage'
-                    ? 'weight'
-                    : change.field
+                  : change.field
             ] : undefined;
 
             return (

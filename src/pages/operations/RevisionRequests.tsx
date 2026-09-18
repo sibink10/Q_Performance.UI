@@ -17,11 +17,14 @@ import type { AssignableEmployee } from '../../types/user';
 import { REVISION_REASON, REVISION_REASON_LABELS } from '../../utils/revisionReasonConstants';
 import { AppCard, PageHeader } from '../../components/common';
 import GoalRevisionApprovalTable from '../../components/operations/revision-requests/GoalRevisionApprovalTable';
+import GrowthConnectRevisionApprovalTable from '../../components/operations/revision-requests/GrowthConnectRevisionApprovalTable';
 import goalsService from '../../services/goalsService';
 import useGoalRevisions from '../../hooks/useGoalRevisions';
 import useGoals from '../../hooks/useGoals';
+import useGrowthConnectRevisions from '../../hooks/useGrowthConnectRevisions';
 
 type StatusTab = GoalRevisionStatus | 'ALL';
+type RevisionKind = 'GOAL' | 'GROWTH_CONNECT';
 
 const STATUS_TABS: { value: StatusTab; label: string }[] = [
   { value: 'PENDING', label: 'Pending' },
@@ -45,6 +48,20 @@ const RevisionRequestsPage = () => {
   } = useGoalRevisions();
   const { teamGoals, loadCycleGoals } = useGoals();
 
+  const [revisionKind, setRevisionKind] = useState<RevisionKind>('GOAL');
+  const {
+    pendingRevisions: pendingGrowthConnectRevisions,
+    isLoading: isGrowthConnectLoading,
+    getPendingRevisions: getPendingGrowthConnectRevisions,
+    approveRevision: approveGrowthConnectRevision,
+    rejectRevision: rejectGrowthConnectRevision,
+    isMutating: isGrowthConnectMutating,
+    error: growthConnectError,
+    successMessage: growthConnectSuccessMessage,
+    clearError: clearGrowthConnectError,
+    clearSuccess: clearGrowthConnectSuccess,
+  } = useGrowthConnectRevisions();
+
   const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
   const [statusTab, setStatusTab] = useState<StatusTab>('PENDING');
   const [employeeFilter, setEmployeeFilter] = useState('ALL');
@@ -61,6 +78,10 @@ const RevisionRequestsPage = () => {
     getPendingRevisions();
     loadCycleGoals();
   }, [getPendingRevisions, loadCycleGoals]);
+
+  useEffect(() => {
+    getPendingGrowthConnectRevisions();
+  }, [getPendingGrowthConnectRevisions]);
 
   const employeeOptions = useMemo(() => employees.filter((e) => e.role === 'EMPLOYEE'), [employees]);
   const managerOptions = useMemo(
@@ -92,13 +113,35 @@ const RevisionRequestsPage = () => {
     return result;
   };
 
+  const filteredGrowthConnectRevisions = useMemo(
+    () =>
+      pendingGrowthConnectRevisions.filter((revision) =>
+        statusTab === 'ALL' ? true : revision.status === statusTab,
+      ),
+    [pendingGrowthConnectRevisions, statusTab],
+  );
+
   return (
     <Box>
       <PageHeader
         title="Revision Requests"
-        subtitle="Review manager-submitted goal revision requests and approve or reject them."
+        subtitle="Review manager-submitted goal and Growth Connect revision requests and approve or reject them."
       />
 
+      <Tabs
+        value={revisionKind}
+        onChange={(_e, value) => setRevisionKind(value)}
+        sx={{ mb: 2, minHeight: 40 }}
+      >
+        <Tab value="GOAL" label="Goal Revisions" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+        <Tab
+          value="GROWTH_CONNECT"
+          label="Growth Connect Revisions"
+          sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
+        />
+      </Tabs>
+
+      {revisionKind === 'GOAL' && (
       <AppCard sx={{ p: 2.5, mb: 2.5 }}>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
@@ -179,6 +222,7 @@ const RevisionRequestsPage = () => {
           </Grid>
         </Grid>
       </AppCard>
+      )}
 
       <Tabs
         value={statusTab}
@@ -195,18 +239,32 @@ const RevisionRequestsPage = () => {
         ))}
       </Tabs>
 
-      <GoalRevisionApprovalTable
-        revisions={filtered}
-        goals={teamGoals}
-        isLoading={isLoading}
-        approveRevision={handleApprove}
-        rejectRevision={handleReject}
-        isMutating={isMutating}
-        error={error}
-        successMessage={successMessage}
-        clearError={clearError}
-        clearSuccess={clearSuccess}
-      />
+      {revisionKind === 'GOAL' ? (
+        <GoalRevisionApprovalTable
+          revisions={filtered}
+          goals={teamGoals}
+          isLoading={isLoading}
+          approveRevision={handleApprove}
+          rejectRevision={handleReject}
+          isMutating={isMutating}
+          error={error}
+          successMessage={successMessage}
+          clearError={clearError}
+          clearSuccess={clearSuccess}
+        />
+      ) : (
+        <GrowthConnectRevisionApprovalTable
+          revisions={filteredGrowthConnectRevisions}
+          isLoading={isGrowthConnectLoading}
+          approveRevision={approveGrowthConnectRevision}
+          rejectRevision={rejectGrowthConnectRevision}
+          isMutating={isGrowthConnectMutating}
+          error={growthConnectError}
+          successMessage={growthConnectSuccessMessage}
+          clearError={clearGrowthConnectError}
+          clearSuccess={clearGrowthConnectSuccess}
+        />
+      )}
     </Box>
   );
 };

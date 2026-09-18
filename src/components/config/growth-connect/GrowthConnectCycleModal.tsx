@@ -1,65 +1,57 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FormControlLabel, Stack, Switch, TextField } from '@mui/material';
+import { Stack, TextField } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined';
 import dayjs, { type Dayjs } from 'dayjs';
-import type { FinancialYearOption } from '../../../hooks/useFinancialYears';
+import type { GrowthConnectCycle } from '../../../types/growthConnect';
 import AppModal from '../../common/AppModal';
 import AppButton from '../../common/AppButton';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
 
-type FinancialYearFormValue = {
+type GrowthConnectCycleFormValue = {
   name: string;
   startDate: Dayjs | null;
   endDate: Dayjs | null;
-  isActive: boolean;
 };
 
-export type FinancialYearSubmitPayload = {
+export type GrowthConnectCycleSubmitPayload = {
   name: string;
   startDate: string;
   endDate: string;
-  isActive: boolean;
 };
 
-const emptyForm: FinancialYearFormValue = {
-  name: '',
-  startDate: null,
-  endDate: null,
-  isActive: true,
-};
+const emptyForm: GrowthConnectCycleFormValue = { name: '', startDate: null, endDate: null };
 
-type FinancialYearModalProps = {
+type GrowthConnectCycleModalProps = {
   open: boolean;
-  editingFinancialYear?: FinancialYearOption | null;
+  editingCycle?: GrowthConnectCycle | null;
   onClose: () => void;
-  onSubmit: (payload: FinancialYearSubmitPayload) => void;
+  onSubmit: (payload: GrowthConnectCycleSubmitPayload) => void;
   isSubmitting?: boolean;
 };
 
-const FinancialYearModal = ({
+const GrowthConnectCycleModal = ({
   open,
-  editingFinancialYear = null,
+  editingCycle,
   onClose,
   onSubmit,
   isSubmitting = false,
-}: FinancialYearModalProps) => {
-  const [form, setForm] = useState<FinancialYearFormValue>(emptyForm);
+}: GrowthConnectCycleModalProps) => {
+  const [form, setForm] = useState<GrowthConnectCycleFormValue>(emptyForm);
 
   useEffect(() => {
     if (!open) return;
     setForm(
-      editingFinancialYear
+      editingCycle
         ? {
-            name: editingFinancialYear.name,
-            startDate: editingFinancialYear.startDate ? dayjs(editingFinancialYear.startDate) : null,
-            endDate: editingFinancialYear.endDate ? dayjs(editingFinancialYear.endDate) : null,
-            isActive: editingFinancialYear.isActive ?? true,
+            name: editingCycle.name,
+            startDate: dayjs(editingCycle.startDate),
+            endDate: dayjs(editingCycle.endDate),
           }
         : emptyForm,
     );
-  }, [open, editingFinancialYear]);
+  }, [open, editingCycle]);
 
   const isRangeValid = useMemo(() => {
     if (!form.startDate || !form.endDate) return true;
@@ -68,7 +60,7 @@ const FinancialYearModal = ({
 
   const canSubmit = useMemo(
     () => Boolean(form.name.trim()) && Boolean(form.startDate) && Boolean(form.endDate) && isRangeValid,
-    [form, isRangeValid]
+    [form, isRangeValid],
   );
 
   const handleSubmit = () => {
@@ -77,7 +69,6 @@ const FinancialYearModal = ({
       name: form.name.trim(),
       startDate: form.startDate.toISOString(),
       endDate: form.endDate.toISOString(),
-      isActive: form.isActive,
     });
   };
 
@@ -85,9 +76,9 @@ const FinancialYearModal = ({
     <AppModal
       open={open}
       onClose={onClose}
-      title={editingFinancialYear ? 'Edit Review Period' : 'New Review Period'}
-      subtitle="Define the name and date range for a review period used across appraisal workflows."
-      icon={<CalendarMonthRoundedIcon />}
+      title={editingCycle ? 'Edit Growth Connect Cycle' : 'New Growth Connect Cycle'}
+      subtitle="Define the name and date range for this cycle within the review period."
+      icon={<TimelineOutlinedIcon />}
       maxWidth="sm"
       actions={
         <>
@@ -95,7 +86,7 @@ const FinancialYearModal = ({
             Cancel
           </AppButton>
           <AppButton onClick={handleSubmit} disabled={!canSubmit || isSubmitting} loading={isSubmitting}>
-            {editingFinancialYear ? 'Save changes' : 'Create review period'}
+            {editingCycle ? 'Save changes' : 'Create cycle'}
           </AppButton>
         </>
       }
@@ -105,10 +96,10 @@ const FinancialYearModal = ({
           autoFocus
           fullWidth
           label="Name"
-          placeholder="e.g. FY 2026-2027"
+          placeholder="e.g. Growth Connect 1"
           value={form.name}
           onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-          helperText="A clear, unique name for this review period."
+          helperText="A clear, unique name for this cycle within the review period."
         />
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -136,21 +127,9 @@ const FinancialYearModal = ({
             }}
           />
         </Stack>
-
-        {editingFinancialYear && (
-          <FormControlLabel
-            control={
-              <Switch
-                checked={form.isActive}
-                onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-              />
-            }
-            label="Active"
-          />
-        )}
       </Stack>
     </AppModal>
   );
 };
 
-export default FinancialYearModal;
+export default GrowthConnectCycleModal;

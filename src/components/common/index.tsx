@@ -12,4 +12,3 @@ export { default as TableDotStatus } from './TableDotStatus';
 export { default as Timeline } from './Timeline';
 export { default as RatingInput } from './RatingInput';
 export { default as RichTextEditor } from './RichTextEditor';
-export { default as WeightBadge } from './WeightBadge';
