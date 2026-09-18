@@ -33,7 +33,6 @@ function mapGoal(raw: Record<string, unknown>): Goal {
     category: String(raw.category ?? ''),
     title: String(raw.title ?? ''),
     description: String(raw.description ?? ''),
-    weight: Number(raw.weight ?? 0),
     status,
     startDate: String(raw.startDate ?? ''),
     targetDate: String(raw.targetDate ?? ''),
@@ -72,7 +71,6 @@ export interface AssignGoalPayload {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
   startDate: string;
   targetDate: string;
   targetValue?: string;
@@ -84,7 +82,6 @@ export interface UpdateGoalPayload {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
   startDate: string;
   targetDate: string;
   targetValue?: string;
@@ -136,7 +133,6 @@ export async function assignGoal(payload: AssignGoalPayload): Promise<Goal[]> {
     description: payload.description,
     successCriteria: payload.successCriteria,
     targetValue: payload.targetValue,
-    weight: payload.weight,
     startDate: payload.startDate,
     targetDate: payload.targetDate,
     employeeIds: payload.employeeIds,
@@ -155,18 +151,10 @@ export async function updateGoal(id: string, payload: UpdateGoalPayload): Promis
     description: payload.description,
     successCriteria: payload.successCriteria,
     targetValue: payload.targetValue,
-    weight: payload.weight,
     startDate: payload.startDate,
     targetDate: payload.targetDate,
     status: payload.status,
   });
-  const root = asRecord(response) ?? {};
-  return mapGoal(asRecord(root.data) ?? {});
-}
-
-/** PUT /performance/goals/{id}/status — manager-or-admin status-only quick change. */
-export async function updateStatus(id: string, status: GoalStatus): Promise<Goal> {
-  const response = await api.put(`/performance/goals/${id}/status`, { status });
   const root = asRecord(response) ?? {};
   return mapGoal(asRecord(root.data) ?? {});
 }
@@ -184,7 +172,6 @@ const goalsService = {
   getGoalById,
   assignGoal,
   updateGoal,
-  updateStatus,
   deleteGoal,
 };
 

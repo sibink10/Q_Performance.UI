@@ -9,7 +9,6 @@ export interface ProposedGoalChanges {
   targetValue?: string;
   measurementCriteria?: string;
   dueDate?: string;
-  weightage?: number;
   category?: GoalCategory;
 }
 

@@ -39,7 +39,6 @@ async function buildProposedChangesBody(changes: ProposedGoalChanges) {
     targetValue: changes.targetValue,
     measurementCriteria: changes.measurementCriteria,
     dueDate: changes.dueDate,
-    weightage: changes.weightage,
     categoryId: changes.category ? await getCategoryIdByCode(changes.category) : undefined,
   };
 }
@@ -63,7 +62,6 @@ function mapRevision(raw: Record<string, unknown>): GoalRevision {
       targetValue: pc.targetValue != null ? String(pc.targetValue) : undefined,
       measurementCriteria: pc.measurementCriteria != null ? String(pc.measurementCriteria) : undefined,
       dueDate: pc.dueDate != null ? String(pc.dueDate) : undefined,
-      weightage: pc.weightage != null ? Number(pc.weightage) : undefined,
       category: pc.category != null ? String(pc.category) : undefined,
     },
     status: (String(raw.status ?? '') || 'PENDING') as GoalRevisionStatus,

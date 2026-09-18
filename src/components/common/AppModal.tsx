@@ -27,6 +27,8 @@ const AppModal = ({
   maxWidth = 'sm',
   fullWidth = true,
   paperSx = undefined,
+  headerAction = null,
+  hideCloseIcon = false,
 }) => (
   <Dialog
     open={open}
@@ -64,9 +66,12 @@ const AppModal = ({
             </Typography>
           )}
         </Box>
-        <IconButton onClick={onClose} size="small" sx={{ mt: -0.25 }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        {headerAction}
+        {!hideCloseIcon && (
+          <IconButton onClick={onClose} size="small" sx={{ mt: -0.25 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        )}
       </Stack>
     </DialogTitle>
     <DialogContent dividers sx={{ px: 3, py: 3 }}>

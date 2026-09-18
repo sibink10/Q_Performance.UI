@@ -6,7 +6,6 @@ import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutl
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import {
   Box,
-  Chip,
   Divider,
   Drawer,
   IconButton,
@@ -18,12 +17,11 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import type { Goal } from '../../../types/goal';
+import type { GoalGrowthConnectEntry } from '../../../types/growthConnect';
 import { GOAL_CATEGORY_LABELS } from '../../../utils/goalConstants';
 import { GOAL_CATEGORY_META } from '../../../utils/goalCategoryMeta';
 import AppButton from '../../common/AppButton';
-import WeightBadge from '../../common/WeightBadge';
-import GoalCommentsPanel from '../../common/goal-comments/GoalCommentsPanel';
-import goalCommentsService from '../../../services/goalCommentsService';
+import GrowthConnectPanel from '../../common/growth-connect/GrowthConnectPanel';
 import GoalHistoryTimeline from './GoalHistoryTimeline';
 import GoalStatusBadge from './GoalStatusBadge';
 
@@ -34,6 +32,12 @@ type GoalDetailDrawerProps = {
   open: boolean;
   goal: Goal | null;
   onClose: () => void;
+  /** Which tab to show when the drawer opens (or the goal/tab request changes). Defaults to 'details'. */
+  initialTab?: 'details' | 'growthConnect' | 'history';
+  /** Shown above the goal title — used by manager/admin views to identify whose goal this is. */
+  employeeName?: string;
+  /** Forwarded to the Growth Connect tab; omit to hide the "Request revision" action there. */
+  onRequestRevision?: (entry: GoalGrowthConnectEntry) => void;
 };
 
 type DetailSectionProps = {
@@ -81,27 +85,22 @@ function DetailSection({ icon, title, children, muted = false }: DetailSectionPr
   );
 }
 
-const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
+const GoalDetailDrawer = ({
+  open,
+  goal,
+  onClose,
+  initialTab,
+  employeeName,
+  onRequestRevision,
+}: GoalDetailDrawerProps) => {
   const theme = useTheme();
-  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments'>('details');
-  const [commentCount, setCommentCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<'details' | 'growthConnect' | 'history'>(initialTab ?? 'details');
 
   useEffect(() => {
-    if (goal) {
-      setActiveTab('details');
+    if (open && goal) {
+      setActiveTab(initialTab ?? 'details');
     }
-  }, [goal?.id]);
-
-  useEffect(() => {
-    if (!goal) return undefined;
-    let isMounted = true;
-    goalCommentsService.getCommentCounts([goal.id]).then((counts) => {
-      if (isMounted) setCommentCount(counts[goal.id] ?? 0);
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, [goal?.id]);
+  }, [open, goal?.id, initialTab]);
 
   if (!goal) {
     return (
@@ -170,6 +169,11 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
                 <CategoryIcon />
               </Box>
               <Box sx={{ minWidth: 0 }}>
+                {employeeName && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
+                    {employeeName}
+                  </Typography>
+                )}
                 <Typography variant="overline" sx={{ fontWeight: 700, color: categoryAccent.main }}>
                   {GOAL_CATEGORY_LABELS[goal.category]}
                 </Typography>
@@ -200,7 +204,6 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
 
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
             <GoalStatusBadge status={goal.status} size="small" />
-            <WeightBadge weight={goal.weight} />
           </Stack>
         </Box>
 
@@ -217,19 +220,8 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
         >
           <Tab value="details" label="Details" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
           <Tab
-            value="comments"
-            label={
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <span>Comments</span>
-                {commentCount > 0 && (
-                  <Chip
-                    size="small"
-                    label={commentCount}
-                    sx={{ height: 18, minWidth: 18, fontSize: '0.65rem' }}
-                  />
-                )}
-              </Stack>
-            }
+            value="growthConnect"
+            label="Growth Connect"
             sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
           />
           <Tab value="history" label="History" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
@@ -239,15 +231,8 @@ const GoalDetailDrawer = ({ open, goal, onClose }: GoalDetailDrawerProps) => {
         <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>
           {activeTab === 'history' ? (
             <GoalHistoryTimeline goalId={goal.id} />
-          ) : activeTab === 'comments' ? (
-            <GoalCommentsPanel
-              goalId={goal.id}
-              onChanged={() =>
-                goalCommentsService
-                  .getCommentCounts([goal.id])
-                  .then((counts) => setCommentCount(counts[goal.id] ?? 0))
-              }
-            />
+          ) : activeTab === 'growthConnect' ? (
+            <GrowthConnectPanel goal={goal} onRequestRevision={onRequestRevision} />
           ) : (
           <Stack spacing={2}>
             <DetailSection

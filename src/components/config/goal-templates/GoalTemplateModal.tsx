@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Box, Divider, Grid, InputAdornment, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import { Box, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { InputLabel, FormControl } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import LibraryAddRoundedIcon from '@mui/icons-material/LibraryAddRounded';
@@ -16,7 +16,6 @@ type GoalTemplateFormValue = {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number | '';
 };
 
 export type GoalTemplateSubmitPayload = {
@@ -24,7 +23,6 @@ export type GoalTemplateSubmitPayload = {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
 };
 
 const emptyForm: GoalTemplateFormValue = {
@@ -32,7 +30,6 @@ const emptyForm: GoalTemplateFormValue = {
   title: '',
   description: '',
   successCriteria: '',
-  weight: '',
 };
 
 function formFromTemplate(template: GoalTemplate | null): GoalTemplateFormValue {
@@ -42,7 +39,6 @@ function formFromTemplate(template: GoalTemplate | null): GoalTemplateFormValue 
     title: template.title,
     description: template.description,
     successCriteria: template.successCriteria,
-    weight: template.weight,
   };
 }
 
@@ -98,12 +94,7 @@ const GoalTemplateModal = ({
   }, [open, template]);
 
   const canSubmit = useMemo(
-    () =>
-      Boolean(form.categoryId) &&
-      Boolean(form.title.trim()) &&
-      typeof form.weight === 'number' &&
-      form.weight > 0 &&
-      form.weight <= 100,
+    () => Boolean(form.categoryId) && Boolean(form.title.trim()),
     [form],
   );
 
@@ -114,7 +105,6 @@ const GoalTemplateModal = ({
       title: form.title.trim(),
       description: form.description.trim(),
       successCriteria: form.successCriteria.trim(),
-      weight: Number(form.weight),
     });
   };
 
@@ -227,31 +217,6 @@ const GoalTemplateModal = ({
               onChange={(e) => setForm((p) => ({ ...p, successCriteria: e.target.value }))}
             />
           </Stack>
-        </Box>
-
-        <Divider />
-
-        <Box>
-          <SectionHeader icon={<LibraryAddRoundedIcon />} label="Default weight" />
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                size="small"
-                fullWidth
-                type="number"
-                label="Weight"
-                value={form.weight}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, weight: e.target.value === '' ? '' : Number(e.target.value) }))
-                }
-                InputProps={{
-                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                }}
-                inputProps={{ min: 1, max: 100 }}
-                helperText="Prefilled when this template is used — admins can adjust it per assignment."
-              />
-            </Grid>
-          </Grid>
         </Box>
       </Stack>
     </AppModal>

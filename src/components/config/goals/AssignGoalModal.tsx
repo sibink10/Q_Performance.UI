@@ -6,7 +6,6 @@ import {
   Chip,
   Divider,
   Grid,
-  InputAdornment,
   MenuItem,
   Select,
   Stack,
@@ -46,7 +45,6 @@ export type AssignGoalFormValue = {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number | '';
   startDate: string | null;
   targetDate: string | null;
 };
@@ -57,7 +55,6 @@ export type AssignGoalSubmitPayload = {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
   startDate: string;
   targetDate: string;
   employeeIds: string[];
@@ -69,7 +66,6 @@ const defaultForm: AssignGoalFormValue = {
   title: '',
   description: '',
   successCriteria: '',
-  weight: '',
   startDate: null,
   targetDate: null,
 };
@@ -152,7 +148,6 @@ const AssignGoalModal = ({
         title: '',
         description: '',
         successCriteria: '',
-        weight: '',
       }));
     }
   };
@@ -166,7 +161,6 @@ const AssignGoalModal = ({
         title: template.title,
         description: template.description,
         successCriteria: template.successCriteria,
-        weight: template.weight,
       }));
     }
   };
@@ -187,9 +181,6 @@ const AssignGoalModal = ({
       Boolean(form.startDate) &&
       Boolean(form.targetDate) &&
       !dateOrderInvalid &&
-      typeof form.weight === 'number' &&
-      form.weight > 0 &&
-      form.weight <= 100 &&
       selectedEmployees.length > 0,
     [form, selectedEmployees, dateOrderInvalid],
   );
@@ -202,7 +193,6 @@ const AssignGoalModal = ({
       title: form.title.trim(),
       description: form.description.trim(),
       successCriteria: form.successCriteria.trim(),
-      weight: Number(form.weight),
       startDate: form.startDate!,
       targetDate: form.targetDate!,
       employeeIds: selectedEmployees.map((e) => e.id),
@@ -296,15 +286,6 @@ const AssignGoalModal = ({
                               <Typography variant="body2" fontWeight={600} noWrap sx={{ flex: 1 }}>
                                 {option.title}
                               </Typography>
-                              <Chip
-                                size="small"
-                                label={`${option.weight}%`}
-                                sx={{
-                                  fontWeight: 700,
-                                  bgcolor: accent.soft,
-                                  color: accent.main,
-                                }}
-                              />
                             </Stack>
                           </li>
                         );
@@ -429,25 +410,9 @@ const AssignGoalModal = ({
           <Divider />
 
           <Box>
-            <SectionHeader icon={<EventRoundedIcon />} label="Timeline & weight" />
+            <SectionHeader icon={<EventRoundedIcon />} label="Timeline" />
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  type="number"
-                  label="Weight"
-                  value={form.weight}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, weight: e.target.value === '' ? '' : Number(e.target.value) }))
-                  }
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                  }}
-                  inputProps={{ min: 1, max: 100 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="Start date"
                   value={form.startDate ? dayjs(form.startDate) : null}
@@ -458,7 +423,7 @@ const AssignGoalModal = ({
                   slotProps={{ textField: { size: 'small', fullWidth: true } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="Target date"
                   value={form.targetDate ? dayjs(form.targetDate) : null}

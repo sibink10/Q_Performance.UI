@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Box, Divider, Grid, InputAdornment, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import { Box, Divider, Grid, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { InputLabel, FormControl } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -22,7 +22,6 @@ type EditGoalFormValue = {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number | '';
   startDate: string | null;
   targetDate: string | null;
 };
@@ -32,7 +31,6 @@ export type EditGoalSubmitPayload = {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
   startDate: string;
   targetDate: string;
 };
@@ -42,7 +40,6 @@ const emptyForm: EditGoalFormValue = {
   title: '',
   description: '',
   successCriteria: '',
-  weight: '',
   startDate: null,
   targetDate: null,
 };
@@ -54,7 +51,6 @@ function formFromGoal(goal: Goal | null): EditGoalFormValue {
     title: goal.title,
     description: goal.description,
     successCriteria: goal.successCriteria,
-    weight: goal.weight,
     startDate: goal.startDate,
     targetDate: goal.targetDate,
   };
@@ -127,10 +123,7 @@ const EditGoalModal = ({
       Boolean(form.title.trim()) &&
       Boolean(form.startDate) &&
       Boolean(form.targetDate) &&
-      !dateOrderInvalid &&
-      typeof form.weight === 'number' &&
-      form.weight > 0 &&
-      form.weight <= 100,
+      !dateOrderInvalid,
     [form, dateOrderInvalid],
   );
 
@@ -141,7 +134,6 @@ const EditGoalModal = ({
       title: form.title.trim(),
       description: form.description.trim(),
       successCriteria: form.successCriteria.trim(),
-      weight: Number(form.weight),
       startDate: form.startDate!,
       targetDate: form.targetDate!,
     });
@@ -263,25 +255,9 @@ const EditGoalModal = ({
           <Divider />
 
           <Box>
-            <SectionHeader icon={<EventRoundedIcon />} label="Timeline & weight" />
+            <SectionHeader icon={<EventRoundedIcon />} label="Timeline" />
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  type="number"
-                  label="Weight"
-                  value={form.weight}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, weight: e.target.value === '' ? '' : Number(e.target.value) }))
-                  }
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                  }}
-                  inputProps={{ min: 1, max: 100 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="Start date"
                   value={form.startDate ? dayjs(form.startDate) : null}
@@ -292,7 +268,7 @@ const EditGoalModal = ({
                   slotProps={{ textField: { size: 'small', fullWidth: true } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="Target date"
                   value={form.targetDate ? dayjs(form.targetDate) : null}

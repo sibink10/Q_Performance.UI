@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -11,8 +11,7 @@ import useGoals from '../../../hooks/useGoals';
 import useGoalTemplates from '../../../hooks/useGoalTemplates';
 import useFinancialYears from '../../../hooks/useFinancialYears';
 import goalsService from '../../../services/goalsService';
-import goalCommentsService from '../../../services/goalCommentsService';
-import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
+import GoalDetailDrawer from '../../employee/goals/GoalDetailDrawer';
 import type { AssignableEmployee } from '../../../types/user';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
 import { GOAL_CATEGORY, GOAL_CATEGORY_LABELS, GOAL_STATUS, GOAL_STATUS_LABELS } from '../../../utils/goalConstants';
@@ -63,11 +62,9 @@ const GoalConfig = () => {
     filteredTeamGoals,
     teamFilters,
     isLoading,
-    isMutating,
     error,
     successMessage,
     loadCycleGoals,
-    updateStatus,
     setTeamFilters,
     clearError,
     clearSuccess,
@@ -85,8 +82,18 @@ const GoalConfig = () => {
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Goal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [commentsGoal, setCommentsGoal] = useState<Goal | null>(null);
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [detailGoal, setDetailGoal] = useState<Goal | null>(null);
+  const [detailTab, setDetailTab] = useState<'details' | 'growthConnect' | 'history'>('details');
+
+  const openGoalDetails = (goal: Goal) => {
+    setDetailTab('details');
+    setDetailGoal(goal);
+  };
+
+  const openGrowthConnect = (goal: Goal) => {
+    setDetailTab('growthConnect');
+    setDetailGoal(goal);
+  };
 
   useEffect(() => {
     setIsEmployeesLoading(true);
@@ -95,20 +102,6 @@ const GoalConfig = () => {
       .then(setEmployees)
       .finally(() => setIsEmployeesLoading(false));
   }, []);
-
-  const refreshCommentCounts = useCallback(() => {
-    if (!filteredTeamGoals.length) {
-      setCommentCounts({});
-      return;
-    }
-    goalCommentsService
-      .getCommentCounts(filteredTeamGoals.map((g) => g.id))
-      .then(setCommentCounts);
-  }, [filteredTeamGoals]);
-
-  useEffect(() => {
-    refreshCommentCounts();
-  }, [refreshCommentCounts]);
 
   useEffect(() => {
     loadTemplates();
@@ -329,12 +322,10 @@ const GoalConfig = () => {
                 key={group.employee.id}
                 employee={group.employee}
                 goals={group.goals}
-                isMutating={isMutating}
-                commentCounts={commentCounts}
-                onStatusChange={updateStatus}
+                onOpenDetails={openGoalDetails}
                 onEdit={setEditingGoal}
                 onDelete={setDeleteTarget}
-                onViewComments={setCommentsGoal}
+                onViewGrowthConnect={openGrowthConnect}
               />
             ))}
           </Box>
@@ -383,14 +374,12 @@ const GoalConfig = () => {
         loading={isDeleting}
       />
 
-      <GoalCommentsDialog
-        open={Boolean(commentsGoal)}
-        goal={commentsGoal}
-        employeeName={commentsGoal ? findEmployee(employees, commentsGoal.employeeId)?.name : undefined}
-        onClose={() => {
-          setCommentsGoal(null);
-          refreshCommentCounts();
-        }}
+      <GoalDetailDrawer
+        open={Boolean(detailGoal)}
+        goal={detailGoal}
+        initialTab={detailTab}
+        employeeName={detailGoal ? findEmployee(employees, detailGoal.employeeId)?.name : undefined}
+        onClose={() => setDetailGoal(null)}
       />
     </Box>
   );

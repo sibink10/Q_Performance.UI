@@ -6,7 +6,6 @@ export interface CreateGoalTemplatePayload {
   title: string;
   description: string;
   successCriteria: string;
-  weight: number;
 }
 
 export type UpdateGoalTemplatePatch = CreateGoalTemplatePayload;
@@ -40,7 +39,6 @@ function mapTemplate(raw: Record<string, unknown>): GoalTemplate {
     title: String(raw.title ?? ''),
     description: String(raw.description ?? ''),
     successCriteria: String(raw.successCriteria ?? ''),
-    weight: Number(raw.weight ?? 0),
     createdAt: String(raw.createdAt ?? ''),
     updatedAt: String(raw.updatedAt ?? ''),
   };

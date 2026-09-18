@@ -10,7 +10,6 @@ export interface Goal {
   category: GoalCategory;
   title: string;
   description: string;
-  weight: number;
   status: GoalStatus;
   startDate: string;
   targetDate: string;

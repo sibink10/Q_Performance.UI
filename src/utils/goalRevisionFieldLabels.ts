@@ -10,8 +10,6 @@ export const REVISION_FIELD_LABELS: Record<string, string> = {
   successCriteria: 'Measurement Criteria',
   dueDate: 'Due Date',
   targetDate: 'Due Date',
-  weightage: 'Weightage',
-  weight: 'Weightage',
   category: 'Category',
 };
 

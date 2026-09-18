@@ -71,7 +71,6 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
   const [targetValue, setTargetValue] = useState('');
   const [measurementCriteria, setMeasurementCriteria] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [weightage, setWeightage] = useState('');
   const [category, setCategory] = useState<GoalCategory | ''>('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -87,7 +86,6 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
       setTargetValue('');
       setMeasurementCriteria('');
       setDueDate('');
-      setWeightage('');
       setCategory('');
       setSubmitted(false);
       clearError();
@@ -109,10 +107,9 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
       changes.measurementCriteria = measurementCriteria.trim();
     }
     if (dueDate && dueDate !== goal.targetDate) changes.dueDate = dueDate;
-    if (weightage.trim() && Number(weightage) !== goal.weight) changes.weightage = Number(weightage);
     if (category && category !== goal.category) changes.category = category;
     return changes;
-  }, [goal, title, description, targetValue, measurementCriteria, dueDate, weightage, category]);
+  }, [goal, title, description, targetValue, measurementCriteria, dueDate, category]);
 
   const hasProposedChanges = Object.keys(proposedChanges).length > 0;
   const otherReasonRequired = reason === REVISION_REASON.OTHER;
@@ -230,12 +227,6 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
                 </Typography>
                 <Typography variant="body2">{formatDateOnly(goal.targetDate)}</Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
-                <Typography variant="caption" color="text.secondary">
-                  Weightage
-                </Typography>
-                <Typography variant="body2">{goal.weight}%</Typography>
-              </Grid>
             </Grid>
           </Box>
 
@@ -338,17 +329,6 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-              />
-            </FieldRow>
-
-            <FieldRow label="Weightage" current={`${goal.weight}%`}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                placeholder="New weightage"
-                value={weightage}
-                onChange={(e) => setWeightage(e.target.value)}
               />
             </FieldRow>
 

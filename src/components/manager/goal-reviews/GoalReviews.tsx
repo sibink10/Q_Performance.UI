@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Alert,
@@ -17,6 +17,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import type { Goal, GoalCategory, GoalStatus } from '../../../types/goal';
 import type { AssignableEmployee } from '../../../types/user';
+import type { GoalGrowthConnectEntry } from '../../../types/growthConnect';
 import {
   GOAL_CATEGORY,
   GOAL_CATEGORY_LABELS,
@@ -28,10 +29,10 @@ import { directReportsOf, findEmployee } from '../../../utils/resolveEmployee';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../common';
 import useGoals from '../../../hooks/useGoals';
 import goalsService from '../../../services/goalsService';
-import goalCommentsService from '../../../services/goalCommentsService';
-import GoalCommentsDialog from '../../common/goal-comments/GoalCommentsDialog';
+import GoalDetailDrawer from '../../employee/goals/GoalDetailDrawer';
 import EmployeeGoalGroup from './EmployeeGoalGroup';
 import GoalRevisionRequestModal from './GoalRevisionRequestModal';
+import GrowthConnectRevisionRequestModal from './GrowthConnectRevisionRequestModal';
 import TeamGoalsSummaryStrip from './TeamGoalsSummaryStrip';
 
 const STATUS_PRIORITY: Record<GoalStatus, number> = {
@@ -74,11 +75,9 @@ const GoalReviews = () => {
     teamFilters,
     currentUserId,
     isLoading,
-    isMutating,
     error,
     successMessage,
     loadTeamGoals,
-    updateStatus,
     setTeamFilters,
     clearError,
     clearSuccess,
@@ -88,8 +87,19 @@ const GoalReviews = () => {
   const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [revisionGoal, setRevisionGoal] = useState<Goal | null>(null);
-  const [commentsGoal, setCommentsGoal] = useState<Goal | null>(null);
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [detailGoal, setDetailGoal] = useState<Goal | null>(null);
+  const [detailTab, setDetailTab] = useState<'details' | 'growthConnect' | 'history'>('details');
+  const [growthConnectRevisionEntry, setGrowthConnectRevisionEntry] = useState<GoalGrowthConnectEntry | null>(null);
+
+  const openGoalDetails = (goal: Goal) => {
+    setDetailTab('details');
+    setDetailGoal(goal);
+  };
+
+  const openGrowthConnect = (goal: Goal) => {
+    setDetailTab('growthConnect');
+    setDetailGoal(goal);
+  };
 
   useEffect(() => {
     setIsEmployeesLoading(true);
@@ -102,20 +112,6 @@ const GoalReviews = () => {
   useEffect(() => {
     loadTeamGoals();
   }, [loadTeamGoals]);
-
-  const refreshCommentCounts = useCallback(() => {
-    if (!filteredTeamGoals.length) {
-      setCommentCounts({});
-      return;
-    }
-    goalCommentsService
-      .getCommentCounts(filteredTeamGoals.map((g) => g.id))
-      .then(setCommentCounts);
-  }, [filteredTeamGoals]);
-
-  useEffect(() => {
-    refreshCommentCounts();
-  }, [refreshCommentCounts]);
 
   const directReports = useMemo(
     () => directReportsOf(employees, currentUserId),
@@ -270,11 +266,9 @@ const GoalReviews = () => {
                 key={group.employee.id}
                 employee={group.employee}
                 goals={group.goals}
-                isMutating={isMutating}
-                commentCounts={commentCounts}
-                onStatusChange={updateStatus}
+                onOpenDetails={openGoalDetails}
                 onRequestRevision={setRevisionGoal}
-                onViewComments={setCommentsGoal}
+                onViewGrowthConnect={openGrowthConnect}
               />
             ))}
           </Box>
@@ -294,14 +288,19 @@ const GoalReviews = () => {
         onClose={() => setRevisionGoal(null)}
       />
 
-      <GoalCommentsDialog
-        open={Boolean(commentsGoal)}
-        goal={commentsGoal}
-        employeeName={commentsGoal ? findEmployee(employees, commentsGoal.employeeId)?.name : undefined}
-        onClose={() => {
-          setCommentsGoal(null);
-          refreshCommentCounts();
-        }}
+      <GoalDetailDrawer
+        open={Boolean(detailGoal)}
+        goal={detailGoal}
+        initialTab={detailTab}
+        employeeName={detailGoal ? findEmployee(employees, detailGoal.employeeId)?.name : undefined}
+        onClose={() => setDetailGoal(null)}
+        onRequestRevision={setGrowthConnectRevisionEntry}
+      />
+
+      <GrowthConnectRevisionRequestModal
+        open={Boolean(growthConnectRevisionEntry)}
+        entry={growthConnectRevisionEntry}
+        onClose={() => setGrowthConnectRevisionEntry(null)}
       />
     </Box>
   );

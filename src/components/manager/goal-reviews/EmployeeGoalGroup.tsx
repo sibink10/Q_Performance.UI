@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { Avatar, Box, Chip, Collapse, IconButton, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import type { Goal, GoalStatus } from '../../../types/goal';
+import type { Goal } from '../../../types/goal';
 import type { AssignableEmployee } from '../../../types/user';
 import { GOAL_STATUS } from '../../../utils/goalConstants';
 import ManagerGoalCard from './ManagerGoalCard';
@@ -10,13 +10,11 @@ import ManagerGoalCard from './ManagerGoalCard';
 type EmployeeGoalGroupProps = {
   employee: AssignableEmployee;
   goals: Goal[];
-  isMutating?: boolean;
-  commentCounts?: Record<string, number>;
-  onStatusChange: (goalId: string, status: GoalStatus) => void;
+  onOpenDetails?: (goal: Goal) => void;
   onEdit?: (goal: Goal) => void;
   onDelete?: (goal: Goal) => void;
   onRequestRevision?: (goal: Goal) => void;
-  onViewComments?: (goal: Goal) => void;
+  onViewGrowthConnect?: (goal: Goal) => void;
 };
 
 function getInitials(name: string) {
@@ -28,13 +26,11 @@ function getInitials(name: string) {
 const EmployeeGoalGroup = ({
   employee,
   goals,
-  isMutating = false,
-  commentCounts,
-  onStatusChange,
+  onOpenDetails,
   onEdit,
   onDelete,
   onRequestRevision,
-  onViewComments,
+  onViewGrowthConnect,
 }: EmployeeGoalGroupProps) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -95,21 +91,25 @@ const EmployeeGoalGroup = ({
       </Stack>
 
       <Collapse in={expanded} timeout="auto" unmountOnExit>
-        <Stack spacing={1.5}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+            gap: 1.5,
+          }}
+        >
           {goals.map((goal) => (
             <ManagerGoalCard
               key={goal.id}
               goal={goal}
-              isMutating={isMutating}
-              commentCount={commentCounts?.[goal.id] ?? 0}
-              onStatusChange={onStatusChange}
+              onOpenDetails={onOpenDetails}
               onEdit={onEdit}
               onDelete={onDelete}
               onRequestRevision={onRequestRevision}
-              onViewComments={onViewComments}
+              onViewGrowthConnect={onViewGrowthConnect}
             />
           ))}
-        </Stack>
+        </Box>
       </Collapse>
     </Box>
   );
