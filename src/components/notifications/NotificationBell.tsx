@@ -1,17 +1,22 @@
 // @ts-nocheck
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Badge, IconButton, Popover, Tooltip } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useNotificationOpenSignal } from '../../hooks/useNotificationCenter';
 import NotificationPanel from './NotificationPanel';
 
 const NotificationBell = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const buttonRef = useRef(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const { notifications, loading, unreadCount, markRead, markAllRead } = useNotifications();
+
+  // Lets other pages (e.g. Home's "View all") open this same popover.
+  useNotificationOpenSignal(() => setAnchorEl(buttonRef.current));
 
   const handleOpenItem = (n) => {
     markRead(n.id);
@@ -25,6 +30,7 @@ const NotificationBell = () => {
     <>
       <Tooltip title="Notifications">
         <IconButton
+          ref={buttonRef}
           onClick={(e) => setAnchorEl(e.currentTarget)}
           aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
           sx={{

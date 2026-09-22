@@ -3,6 +3,7 @@ import { Box, Skeleton, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { homeType } from './homeTypography';
+import { ROW_PADDING_X, ROW_PADDING_Y } from './homeLayout';
 import SectionCard from './SectionCard';
 
 /** Hidden entirely when there is nothing to act on (and not loading). */
@@ -14,9 +15,9 @@ const NeedsActionList = ({ rows, loading, title = 'Needs your action' }) => {
 
   return (
     <SectionCard title={title} action={!loading && <Typography sx={homeType.meta}>{rows.length} items</Typography>}>
-      <Stack divider={<Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />} sx={{ mx: -1 }}>
+      <Stack divider={<Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />} sx={{ mx: -ROW_PADDING_X }}>
         {loading
-          ? [0, 1, 2].map((i) => <Skeleton key={i} height={52} sx={{ mx: 1 }} />)
+          ? [0, 1, 2].map((i) => <Skeleton key={i} height={52} sx={{ mx: ROW_PADDING_X }} />)
           : rows.map((r) => {
               const color = r.urgent ? theme.palette.error.main : theme.palette.warning.main;
               return (
@@ -28,8 +29,8 @@ const NeedsActionList = ({ rows, loading, title = 'Needs your action' }) => {
                   spacing={2}
                   onClick={() => navigate(r.path)}
                   sx={{
-                    py: 1.25,
-                    px: 1,
+                    py: ROW_PADDING_Y,
+                    px: ROW_PADDING_X,
                     borderRadius: 1.5,
                     cursor: 'pointer',
                     '&:hover': { bgcolor: alpha(theme.palette.grey[900], 0.03) },

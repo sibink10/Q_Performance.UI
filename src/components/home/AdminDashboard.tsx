@@ -5,6 +5,7 @@ import StatsGrid from './StatsGrid';
 import ProgressBarChart from './ProgressBarChart';
 import NeedsActionList from './NeedsActionList';
 import ReviewCyclesPanel from './ReviewCyclesPanel';
+import RecentUpdatesCard from './RecentUpdatesCard';
 import QuickActions from './QuickActions';
 
 const AdminDashboard = ({ data, loading }) => (
@@ -15,14 +16,15 @@ const AdminDashboard = ({ data, loading }) => (
     <Grid container spacing={3}>
       <Grid item xs={12} lg={8}>
         <Stack spacing={3}>
-          <ProgressBarChart title="Review progress" subtitle="Completed vs pending by phase, active financial year" data={data?.phaseProgress} loading={loading} />
           <ReviewCyclesPanel cycles={data?.cycles} loading={loading} title="Growth Connect cycles" />
+          <QuickActions actions={data?.quickActions} loading={loading} />
+          <ProgressBarChart title="Review progress" subtitle="Completed vs pending by phase, active financial year" data={data?.phaseProgress} loading={loading} />
         </Stack>
       </Grid>
       <Grid item xs={12} lg={4}>
         <Stack spacing={3}>
           <NeedsActionList rows={data?.needsAction} loading={loading} title="Pending HR actions" />
-          <QuickActions actions={data?.quickActions} loading={loading} />
+          <RecentUpdatesCard role="ADMIN" />
         </Stack>
       </Grid>
     </Grid>

@@ -4,6 +4,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { homeType } from './homeTypography';
+import { CARD_PADDING } from './homeLayout';
 import AppCard from '../common/AppCard';
 
 /** Shows the employee's review pipeline. Hidden when they have no review assignment. */
@@ -17,7 +18,7 @@ const CurrentPeriodBanner = ({ period, goalProgress, loading }) => {
   const allDone = period.currentStep >= period.steps.length;
 
   return (
-    <AppCard sx={{ p: 2.5, borderColor: alpha(primary, 0.35), bgcolor: alpha(primary, 0.035) }}>
+    <AppCard sx={{ p: CARD_PADDING, borderColor: alpha(primary, 0.35), bgcolor: alpha(primary, 0.035) }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
         <Box>
           <Typography sx={{ ...homeType.label, color: 'primary.main' }}>Current review</Typography>

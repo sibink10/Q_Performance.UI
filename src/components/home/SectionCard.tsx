@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { Box, Stack, Typography } from '@mui/material';
 import { homeType } from './homeTypography';
+import { CARD_PADDING } from './homeLayout';
 import AppCard from '../common/AppCard';
 
 /**
@@ -8,7 +9,7 @@ import AppCard from '../common/AppCard';
  * `action` renders on the right of the header (count, link, legend…).
  */
 const SectionCard = ({ title, subtitle, action, children, sx, bodySx }) => (
-  <AppCard sx={{ p: 2.5, display: 'flex', flexDirection: 'column', ...sx }}>
+  <AppCard sx={{ p: CARD_PADDING, display: 'flex', flexDirection: 'column', ...sx }}>
     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ mb: 2 }}>
       <Box sx={{ minWidth: 0 }}>
         <Typography sx={homeType.cardTitle}>{title}</Typography>

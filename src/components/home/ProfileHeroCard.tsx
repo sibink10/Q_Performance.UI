@@ -5,6 +5,7 @@ import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import { homeType } from './homeTypography';
+import { CARD_PADDING } from './homeLayout';
 import { FONT_FAMILY_MONO } from '../../types/theme';
 import AppCard from '../common/AppCard';
 
@@ -39,7 +40,7 @@ const ProfileHeroCard = ({ profile, loading }) => {
 
   if (loading || !profile) {
     return (
-      <AppCard sx={{ p: 2.5 }}>
+      <AppCard sx={{ p: CARD_PADDING }}>
         <Stack direction="row" spacing={2.5} alignItems="center">
           <Skeleton variant="circular" width={64} height={64} />
           <Box sx={{ flex: 1 }}>
@@ -59,7 +60,7 @@ const ProfileHeroCard = ({ profile, loading }) => {
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        p: 2.5,
+        p: CARD_PADDING,
         boxShadow: `0 4px 20px ${alpha(theme.palette.grey[900], 0.05)}`,
         '&::before': {
           content: '""',
@@ -105,7 +106,7 @@ const ProfileHeroCard = ({ profile, loading }) => {
 
           <Stack direction="row" alignItems="center" sx={{ ...rowSx, columnGap: 1, mt: 0.75 }}>
             <Chip
-              label={profile.roleLabel}
+              label={profile.title || profile.roleLabel}
               size="small"
               sx={{ ...homeType.badge, height: 22, color: 'primary.main', bgcolor: alpha(primary, 0.1) }}
             />

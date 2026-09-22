@@ -4,6 +4,7 @@ import ProfileHeroCard from './ProfileHeroCard';
 import StatsGrid from './StatsGrid';
 import CurrentPeriodBanner from './CurrentPeriodBanner';
 import ReviewCyclesPanel from './ReviewCyclesPanel';
+import RecentUpdatesCard from './RecentUpdatesCard';
 import QuickActions from './QuickActions';
 
 const EmployeeDashboard = ({ data, loading }) => (
@@ -15,11 +16,12 @@ const EmployeeDashboard = ({ data, loading }) => (
       <Grid item xs={12} lg={8}>
         <Stack spacing={3}>
           <CurrentPeriodBanner period={data?.currentPeriod} goalProgress={data?.goalProgress} loading={loading} />
-          <ReviewCyclesPanel cycles={data?.cycles} loading={loading} />
+          <ReviewCyclesPanel cycles={data?.cycles} loading={loading} title="Growth Connect cycles" />
+          <QuickActions actions={data?.quickActions} loading={loading} />
         </Stack>
       </Grid>
       <Grid item xs={12} lg={4}>
-        <QuickActions actions={data?.quickActions} loading={loading} />
+        <RecentUpdatesCard role="EMPLOYEE" />
       </Grid>
     </Grid>
   </Stack>

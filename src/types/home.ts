@@ -9,10 +9,15 @@ export type CycleStatus = 'ACTIVE' | 'UPCOMING' | 'CLOSED';
 export interface HomeProfile {
   name: string;
   employeeId?: string;
+  /** Real designation name from qhrms.Designations, when the employee has one set. */
+  title?: string;
+  /** Fallback/secondary chip when no designation is set. */
   roleLabel: string;
   reportingManager?: string;
   email?: string;
   phone?: string;
+  /** ISO date the employee joined, when known. */
+  joinedOn?: string;
 }
 
 export interface ReviewCycle {

@@ -4,7 +4,7 @@
 import api from './api';
 import performanceService from './performanceService';
 import { getGoalsByEmployee } from './goalsService';
-import { fetchCycles } from './growthConnectService';
+import { fetchActiveCycles } from './growthConnectService';
 import { fetchManagerRevisionRequests, fetchPendingRevisions } from './goalRevisionService';
 import { getAllEmployees } from './employeeService';
 import { normalizeManagedAssignmentsResponse } from '../utils/normalizeManagedAssignmentsResponse';
@@ -22,21 +22,8 @@ import {
 
 const ok = (r) => (r.status === 'fulfilled' ? r.value : undefined);
 
-/** Collects distinct `financialYearId` values from an arbitrary payload (depth-limited). */
-function collectFinancialYearIds(node, out = new Set(), depth = 0) {
-  if (!node || typeof node !== 'object' || depth > 5) return out;
-  if (Array.isArray(node)) {
-    node.forEach((n) => collectFinancialYearIds(n, out, depth + 1));
-    return out;
-  }
-  if (node.financialYearId) out.add(String(node.financialYearId));
-  Object.values(node).forEach((v) => collectFinancialYearIds(v, out, depth + 1));
-  return out;
-}
-
-async function loadCycles(fyIds) {
-  const results = await Promise.allSettled([...fyIds].map((id) => fetchCycles(id)));
-  return mapCycles(results.flatMap((r) => (r.status === 'fulfilled' ? r.value : [])));
+async function loadActiveCycles() {
+  return mapCycles(await fetchActiveCycles().catch(() => []));
 }
 
 const isPending = (r) => {
@@ -82,7 +69,7 @@ async function loadEmployee(user) {
     stats,
     currentPeriod: buildCurrentPeriod(pickCurrentAssignment(assignments)),
     goalProgress: goals.length ? { completed: g.completed, total: g.total, percent: g.percent } : undefined,
-    cycles: await loadCycles(collectFinancialYearIds(assignments)),
+    cycles: await loadActiveCycles(),
     needsAction: [],
     quickActions: [
       { id: 'q1', label: 'My reviews', description: 'Start or continue your evaluation', path: '/performance' },
@@ -107,11 +94,9 @@ async function loadManager(user) {
 
   if (ok(teamRes)) {
     const rows = normalizeManagedAssignmentsResponse(ok(teamRes)).rows;
-    const team = new Set(rows.map((r) => String(r.id))).size;
     const mgrPending = rows.filter((r) => isSubmitted(r.selfEvalStatus) && !isSubmitted(r.managerReviewStatus));
     const mgrDone = rows.filter((r) => isSubmitted(r.managerReviewStatus)).length;
 
-    stats.push({ id: 'team', label: 'Team members', value: String(team), tone: 'primary' });
     if (rows.length) {
       stats.push({ id: 'mpend', label: 'Manager evaluations pending', value: String(mgrPending.length), hint: 'Self evaluation submitted', tone: 'warning', path: '/performance' });
       stats.push({ id: 'mdone', label: 'Manager evaluations done', value: `${mgrDone}/${rows.length}`, hint: `${Math.round((mgrDone / rows.length) * 100)}% complete`, tone: 'success' });
@@ -137,7 +122,6 @@ async function loadManager(user) {
 
   if (ok(mineRes)) {
     const pending = ok(mineRes).filter(isPending);
-    stats.push({ id: 'rev', label: 'Pending revision requests', value: String(pending.length), tone: 'info', path: '/manager/performance/requests' });
     if (pending.length) {
       needsAction.push({
         id: 'rev',
@@ -149,15 +133,17 @@ async function loadManager(user) {
     }
   }
 
-  const fyIds = collectFinancialYearIds(unwrapList(ok(myReviewsRes)));
-  collectFinancialYearIds(ok(teamRes), fyIds);
+  const myAssignments = unwrapList(ok(myReviewsRes));
 
   return {
     profile: mapProfile(unwrapItem(ok(me)), user),
     stats,
+    // Managers are reviewed too — show their own review pipeline (self/manager/HR/published),
+    // same as the employee dashboard, alongside the team's Growth Connect cycles below.
+    currentPeriod: buildCurrentPeriod(pickCurrentAssignment(myAssignments)),
     phaseProgress: phases,
     needsAction,
-    cycles: await loadCycles(fyIds),
+    cycles: await loadActiveCycles(),
     quickActions: [
       { id: 'q1', label: 'Goal reviews', description: 'Review your team goals', path: '/manager/performance/goal-reviews' },
       { id: 'q2', label: 'My requests', description: 'Track revision requests', path: '/manager/performance/requests' },
@@ -182,7 +168,7 @@ async function loadAdmin(user) {
 
   const [assignmentsRes, cycles] = await Promise.all([
     activeYear ? performanceService.getDashboard(activeYear.id).catch(() => undefined) : Promise.resolve(undefined),
-    activeYear ? loadCycles([activeYear.id]) : Promise.resolve([]),
+    loadActiveCycles(),
   ]);
 
   const stats = [];

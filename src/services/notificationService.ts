@@ -1,25 +1,36 @@
-// Dummy notification data for the UI. Replace the bodies with real API calls later (same signatures).
+// Notification data backed by the real API (GET/POST /notifications). Same exported
+// signatures as before, so callers (useNotifications, etc.) needed no changes.
+import api from './api';
 import type { AppNotification } from '../types/notification';
 
-let store: AppNotification[] = [
-  { id: 'n1', title: 'Self evaluation is open', message: 'Your self evaluation window is now open.', createdAt: '2026-09-21T08:30:00', isRead: false, path: '/performance' },
-  { id: 'n2', title: 'Goal approved', message: 'Your manager approved one of your goals.', createdAt: '2026-09-19T11:45:00', isRead: false, path: '/performance/goals' },
-  { id: 'n3', title: 'Revision request update', message: 'A goal revision request is awaiting approval.', createdAt: '2026-09-18T15:20:00', isRead: false },
-  { id: 'n4', title: 'Review form assigned', message: 'A new review form has been assigned to you.', createdAt: '2026-09-16T09:00:00', isRead: true, path: '/performance' },
-  { id: 'n5', title: 'Results published', message: 'Your results are now available.', createdAt: '2026-09-11T12:00:00', isRead: true, path: '/performance/results' },
-];
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
 
-const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
+function mapNotification(raw: Record<string, unknown>): AppNotification {
+  return {
+    id: String(raw.id ?? ''),
+    title: String(raw.title ?? ''),
+    message: String(raw.message ?? ''),
+    createdAt: String(raw.createdAt ?? ''),
+    isRead: Boolean(raw.isRead),
+    path: raw.path != null ? String(raw.path) : undefined,
+  };
+}
 
 export async function getNotifications(): Promise<AppNotification[]> {
-  await delay();
-  return store.map((n) => ({ ...n }));
+  const payload = await api.get('/notifications');
+  const list = asRecord(payload)?.data;
+  return Array.isArray(list) ? list.map((row) => mapNotification(asRecord(row) ?? {})) : [];
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  store = store.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+  await api.post(`/notifications/${id}/read`);
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  store = store.map((n) => ({ ...n, isRead: true }));
+  await api.post('/notifications/read-all');
 }

@@ -4,6 +4,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
 import { homeType } from './homeTypography';
+import { CARD_PADDING } from './homeLayout';
 import AppCard from '../common/AppCard';
 
 const StatTile = ({ stat, loading }) => {
@@ -14,7 +15,7 @@ const StatTile = ({ stat, loading }) => {
 
   if (loading || !stat) {
     return (
-      <AppCard sx={{ p: 2.5, height: '100%' }}>
+      <AppCard sx={{ p: CARD_PADDING, height: '100%' }}>
         <Skeleton width="50%" />
         <Skeleton width="35%" height={40} />
         <Skeleton width="60%" />
@@ -26,7 +27,7 @@ const StatTile = ({ stat, loading }) => {
     <AppCard
       onClick={clickable ? () => navigate(stat.path) : undefined}
       sx={{
-        p: 2.5,
+        p: CARD_PADDING,
         height: '100%',
         position: 'relative',
         overflow: 'hidden',

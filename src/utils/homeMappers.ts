@@ -63,10 +63,12 @@ export const mapProfile = (user, fallback) => {
   return {
     name,
     employeeId: pick(user, 'employeeId') || fallback?.employeeId,
+    title: pick(user, 'designation'),
     roleLabel: roleLabel(pick(user, 'role') || fallback?.role),
     reportingManager: pick(user, 'managerName'),
     email: pick(user, 'email') || fallback?.email,
     phone: pick(user, 'phoneNumber'),
+    joinedOn: pick(user, 'dateOfJoining'),
   };
 };
 

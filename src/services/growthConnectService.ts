@@ -58,6 +58,12 @@ export async function fetchCycles(financialYearId: string): Promise<GrowthConnec
   return coerceItems(payload).map((row) => mapCycle(asRecord(row) ?? {}));
 }
 
+/** GET /performance/growth-connect/cycles/active — cycles for the active financial year, any role. */
+export async function fetchActiveCycles(): Promise<GrowthConnectCycle[]> {
+  const payload = await api.get('/performance/growth-connect/cycles/active');
+  return coerceItems(payload).map((row) => mapCycle(asRecord(row) ?? {}));
+}
+
 /** POST /performance/growth-connect/financial-years/{financialYearId}/cycles */
 export async function createCycle(
   financialYearId: string,
@@ -126,6 +132,7 @@ export async function submitManagerFeedback(
 
 const growthConnectService = {
   fetchCycles,
+  fetchActiveCycles,
   createCycle,
   updateCycle,
   openCycle,
