@@ -143,7 +143,7 @@ export const RatingBandShortLabelChip = memo(function RatingBandShortLabelChip({
           sx={{
             bgcolor: accent,
             color: '#fff',
-            fontWeight: 800,
+            fontWeight: 600,
             fontSize,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
@@ -179,7 +179,7 @@ export const RatingBandShortLabelChip = memo(function RatingBandShortLabelChip({
           position: 'relative',
           bgcolor: accent,
           color: '#fff',
-          fontWeight: 800,
+          fontWeight: 600,
           fontSize,
           letterSpacing: 1.15,
           textTransform: 'uppercase',

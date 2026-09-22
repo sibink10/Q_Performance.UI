@@ -40,6 +40,7 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import StarIcon from "@mui/icons-material/Star";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import FlagIcon from "@mui/icons-material/Flag";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
@@ -49,12 +50,15 @@ import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import useAuth from "../hooks/useAuth";
 import { MAIN_LAYOUT_APP_BAR_HEIGHT } from "../components/common/PageHeader";
 import { getAppBarTitle } from "../utils/appBarTitle";
+import NotificationBell from "../components/notifications/NotificationBell";
 import { selectOrgBranding } from "../app/state/slices/orgBrandingSlice";
 import { DEFAULT_ORG_BRANDING } from "../utils/orgBrandingDefaults";
 import appSidebarLogo from "../assets/logo.png";
 import qubiqonFooterLogo from "../assets/qubiqon_logo.png";
 
 const DRAWER_WIDTH = 272;
+
+const HOME_NAV_ITEM = { label: "Home", icon: <HomeRoundedIcon />, path: "/home" };
 
 const EMPLOYEE_NAV = [
   { label: "My Reviews", icon: <AssignmentIcon />, path: "/performance" },
@@ -254,6 +258,7 @@ const MainLayout = () => {
       border: `1px solid ${alpha(theme.palette.primary.main, 0.22)}`,
       boxShadow: `0 10px 22px -18px ${alpha(theme.palette.primary.main, 0.45)}`,
       "& .MuiListItemIcon-root": { color: theme.palette.primary.main },
+      "& .MuiListItemText-primary": { fontWeight: 600 },
     },
     "&.Mui-selected::before": {
       content: '""',
@@ -349,7 +354,7 @@ const MainLayout = () => {
           ) : null}
           <Typography
             variant="subtitle1"
-            fontWeight={700}
+            fontWeight={600}
             lineHeight={1}
             sx={{ color: theme.palette.text.primary }}
           >
@@ -388,6 +393,22 @@ const MainLayout = () => {
         }}
       >
         <ListItem disablePadding>
+          <ListItemButton
+            selected={location.pathname.replace(/\/$/, "") === HOME_NAV_ITEM.path}
+            onClick={() => handleNavigate(HOME_NAV_ITEM.path)}
+            sx={navBtnSx}
+          >
+            <ListItemIcon>{HOME_NAV_ITEM.icon}</ListItemIcon>
+            <ListItemText
+              primary={HOME_NAV_ITEM.label}
+              primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+            />
+          </ListItemButton>
+        </ListItem>
+        <Divider
+          sx={{ my: 1.25, borderColor: alpha(theme.palette.grey[900], 0.08) }}
+        />
+        <ListItem disablePadding>
           <Typography
             variant="overline"
             sx={{
@@ -396,7 +417,7 @@ const MainLayout = () => {
               color: alpha(theme.palette.primary.main, 0.88),
               fontSize: theme.typography.overline.fontSize,
               letterSpacing: 1.2,
-              fontWeight: 700,
+              fontWeight: 600,
             }}
           >
             My Performance
@@ -435,7 +456,7 @@ const MainLayout = () => {
                   color: alpha(theme.palette.primary.main, 0.88),
                   fontSize: theme.typography.overline.fontSize,
                   letterSpacing: 1.2,
-                  fontWeight: 700,
+                  fontWeight: 600,
                 }}
               >
                 Team Performance
@@ -482,7 +503,7 @@ const MainLayout = () => {
                       color: alpha(theme.palette.primary.main, 0.88),
                       fontSize: theme.typography.overline.fontSize,
                       letterSpacing: 1.2,
-                      fontWeight: 700,
+                      fontWeight: 600,
                     }}
                   >
                     {section.section}
@@ -662,7 +683,7 @@ const MainLayout = () => {
               component="h1"
               variant="subtitle1"
               sx={{
-                fontWeight: 800,
+                fontWeight: 600,
                 letterSpacing: "-0.02em",
                 lineHeight: 1.25,
                 color: "text.primary",
@@ -672,6 +693,8 @@ const MainLayout = () => {
               {headerTitle}
             </Typography>
           </Box>
+
+          <NotificationBell />
 
           <Box
             sx={{
@@ -726,7 +749,7 @@ const MainLayout = () => {
                     width: 34,
                     height: 34,
                     fontSize: 14,
-                    fontWeight: 800,
+                    fontWeight: 600,
                     background: theme.palette.primary.main,
                   }}
                 >
@@ -763,7 +786,7 @@ const MainLayout = () => {
                 borderColor: "divider",
               }}
             >
-              <Typography variant="subtitle2" fontWeight={700} noWrap>
+              <Typography variant="subtitle2" fontWeight={600} noWrap>
                 {user?.name}
               </Typography>
               <Typography

@@ -61,7 +61,7 @@ const RatingBandCard = ({ index, band, saving, onFieldChange }: Props) => {
             <Chip
               label={`Level ${index + 1}`}
               size="small"
-              sx={{ fontWeight: 700, bgcolor: `${accent}18`, color: accent }}
+              sx={{ fontWeight: 600, bgcolor: `${accent}18`, color: accent }}
             />
             <Chip label={rangeLabel} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
           </Box>

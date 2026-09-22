@@ -32,7 +32,7 @@ const commentRichTextContentSx = {
   "& p": { m: 0, ...richTextWrapRootSx },
   "& ul, & ol": { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
   "& li": { mt: 0.25, ...richTextWrapRootSx },
-  "& strong": { fontWeight: 700 },
+  "& strong": { fontWeight: 600 },
   "& img": { maxWidth: "100%", height: "auto", verticalAlign: "middle" },
   "& a": { overflowWrap: "anywhere", wordBreak: "break-all" },
 } as const;
@@ -200,7 +200,7 @@ const questionAltSx = (qIdx: number) => {
 
 const weightageChipSx = {
   flexShrink: 0,
-  fontWeight: 700,
+  fontWeight: 600,
   bgcolor: "rgba(2, 136, 209, 0.12)",
   borderColor: "info.main",
   color: "info.dark",
@@ -501,7 +501,7 @@ function EvaluationQuestionCardInner({
               "& p": { m: 0, ...richTextWrapRootSx },
               "& ul, & ol": { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
               "& li": { mt: 0.25, ...richTextWrapRootSx },
-              "& strong": { fontWeight: 700 },
+              "& strong": { fontWeight: 600 },
               "& a": { overflowWrap: "anywhere", wordBreak: "break-all" },
             }}
           >

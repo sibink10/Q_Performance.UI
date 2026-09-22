@@ -57,7 +57,7 @@ const AppModal = ({
           </Box>
         )}
         <Box sx={{ flex: 1, minWidth: 0, pt: icon ? 0.4 : 0 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+          <Typography variant="h6" sx={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.4 }}>
             {title}
           </Typography>
           {subtitle && (

@@ -299,7 +299,7 @@ const SelfEvaluationForm = () => {
 
 const weightageChipSx = {
   flexShrink: 0,
-  fontWeight: 700,
+  fontWeight: 600,
   bgcolor: 'rgba(2, 136, 209, 0.12)', // info light background
   borderColor: 'info.main',
   color: 'info.dark',
@@ -775,7 +775,7 @@ const progressCardChipShell = (theme) => ({
   if (modeHr && !isAdmin) {
     return (
       <Box>
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
+        <Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>
           HR Review
         </Typography>
         <Alert severity="error">HR review submission is restricted to administrators.</Alert>
@@ -790,7 +790,7 @@ const progressCardChipShell = (theme) => ({
           <IconButton size="small" onClick={() => navigate(-1)}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" fontWeight={700}>
+          <Typography variant="h5" fontWeight={600}>
             {isManagerMode ? 'Manager Evaluation' : isHrMode ? 'HR Review' : 'Self Evaluation'}
           </Typography>
         </Box>

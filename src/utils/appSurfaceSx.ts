@@ -61,9 +61,9 @@ export function floatingTableShellSx(theme: Theme) {
 export const modernTableHeadCellSx = {
   textTransform: 'uppercase',
   fontSize: (theme: Theme) => theme.typography.overline.fontSize,
-  fontWeight: 600,
-  letterSpacing: '0.085em',
-  color: 'text.secondary',
+  fontWeight: 500,
+  letterSpacing: '0.05em',
+  color: 'text.disabled',
   borderBottom: 'none',
   py: 2.25,
   px: 2,

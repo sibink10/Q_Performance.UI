@@ -119,7 +119,7 @@ const GrowthConnectRevisionRequestModal = ({ open, entry, onClose }: GrowthConne
           {error && <Alert severity="error">{error}</Alert>}
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Current Status &amp; Feedback
             </Typography>
             <Grid container spacing={1.5}>
@@ -145,7 +145,7 @@ const GrowthConnectRevisionRequestModal = ({ open, entry, onClose }: GrowthConne
           <Divider />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Revision Reason
             </Typography>
             <FormControl fullWidth size="small">
@@ -184,7 +184,7 @@ const GrowthConnectRevisionRequestModal = ({ open, entry, onClose }: GrowthConne
           <Divider />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
               Proposed Changes
             </Typography>
 

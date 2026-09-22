@@ -528,7 +528,7 @@ const ReviewFormEditor = () => {
                       >
                         <Typography
                           variant="caption"
-                          sx={{ mt: { sm: 1.2 }, minWidth: 20, color: 'text.secondary', fontWeight: 700 }}
+                          sx={{ mt: { sm: 1.2 }, minWidth: 20, color: 'text.secondary', fontWeight: 600 }}
                         >
                           Q{qIdx + 1}
                         </Typography>

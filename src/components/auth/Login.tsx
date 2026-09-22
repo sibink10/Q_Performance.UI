@@ -59,7 +59,7 @@ const Login = () => {
             <Box component="img" src={appLogo} alt="" sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 0.5 }} />
           </Box>
           <Box>
-            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.03em' }}>
+            <Typography variant="h5">
               QHRMS Performance
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 320, mx: 'auto' }}>

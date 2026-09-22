@@ -458,7 +458,7 @@ const AssignGoalModal = ({
                   size="small"
                   label={`${selectedEmployees.length} selected`}
                   sx={{
-                    fontWeight: 700,
+                    fontWeight: 600,
                     bgcolor: categoryAccent ? categoryAccent.soft : alpha(theme.palette.primary.main, 0.1),
                     color: categoryAccent ? categoryAccent.main : theme.palette.primary.dark,
                   }}
@@ -488,7 +488,7 @@ const AssignGoalModal = ({
                         width: 30,
                         height: 30,
                         fontSize: '0.75rem',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         bgcolor: alpha(theme.palette.primary.main, 0.12),
                         color: theme.palette.primary.dark,
                       }}
@@ -518,7 +518,7 @@ const AssignGoalModal = ({
                       key={option.id}
                       size="small"
                       avatar={
-                        <Avatar sx={{ bgcolor: 'transparent !important', color: 'inherit', fontSize: '0.65rem', fontWeight: 700 }}>
+                        <Avatar sx={{ bgcolor: 'transparent !important', color: 'inherit', fontSize: '0.65rem', fontWeight: 600 }}>
                           {getInitials(option.name)}
                         </Avatar>
                       }

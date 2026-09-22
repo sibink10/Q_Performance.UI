@@ -125,7 +125,7 @@ const GoalRevisionApprovalTable = ({
               }}
             >
               <TableHead>
-                <TableRow sx={{ '& th': { fontWeight: 700 } }}>
+                <TableRow sx={{ '& th': { fontWeight: 600 } }}>
                   <TableCell sx={{ width: '12%' }}>Employee</TableCell>
                   <TableCell sx={{ width: '15%' }}>Goal</TableCell>
                   <TableCell sx={{ width: '11%' }}>Manager / Requester</TableCell>
@@ -175,7 +175,7 @@ const GoalRevisionApprovalTable = ({
                           size="small"
                           label={GOAL_REVISION_STATUS_LABELS[revision.status]}
                           sx={{
-                            fontWeight: 700,
+                            fontWeight: 600,
                             backgroundColor: alpha(statusColors.main, 0.14),
                             color: statusColors.dark,
                           }}

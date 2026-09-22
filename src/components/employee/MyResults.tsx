@@ -47,7 +47,7 @@ const questionRowAltSx = (qIdx: number) => {
 
 const weightChipSx = {
   flexShrink: 0,
-  fontWeight: 700,
+  fontWeight: 600,
   bgcolor: 'rgba(2, 136, 209, 0.12)',
   borderColor: 'info.main',
   color: 'info.dark',
@@ -72,7 +72,7 @@ const commentRichTextContentSx = {
   '& p': { m: 0, ...richTextWrapRootSx },
   '& ul, & ol': { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
   '& li': { mt: 0.25, ...richTextWrapRootSx },
-  '& strong': { fontWeight: 700 },
+  '& strong': { fontWeight: 600 },
   '& img': { maxWidth: '100%', height: 'auto', verticalAlign: 'middle' },
   '& a': { overflowWrap: 'anywhere', wordBreak: 'break-all' },
 } as const;
@@ -241,7 +241,7 @@ function PublishedResultPanels({ result }) {
             </Avatar>
           </Grid>
           <Grid item flex={1}>
-            <Typography variant="h3" fontWeight={800} sx={{ color: ratingColor, lineHeight: 1 }}>
+            <Typography variant="h3" fontWeight={600} sx={{ color: ratingColor, lineHeight: 1 }}>
               {Number(result.finalRating).toFixed(1)}{' '}
               <Typography component="span" variant="h5" color="text.secondary">
                 / {result.ratingScale}
@@ -369,7 +369,7 @@ function PublishedResultPanels({ result }) {
               ].map((stat) => (
                 <Grid item xs={6} sm={3} key={stat.label}>
                   <AppCard sx={{ textAlign: 'center', p: 1.5 }}>
-                    <Typography variant="h5" fontWeight={800} sx={{ color: stat.color }}>{stat.value}</Typography>
+                    <Typography variant="h5" fontWeight={600} sx={{ color: stat.color }}>{stat.value}</Typography>
                     <Typography variant="caption" color="text.secondary">{stat.label}</Typography>
                   </AppCard>
                 </Grid>
@@ -389,7 +389,7 @@ function PublishedResultPanels({ result }) {
             bgcolor: 'rgba(248,250,252,0.92)',
           }}
         >
-          <Typography variant="subtitle1" fontWeight={700}>Focus area breakdown</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>Focus area breakdown</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Each focus area lists its evaluation questions with your answers, manager answers, and ratings (same layout as the review form editor).
           </Typography>
@@ -444,7 +444,7 @@ function PublishedResultPanels({ result }) {
                       }}
                     >
                       <Typography
-                        fontWeight={700}
+                        fontWeight={600}
                         sx={{
                           ...richTextWrapRootSx,
                           flex: { sm: '1 1 auto' },
@@ -537,7 +537,7 @@ function PublishedResultPanels({ result }) {
                                     '& p': { m: 0, ...richTextWrapRootSx },
                                     '& ul, & ol': { mt: 0, mb: 0, pl: 2.25, ...richTextWrapRootSx },
                                     '& li': { mt: 0.25, ...richTextWrapRootSx },
-                                    '& strong': { fontWeight: 700 },
+                                    '& strong': { fontWeight: 600 },
                                     '& a': { overflowWrap: 'anywhere', wordBreak: 'break-all' },
                                   }}
                                   dangerouslySetInnerHTML={{ __html: html }}
@@ -753,7 +753,7 @@ const MyResults = () => {
                 {assignmentRows.map((row) => (
                   <TableRow key={row.id} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={700}>{row.formName}</Typography>
+                      <Typography variant="body2" fontWeight={600}>{row.formName}</Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>

@@ -110,7 +110,7 @@ const ManagerGoalCard = ({
                 label="Overdue"
                 sx={{
                   height: 20,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: '0.7rem',
                   backgroundColor: alpha(theme.palette.error.main, 0.1),
                   color: theme.palette.error.dark,
@@ -120,7 +120,7 @@ const ManagerGoalCard = ({
             )}
           </Stack>
 
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.25 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.25 }}>
             {goal.title}
           </Typography>
 

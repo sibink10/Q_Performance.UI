@@ -5,7 +5,10 @@ export function getAppBarTitle(pathname: string, search: string): string {
   const path = pathname.replace(/\/$/, '') || '/';
   const mode = new URLSearchParams(search).get('mode') || 'self';
 
-  if (path === '/performance' || path === '/') {
+  if (path === '/home' || path === '/') {
+    return 'Home';
+  }
+  if (path === '/performance') {
     return 'My reviews';
   }
   if (path.startsWith('/performance/review')) {

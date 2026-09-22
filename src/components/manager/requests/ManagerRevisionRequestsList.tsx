@@ -60,7 +60,7 @@ const GrowthConnectRevisionRow = ({ revision, expanded, onToggle }: GrowthConnec
           <Chip
             size="small"
             label={GOAL_REVISION_STATUS_LABELS[revision.status]}
-            sx={{ fontWeight: 700, backgroundColor: alpha(statusColors.main, 0.14), color: statusColors.dark }}
+            sx={{ fontWeight: 600, backgroundColor: alpha(statusColors.main, 0.14), color: statusColors.dark }}
           />
         </TableCell>
         <TableCell>{revision.reviewedByName || '—'}</TableCell>
@@ -147,7 +147,7 @@ const RevisionRow = ({ revision, expanded, onToggle }: RevisionRowProps) => {
             size="small"
             label={GOAL_REVISION_STATUS_LABELS[revision.status]}
             sx={{
-              fontWeight: 700,
+              fontWeight: 600,
               backgroundColor: alpha(statusColors.main, 0.14),
               color: statusColors.dark,
             }}
@@ -170,7 +170,7 @@ const RevisionRow = ({ revision, expanded, onToggle }: RevisionRowProps) => {
         <TableCell colSpan={9} sx={{ py: 0, border: expanded ? undefined : 'none' }}>
           <Collapse in={expanded} timeout="auto" unmountOnExit>
             <Box sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Proposed changes
               </Typography>
               <Stack spacing={0.5} sx={{ mt: 0.5, mb: 1.5 }}>
@@ -183,7 +183,7 @@ const RevisionRow = ({ revision, expanded, onToggle }: RevisionRowProps) => {
 
               {revision.status === 'APPROVED' && appliedChanges.length > 0 && (
                 <>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                     Original → Approved
                   </Typography>
                   <Stack spacing={0.5} sx={{ mt: 0.5, mb: 1.5 }}>
@@ -257,11 +257,11 @@ const ManagerRevisionRequestsList = () => {
       />
 
       <Tabs value={requestKind} onChange={(_e, value) => setRequestKind(value)} sx={{ mb: 2, minHeight: 40 }}>
-        <Tab value="GOAL" label="Goal Requests" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+        <Tab value="GOAL" label="Goal Requests" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
         <Tab
           value="GROWTH_CONNECT"
           label="Growth Connect Requests"
-          sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
+          sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
         />
       </Tabs>
 
@@ -284,7 +284,7 @@ const ManagerRevisionRequestsList = () => {
             <TableContainer>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ '& th': { fontWeight: 700 } }}>
+                  <TableRow sx={{ '& th': { fontWeight: 600 } }}>
                     <TableCell>Employee</TableCell>
                     <TableCell>Goal / Cycle</TableCell>
                     <TableCell>Reason</TableCell>
@@ -320,7 +320,7 @@ const ManagerRevisionRequestsList = () => {
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ '& th': { fontWeight: 700 } }}>
+                <TableRow sx={{ '& th': { fontWeight: 600 } }}>
                   <TableCell>Employee</TableCell>
                   <TableCell>Goal</TableCell>
                   <TableCell>Reason</TableCell>

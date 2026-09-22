@@ -53,7 +53,7 @@ const EmployeeGoalGroup = ({
             width: 40,
             height: 40,
             fontSize: '0.9rem',
-            fontWeight: 700,
+            fontWeight: 600,
             bgcolor: alpha(theme.palette.primary.main, 0.12),
             color: theme.palette.primary.dark,
           }}
@@ -73,7 +73,7 @@ const EmployeeGoalGroup = ({
             size="small"
             label={`${needsAttentionCount} to review`}
             sx={{
-              fontWeight: 700,
+              fontWeight: 600,
               backgroundColor: alpha(theme.palette.warning.main, 0.12),
               color: theme.palette.warning.dark,
               border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}`,

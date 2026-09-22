@@ -169,7 +169,7 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
           {error && <Alert severity="error">{error}</Alert>}
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Employee Information
             </Typography>
             <Grid container spacing={1.5}>
@@ -211,7 +211,7 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
           <Divider />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Current Goal
             </Typography>
             <Grid container spacing={1.5}>
@@ -233,7 +233,7 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
           <Divider />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Revision Reason
             </Typography>
             <FormControl fullWidth size="small">
@@ -274,7 +274,7 @@ const GoalRevisionRequestModal = ({ open, goal, employees, onClose }: GoalRevisi
           <Divider />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
               Proposed Changes
             </Typography>
 

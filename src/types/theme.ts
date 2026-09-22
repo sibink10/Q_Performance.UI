@@ -3,6 +3,14 @@ import type { PaletteColor, Shadows } from '@mui/material/styles';
 import { appPageCanvasBackgroundLayers } from '../utils/appPageCanvasBackground';
 import { APP_SURFACE_RADIUS_PX } from '../utils/appSurfaceSx';
 
+/** UI font (all text) and monospace font (IDs / codes only). */
+export const FONT_FAMILY = '"Manrope", "Segoe UI", "Roboto", sans-serif';
+export const FONT_FAMILY_MONO = '"JetBrains Mono", "Consolas", monospace';
+
+/** Slate tones from the type spec. */
+export const TEXT_MUTED = '#94a3b8';
+export const TEXT_FORM_LABEL = '#334155';
+
 /** Default primary when org branding has no theme color set */
 export const DEFAULT_BRAND_PRIMARY = '#0f9d78';
 
@@ -100,6 +108,7 @@ export function createAppTheme(primaryHex?: string | null) {
       text: {
         primary: '#0f172a',
         secondary: '#64748b',
+        disabled: '#94a3b8',
       },
       divider: '#e6eaef',
       grey: {
@@ -122,16 +131,33 @@ export function createAppTheme(primaryHex?: string | null) {
     },
     shadows: createSoftShadows(),
     typography: {
-      fontFamily: '"Plus Jakarta Sans", "Segoe UI", "Roboto", sans-serif',
+      fontFamily: FONT_FAMILY,
       fontSize: 14,
-      h5: { fontWeight: 800, fontSize: '1.35rem', letterSpacing: '-0.02em' },
-      h6: { fontWeight: 650, fontSize: '1.08rem' },
-      subtitle1: { fontWeight: 650, fontSize: '0.95rem' },
-      subtitle2: { fontWeight: 650, fontSize: '0.875rem' },
-      body1: { fontSize: '0.9375rem', lineHeight: 1.6 },
-      body2: { fontSize: '0.875rem', lineHeight: 1.55 },
-      caption: { fontSize: '0.75rem', lineHeight: 1.45 },
-      overline: { fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.085em' },
+      htmlFontSize: 16,
+      fontWeightRegular: 400,
+      fontWeightMedium: 500,
+      fontWeightBold: 600,
+      // Page header title
+      h4: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.3, letterSpacing: '-0.02em' },
+      h5: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.3, letterSpacing: '-0.02em' },
+      // Section title
+      h6: { fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.4, letterSpacing: '-0.01em' },
+      subtitle1: { fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.4, letterSpacing: '-0.01em' },
+      // Detail value
+      subtitle2: { fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4 },
+      body1: { fontWeight: 400, fontSize: '0.875rem', lineHeight: 1.5 },
+      body2: { fontWeight: 400, fontSize: '0.8125rem', lineHeight: 1.4 },
+      // Hint / helper text
+      caption: { fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.4 },
+      // Detail label
+      overline: {
+        fontWeight: 500,
+        fontSize: '0.6875rem',
+        lineHeight: 1.4,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+      },
+      button: { fontWeight: 500, textTransform: 'none' },
     },
     shape: {
       /** Base radius; Cards/Papers use APP_SURFACE_RADIUS_PX for parity with AppCard. */
@@ -140,9 +166,16 @@ export function createAppTheme(primaryHex?: string | null) {
     components: {
       MuiCssBaseline: {
         styleOverrides: {
+          html: { fontSize: 16 },
           body: {
             ...appPageCanvasBackgroundLayers,
             minHeight: '100%',
+            fontFamily: FONT_FAMILY,
+            fontSize: '1rem',
+            fontWeight: 400,
+            color: '#0f172a',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
           },
         },
       },
@@ -150,9 +183,13 @@ export function createAppTheme(primaryHex?: string | null) {
         styleOverrides: {
           root: {
             textTransform: 'none',
-            fontWeight: 600,
+            fontWeight: 500,
+            fontSize: '0.875rem',
             borderRadius: 10,
           },
+          sizeSmall: { fontSize: '0.75rem' },
+          sizeMedium: { fontSize: '0.875rem' },
+          sizeLarge: { fontSize: '1rem' },
           contained: {
             boxShadow: `0 6px 18px ${alpha(brandGreen, 0.18)}`,
             '&:hover': {
@@ -210,11 +247,11 @@ export function createAppTheme(primaryHex?: string | null) {
             const paletteKey =
               typeof ownerState.color === 'string' ? ownerState.color : 'default';
             const base = {
-              fontWeight: 600,
+              fontWeight: 500,
               borderRadius: 999,
               height: 22,
               fontSize: '0.75rem',
-              lineHeight: 1,
+              lineHeight: 1.25,
             } as const;
 
             if (variant === 'outlined') {
@@ -262,11 +299,52 @@ export function createAppTheme(primaryHex?: string | null) {
         styleOverrides: {
           root: {
             '& .MuiTableCell-root': {
-              fontWeight: 700,
-              fontSize: '0.8125rem',
+              fontWeight: 500,
+              fontSize: '0.6875rem',
+              letterSpacing: '0.05em',
+              color: TEXT_MUTED,
               whiteSpace: 'nowrap',
             },
           },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            fontFamily: FONT_FAMILY,
+          },
+          body: {
+            fontSize: '0.8125rem',
+            fontWeight: 400,
+            lineHeight: 1.4,
+            color: '#64748b',
+          },
+        },
+      },
+      MuiInputBase: {
+        styleOverrides: {
+          root: { fontSize: '0.875rem', fontWeight: 400, color: '#0f172a' },
+          input: { fontSize: '0.875rem', fontWeight: 400 },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: { fontSize: '0.875rem', fontWeight: 500, color: TEXT_FORM_LABEL },
+        },
+      },
+      MuiFormLabel: {
+        styleOverrides: {
+          root: { fontSize: '0.875rem', fontWeight: 500, color: TEXT_FORM_LABEL },
+        },
+      },
+      MuiFormHelperText: {
+        styleOverrides: {
+          root: { fontSize: '0.75rem', fontWeight: 400, color: TEXT_MUTED, marginLeft: 2 },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: { fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.4, letterSpacing: '-0.01em' },
         },
       },
       MuiAccordion: {
@@ -302,13 +380,14 @@ export function createAppTheme(primaryHex?: string | null) {
           root: ({ theme }) => ({
             minHeight: 38,
             padding: '8px 14px',
-            fontSize: '0.875rem',
-            fontWeight: 600,
+            fontSize: '0.8125rem',
+            fontWeight: 500,
             textTransform: 'none',
             borderRadius: 10,
             color: theme.palette.text.secondary,
             transition: 'color 0.2s, background-color 0.2s, box-shadow 0.2s',
             '&.Mui-selected': {
+              fontWeight: 600,
               color: theme.palette.text.primary,
               backgroundColor: theme.palette.background.paper,
               boxShadow: `0 1px 2px ${alpha('#0f172a', 0.06)}, 0 10px 22px -14px ${alpha(

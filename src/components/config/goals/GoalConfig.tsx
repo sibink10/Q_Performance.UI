@@ -296,7 +296,7 @@ const GoalConfig = () => {
                 label={status === 'ALL' ? 'All statuses' : GOAL_STATUS_LABELS[status]}
                 onClick={() => setTeamFilters({ status })}
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   backgroundColor: selected
                     ? colors
                       ? colors.light

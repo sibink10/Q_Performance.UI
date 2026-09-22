@@ -22,6 +22,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import { FONT_FAMILY_MONO } from '../../types/theme';
 import useFinancialYears from '../../hooks/useFinancialYears';
 
 const DATE_FORMAT = 'DD/MM/YYYY';
@@ -258,7 +259,7 @@ const OperationsPerformance = () => {
                         <Typography variant="caption" color="text.secondary">{emp.designation}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="caption" fontFamily="monospace">{emp.employeeId}</Typography>
+                        <Typography variant="caption" sx={{ fontFamily: FONT_FAMILY_MONO }}>{emp.employeeId}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption">{emp.formName}</Typography>

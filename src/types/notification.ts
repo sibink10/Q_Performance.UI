@@ -1,21 +1,10 @@
-export type NotificationType =
-  | 'GOAL_REVISION'
-  | 'GROWTH_CONNECT'
-  | 'SELF_APPRAISAL'
-  | 'MANAGER_ASSESSMENT'
-  | 'CALIBRATION'
-  | 'FINAL_OUTCOME'
-  | 'GENERAL';
-
-export interface Notification {
+export interface AppNotification {
   id: string;
-  userId: string;
-  type: NotificationType;
   title: string;
   message: string;
-  read: boolean;
-  entityType: string | null;
-  entityId: string | null;
-  link: string | null;
+  /** ISO date string */
   createdAt: string;
+  isRead: boolean;
+  /** Optional in-app route to open when the notification is clicked */
+  path?: string;
 }

@@ -133,11 +133,11 @@ const RevisionRequestsPage = () => {
         onChange={(_e, value) => setRevisionKind(value)}
         sx={{ mb: 2, minHeight: 40 }}
       >
-        <Tab value="GOAL" label="Goal Revisions" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+        <Tab value="GOAL" label="Goal Revisions" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
         <Tab
           value="GROWTH_CONNECT"
           label="Growth Connect Revisions"
-          sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
+          sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
         />
       </Tabs>
 
@@ -234,7 +234,7 @@ const RevisionRequestsPage = () => {
             key={tab.value}
             value={tab.value}
             label={tab.label}
-            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
+            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
           />
         ))}
       </Tabs>
