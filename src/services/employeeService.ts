@@ -74,6 +74,8 @@ function mapRawEmployee(raw: Record<string, unknown>, index: number): Employee {
     designation: str(raw, 'designation', 'jobTitle', 'title') || undefined,
     phoneNumber: str(raw, 'phoneNumber', 'phone', 'mobile'),
     role,
+    managerId: str(raw, 'managerId') || undefined,
+    managerName: str(raw, 'managerName') || undefined,
   };
 }
 

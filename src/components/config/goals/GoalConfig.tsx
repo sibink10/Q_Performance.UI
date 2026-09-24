@@ -59,6 +59,7 @@ const GoalConfig = () => {
   const theme = useTheme();
   const { financialYears } = useFinancialYears();
   const {
+    teamGoals,
     filteredTeamGoals,
     teamFilters,
     isLoading,
@@ -228,7 +229,7 @@ const GoalConfig = () => {
         </Alert>
       )}
 
-      <TeamGoalsSummaryStrip goals={filteredTeamGoals} />
+      <TeamGoalsSummaryStrip goals={teamGoals} />
 
       <AppCard sx={{ p: { xs: 2, sm: 3 } }}>
         <Grid container spacing={2} sx={{ mb: 2 }}>
