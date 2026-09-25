@@ -142,7 +142,7 @@ const AppraisalConfigModal = ({
 
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               Cycle settings
             </Typography>
             <Divider sx={{ mt: 1 }} />
@@ -223,7 +223,7 @@ const AppraisalConfigModal = ({
           <Grid item xs={12} sx={{ mt: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Result rating bands
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -259,7 +259,7 @@ const AppraisalConfigModal = ({
           </Grid>
 
           <Grid item xs={12} sx={{ mt: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               Evaluation dates
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>

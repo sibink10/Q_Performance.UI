@@ -71,6 +71,7 @@ function orderGroups(groups: EmployeeGoals[]): EmployeeGoals[] {
 const GoalReviews = () => {
   const theme = useTheme();
   const {
+    teamGoals,
     filteredTeamGoals,
     teamFilters,
     currentUserId,
@@ -170,7 +171,7 @@ const GoalReviews = () => {
         </Alert>
       )}
 
-      <TeamGoalsSummaryStrip goals={filteredTeamGoals} />
+      <TeamGoalsSummaryStrip goals={teamGoals} />
 
       <AppCard sx={{ p: { xs: 2, sm: 3 } }}>
         <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -240,7 +241,7 @@ const GoalReviews = () => {
                 label={status === 'ALL' ? 'All statuses' : GOAL_STATUS_LABELS[status]}
                 onClick={() => setTeamFilters({ status })}
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   backgroundColor: selected
                     ? colors
                       ? colors.light

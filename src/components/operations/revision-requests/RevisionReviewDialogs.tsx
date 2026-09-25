@@ -52,7 +52,7 @@ export function RevisionSummary({ revision, goal }: { revision: GoalRevision; go
       <Divider />
 
       <Box>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
           Current vs Proposed
         </Typography>
         <Stack spacing={1}>

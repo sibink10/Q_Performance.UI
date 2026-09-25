@@ -16,6 +16,8 @@ export interface Employee {
   designation?: string;
   phoneNumber: string;
   role: UserRole;
+  managerId?: string;
+  managerName?: string;
 }
 
 export interface MockUser {

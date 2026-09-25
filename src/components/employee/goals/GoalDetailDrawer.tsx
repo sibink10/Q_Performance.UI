@@ -76,7 +76,7 @@ function DetailSection({ icon, title, children, muted = false }: DetailSectionPr
         >
           {icon}
         </Box>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
           {title}
         </Typography>
       </Stack>
@@ -174,13 +174,13 @@ const GoalDetailDrawer = ({
                     {employeeName}
                   </Typography>
                 )}
-                <Typography variant="overline" sx={{ fontWeight: 700, color: categoryAccent.main }}>
+                <Typography variant="overline" sx={{ fontWeight: 600, color: categoryAccent.main }}>
                   {GOAL_CATEGORY_LABELS[goal.category]}
                 </Typography>
                 <Typography
                   variant="h6"
                   sx={{
-                    fontWeight: 800,
+                    fontWeight: 600,
                     letterSpacing: '-0.02em',
                     lineHeight: 1.35,
                     pr: 1,
@@ -218,13 +218,13 @@ const GoalDetailDrawer = ({
             backgroundColor: theme.palette.background.paper,
           }}
         >
-          <Tab value="details" label="Details" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+          <Tab value="details" label="Details" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
           <Tab
             value="growthConnect"
             label="Growth Connect"
-            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }}
+            sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }}
           />
-          <Tab value="history" label="History" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 700 }} />
+          <Tab value="history" label="History" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
         </Tabs>
 
         {/* Scrollable body */}

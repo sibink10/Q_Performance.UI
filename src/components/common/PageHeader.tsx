@@ -82,7 +82,7 @@ const PageHeader = ({
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
           {startAdornment}
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <Typography variant="h5">
               {title}
             </Typography>
             {subtitle ? (

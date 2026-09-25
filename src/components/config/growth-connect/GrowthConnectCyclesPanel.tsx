@@ -39,6 +39,8 @@ const GrowthConnectCyclesPanel = ({ open, reviewPeriod, onClose }: GrowthConnect
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCycle, setEditingCycle] = useState<GrowthConnectCycle | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<GrowthConnectCycle | null>(null);
+  const [openTarget, setOpenTarget] = useState<GrowthConnectCycle | null>(null);
+  const [closeTarget, setCloseTarget] = useState<GrowthConnectCycle | null>(null);
 
   useEffect(() => {
     if (open && reviewPeriod) {
@@ -79,6 +81,28 @@ const GrowthConnectCyclesPanel = ({ open, reviewPeriod, onClose }: GrowthConnect
       // error surfaced via the hook's `error` state
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  const handleOpenConfirm = async () => {
+    if (!openTarget) return;
+    try {
+      await openCycle(openTarget.id);
+    } catch {
+      // error surfaced via the hook's `error` state
+    } finally {
+      setOpenTarget(null);
+    }
+  };
+
+  const handleCloseConfirm = async () => {
+    if (!closeTarget) return;
+    try {
+      await closeCycle(closeTarget.id);
+    } catch {
+      // error surfaced via the hook's `error` state
+    } finally {
+      setCloseTarget(null);
     }
   };
 
@@ -131,8 +155,8 @@ const GrowthConnectCyclesPanel = ({ open, reviewPeriod, onClose }: GrowthConnect
             cycles={cycles}
             isMutating={isMutating}
             onEdit={handleEdit}
-            onOpen={(cycle) => openCycle(cycle.id)}
-            onClose={(cycle) => closeCycle(cycle.id)}
+            onOpen={setOpenTarget}
+            onClose={setCloseTarget}
             onDelete={setDeleteTarget}
           />
         )}
@@ -159,6 +183,40 @@ const GrowthConnectCyclesPanel = ({ open, reviewPeriod, onClose }: GrowthConnect
           </AppButton>
           <AppButton color="error" onClick={handleDeleteConfirm} disabled={isMutating}>
             {isMutating ? 'Deleting…' : 'Delete'}
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(openTarget)} onClose={() => setOpenTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Open Growth Connect cycle?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <strong>{openTarget?.name}</strong> will be open for employee and manager submissions.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <AppButton variant="outlined" onClick={() => setOpenTarget(null)} disabled={isMutating}>
+            Cancel
+          </AppButton>
+          <AppButton onClick={handleOpenConfirm} disabled={isMutating}>
+            {isMutating ? 'Opening…' : 'Open'}
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(closeTarget)} onClose={() => setCloseTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Close Growth Connect cycle?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <strong>{closeTarget?.name}</strong> will no longer accept employee or manager submissions.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <AppButton variant="outlined" onClick={() => setCloseTarget(null)} disabled={isMutating}>
+            Cancel
+          </AppButton>
+          <AppButton color="error" onClick={handleCloseConfirm} disabled={isMutating}>
+            {isMutating ? 'Closing…' : 'Close'}
           </AppButton>
         </DialogActions>
       </Dialog>

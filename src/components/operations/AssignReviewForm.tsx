@@ -24,17 +24,11 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useNavigate } from 'react-router-dom';
 import usePerformance from '../../hooks/usePerformance';
 import { assignReviewForm } from '../../app/state/slices/performanceThunks';
-import {
-  entraUserToAssignmentPayload,
-  fetchEntraUsers,
-  importStudentsFromEntra,
-  syncStudentsFromEntra,
-} from '../../services/usersService';
+import { getAllEmployees } from '../../services/employeeService';
 import { formatDate, getApiErrorMessage } from '../../utils/helpers';
 import AppButton from '../common/AppButton';
 import { AppLoader, AppCard, AppSnackbar, ConfirmDialog, StatusChip, PageHeader } from '../common';
 import useFinancialYears from '../../hooks/useFinancialYears';
-import SyncIcon from '@mui/icons-material/Sync';
 
 const MAX_TAGS_INLINE = 2;
 
@@ -60,15 +54,15 @@ const TIMELINE_ROWS: { label: string; startKey: string; endKey: string }[] = [
   { label: 'HR / admin review', startKey: 'hrReviewStart', endKey: 'hrReviewEnd' },
 ];
 
-/** Matches server contract when assigning via Entra user picker (no department-wide mode yet). */
+/** Matches server contract when assigning via employee picker (no department-wide mode yet). */
 const ASSIGNMENT_SELECTION_MODE_EMPLOYEES = 'Employees';
 
-const getEntraUserDisplayName = (u: any) =>
+const getUserDisplayName = (u: any) =>
   u?.fullName ?? u?.name ?? [u?.firstName, u?.lastName].filter(Boolean).join(' ') ?? '';
 
-const getEntraUserSecondaryText = (u: any) => {
-  const email = u?.email ?? u?.mail ?? '';
-  const managerName = u?.managerName ?? u?.manager?.displayName ?? '';
+const getUserSecondaryText = (u: any) => {
+  const email = u?.email ?? '';
+  const managerName = u?.managerName ?? '';
   const bits = [
     email ? `Email: ${email}` : '',
     managerName ? `Manager: ${managerName}` : '',
@@ -78,7 +72,6 @@ const getEntraUserSecondaryText = (u: any) => {
 
 function buildAssignmentPayload(
   formData: { financialYearId: string; reviewFormId: string; employeeIds: string[] },
-  selectedUsers: { id: string }[],
   appraisalConfig: Record<string, unknown> | null
 ): { ok: true; payload: Record<string, unknown> } | { ok: false; message: string } {
   if (!appraisalConfig) {
@@ -100,7 +93,6 @@ function buildAssignmentPayload(
     ok: true,
     payload: {
       reviewFormId: formData.reviewFormId,
-      entraEmployees: selectedUsers.map((u) => entraUserToAssignmentPayload(u)),
       selectionMode: ASSIGNMENT_SELECTION_MODE_EMPLOYEES,
       employeeIds: formData.employeeIds,
       departments: [],
@@ -136,16 +128,11 @@ const AssignReviewForm = () => {
   const [validationError, setValidationError] = useState('');
   const [userSearchInput, setUserSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [entraUsers, setEntraUsers] = useState([]);
+  const [userOptions, setUserOptions] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersFetchError, setUsersFetchError] = useState('');
   const [pendingRemoveUser, setPendingRemoveUser] = useState(null);
   const [pendingClearAllUsers, setPendingClearAllUsers] = useState(false);
-  const [importSummary, setImportSummary] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [syncingUsers, setSyncingUsers] = useState(false);
-  const [syncSummary, setSyncSummary] = useState(null);
-  const [refreshEntraUsersKey, setRefreshEntraUsersKey] = useState(0);
 
   useEffect(() => {
     loadReviewForms();
@@ -180,14 +167,14 @@ const AssignReviewForm = () => {
     let cancelled = false;
     setUsersLoading(true);
     setUsersFetchError('');
-    fetchEntraUsers({ search: debouncedSearch, top: 100 })
-      .then(({ users }) => {
+    getAllEmployees({ page: 1, pageSize: 100, search: debouncedSearch })
+      .then(({ employees }) => {
         if (cancelled) return;
-        setEntraUsers(users);
+        setUserOptions(employees);
       })
       .catch((e) => {
         if (cancelled) return;
-        setEntraUsers([]);
+        setUserOptions([]);
         setUsersFetchError(getApiErrorMessage(e));
       })
       .finally(() => {
@@ -196,7 +183,7 @@ const AssignReviewForm = () => {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, refreshEntraUsersKey]);
+  }, [debouncedSearch]);
 
   const activeReviewForms = useMemo(
     () => reviewForms.filter((form) => form.status !== 'Archived'),
@@ -221,41 +208,6 @@ const AssignReviewForm = () => {
     setValidationError('');
   };
 
-  const handleImportStudents = async () => {
-    if (!selectedUsers.length) {
-      setValidationError('Select at least one user before importing students.');
-      return;
-    }
-    setImporting(true);
-    setValidationError('');
-    try {
-      const result = await importStudentsFromEntra(selectedUsers.map((u) => entraUserToAssignmentPayload(u)));
-      setImportSummary(result);
-      setSyncSummary(null);
-    } catch (e) {
-      setValidationError(getApiErrorMessage(e));
-      setImportSummary(null);
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleSyncUsers = async () => {
-    setSyncingUsers(true);
-    setValidationError('');
-    try {
-      const result = await syncStudentsFromEntra();
-      setSyncSummary(result);
-      setImportSummary(null);
-      setRefreshEntraUsersKey((k) => k + 1);
-    } catch (e) {
-      setValidationError(getApiErrorMessage(e));
-      setSyncSummary(null);
-    } finally {
-      setSyncingUsers(false);
-    }
-  };
-
   const handleAssign = async () => {
     setValidationError('');
 
@@ -269,7 +221,7 @@ const AssignReviewForm = () => {
       return;
     }
 
-    const built = buildAssignmentPayload(formData, selectedUsers, appraisalConfig);
+    const built = buildAssignmentPayload(formData, appraisalConfig);
     if (!built.ok) {
       setValidationError(built.message);
       return;
@@ -297,15 +249,6 @@ const AssignReviewForm = () => {
             alignItems={{ xs: 'stretch', sm: 'center' }}
             sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
-            <AppButton
-              variant="outlined"
-              startIcon={<SyncIcon />}
-              loading={syncingUsers}
-              onClick={handleSyncUsers}
-              sx={{ width: { xs: '100%', sm: 'auto' } }}
-            >
-              Sync Entra users
-            </AppButton>
             <AppButton
               variant="outlined"
               startIcon={<ListAltIcon />}
@@ -445,7 +388,7 @@ const AssignReviewForm = () => {
               disableCloseOnSelect
               fullWidth
               size="small"
-              options={entraUsers}
+              options={userOptions}
               value={selectedUsers}
               onChange={(_, newValue) => {
                 syncSelection(newValue);
@@ -460,7 +403,7 @@ const AssignReviewForm = () => {
               filterOptions={(opts) => opts}
               blurOnSelect={false}
               clearOnBlur={false}
-              getOptionLabel={(option) => getEntraUserDisplayName(option)}
+              getOptionLabel={(option) => getUserDisplayName(option)}
               isOptionEqualToValue={(a, b) => a.id === b.id}
               loading={usersLoading}
               loadingText="Searching…"
@@ -473,7 +416,7 @@ const AssignReviewForm = () => {
                       <Chip
                         {...chipProps}
                         key={option.id}
-                        label={getEntraUserDisplayName(option)}
+                        label={getUserDisplayName(option)}
                         size="small"
                         onDelete={() => setPendingRemoveUser(option)}
                       />
@@ -512,11 +455,11 @@ const AssignReviewForm = () => {
                 <li {...props} key={option.id}>
                   <Box sx={{ py: 0.25 }}>
                     <Typography variant="body2" fontWeight={600}>
-                      {getEntraUserDisplayName(option)}
+                      {getUserDisplayName(option)}
                     </Typography>
-                    {!!getEntraUserSecondaryText(option) && (
+                    {!!getUserSecondaryText(option) && (
                       <Typography variant="caption" color="text.secondary" display="block">
-                        {getEntraUserSecondaryText(option)}
+                        {getUserSecondaryText(option)}
                       </Typography>
                     )}
                   </Box>
@@ -550,7 +493,7 @@ const AssignReviewForm = () => {
                 {selectedUsers.map((emp) => (
                   <Chip
                     key={emp.id}
-                    label={getEntraUserDisplayName(emp)}
+                    label={getUserDisplayName(emp)}
                     onDelete={() => setPendingRemoveUser(emp)}
                   />
                 ))}
@@ -560,7 +503,7 @@ const AssignReviewForm = () => {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Stack direction="row" spacing={1}>
-              <StatusChip status={isSaving || importing ? 'In Progress' : 'Pending'} />
+              <StatusChip status={isSaving ? 'In Progress' : 'Pending'} />
             </Stack>
             <AppButton
               onClick={handleAssign}
@@ -577,16 +520,6 @@ const AssignReviewForm = () => {
               Assign Review Form
             </AppButton>
           </Box>
-          {(importSummary || syncSummary) && (
-            <Alert severity={(importSummary ?? syncSummary).errors?.length ? 'warning' : 'success'}>
-              Added: {(importSummary ?? syncSummary).addedCount} | Updated: {(importSummary ?? syncSummary).updatedCount}
-              {(importSummary ?? syncSummary).errors?.length
-                ? ` | Errors: ${(importSummary ?? syncSummary).errors
-                    .map((err) => err.message || `Row ${typeof err.index === 'number' ? err.index + 1 : 'Unknown'}`)
-                    .join('; ')}`
-                : ''}
-            </Alert>
-          )}
         </Stack>
       </AppCard>
 
@@ -603,7 +536,7 @@ const AssignReviewForm = () => {
         title="Remove user"
         message={
           <>
-            Remove <strong>{getEntraUserDisplayName(pendingRemoveUser) || ''}</strong> from the assignment selection?
+            Remove <strong>{getUserDisplayName(pendingRemoveUser) || ''}</strong> from the assignment selection?
           </>
         }
         confirmText="Remove"

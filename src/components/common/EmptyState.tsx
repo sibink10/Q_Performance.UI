@@ -78,7 +78,7 @@ const EmptyState = ({
       </Box>
 
       {title ? (
-        <Typography variant="subtitle1" fontWeight={800} sx={{ color: 'text.primary', mb: 0.5 }}>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ color: 'text.primary', mb: 0.5 }}>
           {title}
         </Typography>
       ) : null}

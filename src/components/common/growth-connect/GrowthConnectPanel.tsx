@@ -169,7 +169,7 @@ const GrowthConnectPanel = ({ goal, onRequestRevision }: GrowthConnectPanelProps
             <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <TimelineOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   {entry.cycleName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -180,7 +180,7 @@ const GrowthConnectPanel = ({ goal, onRequestRevision }: GrowthConnectPanelProps
                 size="small"
                 label={DISPLAY_STATUS_LABELS[getDisplayStatus(entry)]}
                 color={DISPLAY_STATUS_COLOR[getDisplayStatus(entry)]}
-                sx={{ fontWeight: 700 }}
+                sx={{ fontWeight: 600 }}
               />
             </Stack>
 
@@ -236,7 +236,7 @@ const GrowthConnectPanel = ({ goal, onRequestRevision }: GrowthConnectPanelProps
                     size="small"
                     label={GOAL_STATUS_LABELS[entry.managerStatus as GoalStatus]}
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 600,
                       backgroundColor: statusColors ? alpha(statusColors.main, 0.14) : undefined,
                       color: statusColors?.dark,
                     }}

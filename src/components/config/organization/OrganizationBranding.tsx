@@ -296,7 +296,7 @@ const OrganizationBranding = () => {
                 {preview.organizationName}
               </Typography>
             ) : null}
-            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+            <Typography variant="subtitle1" fontWeight={600} lineHeight={1.2}>
               {preview.moduleName}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -307,7 +307,7 @@ const OrganizationBranding = () => {
 
         <Divider sx={{ mb: 2 }} />
 
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
           Images (upload)
         </Typography>
         <Grid container spacing={3}>
@@ -365,7 +365,7 @@ const OrganizationBranding = () => {
 
         <Divider sx={{ my: 3 }} />
 
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
           Theme
         </Typography>
         <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -406,7 +406,7 @@ const OrganizationBranding = () => {
           </Grid>
         </Grid>
 
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
           Labels and links
         </Typography>
         <Grid container spacing={2}>

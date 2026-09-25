@@ -89,7 +89,7 @@ const Timeline = ({ entries, emptyMessage = 'No history yet.' }: TimelineProps) 
 
             <Box sx={{ flex: 1, minWidth: 0, pb: isLast ? 0 : 2.5 }}>
               <Stack direction="row" spacing={1} alignItems="baseline" flexWrap="wrap" useFlexGap>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   {entry.title}
                 </Typography>
                 <DateTimeStamp date={entry.date} />

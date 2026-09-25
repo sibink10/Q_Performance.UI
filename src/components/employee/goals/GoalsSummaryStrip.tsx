@@ -56,7 +56,7 @@ function StatCard({
       <Typography
         variant="h5"
         sx={{
-          fontWeight: 800,
+          fontWeight: 600,
           letterSpacing: '-0.03em',
           color: colors?.dark ?? 'text.primary',
           lineHeight: 1.1,

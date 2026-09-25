@@ -110,7 +110,7 @@ const GrowthConnectRevisionApprovalTable = ({
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ '& th': { fontWeight: 700 } }}>
+                <TableRow sx={{ '& th': { fontWeight: 600 } }}>
                   <TableCell>Employee</TableCell>
                   <TableCell>Goal / Cycle</TableCell>
                   <TableCell>Manager</TableCell>
@@ -146,7 +146,7 @@ const GrowthConnectRevisionApprovalTable = ({
                           <Chip
                             size="small"
                             label={GOAL_REVISION_STATUS_LABELS[revision.status]}
-                            sx={{ fontWeight: 700, backgroundColor: alpha(statusColors.main, 0.14), color: statusColors.dark }}
+                            sx={{ fontWeight: 600, backgroundColor: alpha(statusColors.main, 0.14), color: statusColors.dark }}
                           />
                         </TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>

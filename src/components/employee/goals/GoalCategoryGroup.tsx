@@ -53,7 +53,7 @@ const GoalCategoryGroup = ({ category, goals, onGoalClick }: GoalCategoryGroupPr
             <Icon sx={{ fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
               {GOAL_CATEGORY_LABELS[category]} Goals
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -65,7 +65,7 @@ const GoalCategoryGroup = ({ category, goals, onGoalClick }: GoalCategoryGroupPr
           size="small"
           label={`${goals.length} total`}
           sx={{
-            fontWeight: 700,
+            fontWeight: 600,
             backgroundColor: colors.soft,
             color: colors.main,
             border: `1px solid ${colors.border}`,

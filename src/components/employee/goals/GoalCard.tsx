@@ -57,7 +57,7 @@ const GoalCard = ({ goal, onClick }: GoalCardProps) => {
           <Typography
             variant="subtitle2"
             sx={{
-              fontWeight: 700,
+              fontWeight: 600,
               lineHeight: 1.45,
               letterSpacing: '-0.01em',
               display: '-webkit-box',

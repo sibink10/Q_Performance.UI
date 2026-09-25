@@ -84,7 +84,7 @@ const SubmitConfirmationDialog = ({
               <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                 HR overall rating
               </Typography>
-              <Typography variant="body1" fontWeight={700}>
+              <Typography variant="body1" fontWeight={600}>
                 {hrOverallRatingCaption}
               </Typography>
             </Box>
@@ -106,7 +106,7 @@ const SubmitConfirmationDialog = ({
         {hasSummaryRows && (
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Divider />
-            <Typography variant="subtitle2" fontWeight={700}>
+            <Typography variant="subtitle2" fontWeight={600}>
               {isManagerMode ? 'Manager review summary' : 'Self review summary'}
             </Typography>
             <TableContainer
@@ -121,14 +121,14 @@ const SubmitConfirmationDialog = ({
               <Table size="small" sx={{ minWidth: 520 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Criterion</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Criterion</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                       Rating
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                       Weightage
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <TableCell align="right" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                       Weighted score
                     </TableCell>
                   </TableRow>
@@ -184,7 +184,7 @@ const SubmitConfirmationDialog = ({
               <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                 Overall rating (weighted average)
               </Typography>
-              <Typography variant="body1" fontWeight={800}>
+              <Typography variant="body1" fontWeight={600}>
                 {preview.overall != null ? `${preview.overall.toFixed(2)} / ${preview.scale}` : '—'}
               </Typography>
               {preview.totalWeight > 0 && (

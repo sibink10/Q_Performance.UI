@@ -688,7 +688,7 @@ const AssignedReviewFormEmployees = () => {
                           <PhaseStatusChip status={r.hrReviewStatus} score={r.hrOverallScore} />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={700}>
+                          <Typography variant="body2" fontWeight={600}>
                             {formatOverallScore(r.overallRating) ?? '-'}
                           </Typography>
                         </TableCell>

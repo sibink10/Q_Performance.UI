@@ -42,6 +42,7 @@ import GoalReviews from '../pages/manager/GoalReviews';
 import Requests from '../pages/manager/Requests';
 import RevisionRequests from '../pages/operations/RevisionRequests';
 import NotFound from '../pages/NotFound';
+import Home from '../pages/home/Home';
 
 const AppRoutes = () => (
   <Routes>
@@ -58,7 +59,10 @@ const AppRoutes = () => (
       }
     >
       {/* Default redirect */}
-      <Route index element={<Navigate to="/performance" replace />} />
+      <Route index element={<Navigate to="/home" replace />} />
+
+      {/* Home dashboard (all roles) */}
+      <Route path="home" element={<Home />} />
 
       {/* Employee Performance Module */}
       <Route path="performance">

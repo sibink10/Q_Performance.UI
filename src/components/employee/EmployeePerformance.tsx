@@ -162,7 +162,7 @@ const ManagedRatingChip = ({ score }: { score?: number | null }) => {
       sx={{
         height: 19,
         minWidth: 32,
-        fontWeight: 700,
+        fontWeight: 600,
         fontSize: '0.6875rem',
         lineHeight: 1,
         bgcolor: alpha(green, 0.14),
@@ -226,7 +226,7 @@ const ReviewCard = ({ review, onStart }) => {
       <CardContent sx={{ flex: 1 }}>
         {/* Form name + status */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-          <Typography variant="subtitle2" fontWeight={700} flex={1} pr={1}>
+          <Typography variant="subtitle2" fontWeight={600} flex={1} pr={1}>
             {review.formName}
           </Typography>
           <StatusChip status={review.status} />
@@ -564,7 +564,7 @@ const EmployeePerformance = () => {
         }}
       >
         <Box sx={{ mb: 2, position: 'relative', zIndex: 1 }}>
-          <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <Typography variant="h5">
             My reviews
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
@@ -762,7 +762,7 @@ const EmployeePerformance = () => {
                       return (
                         <TableRow key={r.id} hover sx={{ '&:hover': { bgcolor: 'rgba(79,70,229,0.035)' } }}>
                           <TableCell>
-                            <Typography variant="body2" fontWeight={700} sx={{ color: 'text.primary' }}>
+                            <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary' }}>
                               {r.formName}
                             </Typography>
                           </TableCell>
@@ -961,7 +961,7 @@ const EmployeePerformance = () => {
                                   sx={{
                                     width: 40,
                                     height: 40,
-                                    fontWeight: 800,
+                                    fontWeight: 600,
                                     fontSize: '0.9rem',
                                     background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
                                   }}
@@ -969,7 +969,7 @@ const EmployeePerformance = () => {
                                   {emp.name?.[0] || '?'}
                                 </Avatar>
                                 <Box sx={{ minWidth: 0 }}>
-                                  <Typography variant="body2" fontWeight={700} noWrap sx={{ color: 'text.primary' }}>
+                                  <Typography variant="body2" fontWeight={600} noWrap sx={{ color: 'text.primary' }}>
                                     {emp.name}
                                   </Typography>
                                   {emp.selfEmail ? (

@@ -18,7 +18,7 @@ const GoalStatusBadge = ({ status, size = 'small' }: GoalStatusBadgeProps) => {
       size={size}
       label={GOAL_STATUS_LABELS[status]}
       sx={{
-        fontWeight: 700,
+        fontWeight: 600,
         letterSpacing: '0.01em',
         backgroundColor: colors.light,
         color: colors.dark,

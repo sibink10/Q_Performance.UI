@@ -46,7 +46,7 @@ const NotFoundPage = ({
           variant="h1"
           sx={{
             fontSize: { xs: '4rem', sm: '5rem' },
-            fontWeight: 800,
+            fontWeight: 600,
             lineHeight: 1,
             letterSpacing: '-0.04em',
             background: `linear-gradient(135deg, ${primary} 0%, ${theme.palette.primary.dark} 100%)`,
@@ -83,7 +83,7 @@ const NotFoundPage = ({
           />
         </Box>
 
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           {title}
         </Typography>
 

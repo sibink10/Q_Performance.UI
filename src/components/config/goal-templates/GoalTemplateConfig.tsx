@@ -178,7 +178,7 @@ const GoalTemplateConfig = () => {
                 label={category.id === 'ALL' ? category.code : formatCategoryLabel(category.code)}
                 onClick={() => setCategoryFilter(category.id)}
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   backgroundColor: selected
                     ? accent
                       ? accent.soft

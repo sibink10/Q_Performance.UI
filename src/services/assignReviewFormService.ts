@@ -96,19 +96,6 @@ export function patchAssignmentEvaluationWindows(
   return api.patch(`/performance/assignments/${encodeURIComponent(String(assignmentId))}/evaluation-windows`, data);
 }
 
-/**
- * PATCH /performance/timeline/extend - extend only one phase end date.
- * Frontend should always send assignmentId to avoid bulk updates.
- */
-export function patchExtendAssignmentTimeline(data: {
-  assignmentId: string;
-  phase: string;
-  newDate: string;
-  reason?: string;
-}) {
-  return api.patch('/performance/timeline/extend', data);
-}
-
 /** POST /performance/assignments */
 export function createAssignments(data) {
   return api.post('/performance/assignments', data);
