@@ -26,7 +26,6 @@ import {
   fetchMyPublishedReviews,
   saveEvaluation,
   submitEvaluation,
-  fetchMyResults,
   fetchMyResultDetail,
   fetchManagerTeam,
   submitManagerEvaluation,
@@ -64,7 +63,6 @@ const initialState = {
     submitted: [],
   },
   myPublishedReviewsLoading: false,
-  myResults: [],
   /** GET /performance/my-results/:assignmentId */
   myResultDetail: null,
   myResultDetailLoading: false,
@@ -349,15 +347,6 @@ const performanceSlice = createSlice({
         state.successMessage = 'Self-evaluation submitted successfully';
       });
 
-    // ── My Results ───────────────────────────────────────────────────────────
-    builder
-      .addCase(fetchMyResults.pending, handlePending)
-      .addCase(fetchMyResults.fulfilled, (state, { payload }) => {
-        state.isLoading = false;
-        state.myResults = payload;
-      })
-      .addCase(fetchMyResults.rejected, handleRejected);
-
     builder
       .addCase(fetchMyResultDetail.pending, (state) => {
         state.myResultDetailLoading = true;
@@ -450,7 +439,6 @@ export const selectMyReviews = (state) => state.performance.myReviews;
 export const selectMyReviewsLoading = (state) => state.performance.myReviewsLoading;
 export const selectMyPublishedReviews = (state) => state.performance.myPublishedReviews;
 export const selectMyPublishedReviewsLoading = (state) => state.performance.myPublishedReviewsLoading;
-export const selectMyResults = (state) => state.performance.myResults;
 export const selectMyResultDetail = (state) => state.performance.myResultDetail;
 export const selectMyResultDetailLoading = (state) => state.performance.myResultDetailLoading;
 export const selectManagerTeam = (state) => state.performance.managerTeam;

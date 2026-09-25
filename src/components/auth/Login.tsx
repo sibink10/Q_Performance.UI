@@ -18,7 +18,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/performance', { replace: true });
+    if (isAuthenticated) navigate('/home', { replace: true });
   }, [isAuthenticated, navigate]);
 
   return (

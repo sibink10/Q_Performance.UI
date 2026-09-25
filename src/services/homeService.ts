@@ -38,8 +38,8 @@ async function loadEmployee(user) {
   const [me, reviewsRes, goalsRes, resultsRes] = await Promise.allSettled([
     api.get(`/users/${user.id}`),
     performanceService.getMyReviews(),
-    getGoalsByEmployee(user.id),
-    performanceService.getMyResults(),
+    getGoalsByEmployee(user.employeeId),
+    performanceService.getMyPublishedReviews(),
   ]);
 
   const assignments = unwrapList(ok(reviewsRes));
@@ -122,6 +122,7 @@ async function loadManager(user) {
 
   if (ok(mineRes)) {
     const pending = ok(mineRes).filter(isPending);
+    stats.push({ id: 'rev', label: 'Pending revision requests', value: String(pending.length), tone: pending.length ? 'warning' : 'success', path: '/manager/performance/requests' });
     if (pending.length) {
       needsAction.push({
         id: 'rev',
@@ -133,6 +134,9 @@ async function loadManager(user) {
     }
   }
 
+  const cycles = await loadActiveCycles();
+  stats.push({ id: 'cyc', label: 'Open cycles', value: String(cycles.filter((c) => c.status === 'ACTIVE').length), tone: 'success' });
+
   const myAssignments = unwrapList(ok(myReviewsRes));
 
   return {
@@ -143,7 +147,7 @@ async function loadManager(user) {
     currentPeriod: buildCurrentPeriod(pickCurrentAssignment(myAssignments)),
     phaseProgress: phases,
     needsAction,
-    cycles: await loadActiveCycles(),
+    cycles,
     quickActions: [
       { id: 'q1', label: 'Goal reviews', description: 'Review your team goals', path: '/manager/performance/goal-reviews' },
       { id: 'q2', label: 'My requests', description: 'Track revision requests', path: '/manager/performance/requests' },

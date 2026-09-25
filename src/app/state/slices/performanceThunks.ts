@@ -23,10 +23,7 @@ const rejectMutation = (e, rejectWithValue) =>
   });
 import { normalizeMyReviewsResponse } from '../../../utils/normalizeMyReviewsResponse';
 import { normalizeManagedAssignmentsResponse } from '../../../utils/normalizeManagedAssignmentsResponse';
-import {
-  normalizeMyResultsListPayload,
-  normalizeMyResultDetailPayload,
-} from '../../../utils/normalizeMyResultsResponse';
+import { normalizeMyResultDetailPayload } from '../../../utils/normalizeMyResultsResponse';
 
 // ─── Config Module Thunks ─────────────────────────────────────────────────────
 
@@ -233,18 +230,6 @@ export const submitEvaluation = createAsyncThunk(
       return await performanceService.submitSelfEvaluation(reviewId, payload);
     } catch (e) {
       return rejectMutation(e, rejectWithValue);
-    }
-  }
-);
-
-export const fetchMyResults = createAsyncThunk(
-  'performance/fetchMyResults',
-  async (financialYear, { rejectWithValue }) => {
-    try {
-      const data = await performanceService.getMyResults(financialYear);
-      return normalizeMyResultsListPayload(data);
-    } catch (e) {
-      return rejectWithValue(getApiErrorMessage(e));
     }
   }
 );

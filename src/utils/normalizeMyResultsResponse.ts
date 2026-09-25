@@ -2,7 +2,6 @@
 // Maps GET /performance/my-results list and GET /performance/my-results/:assignmentId payloads.
 
 import {
-  toArrayFromPayload,
   toEntityFromPayload,
   normalizePhaseSnapshot,
   parseRatingScaleMax,
@@ -157,69 +156,6 @@ function focusAreasFromSectionsOnly(sections) {
       questions: qs,
     };
   });
-}
-
-/** Row shape for the My Results assignments table. */
-export function mapMyResultListItem(raw) {
-  if (!raw || typeof raw !== 'object') return null;
-
-  const assignmentId =
-    raw.assignmentId ??
-    raw.id ??
-    raw.reviewAssignmentId ??
-    raw.reviewId ??
-    raw.evaluationAssignmentId;
-
-  if (assignmentId == null || assignmentId === '') return null;
-
-  const formName =
-    raw.formName ??
-    raw.reviewFormName ??
-    raw.formTitle ??
-    raw.title ??
-    'Performance review';
-
-  const period =
-    raw.period ??
-    raw.financialYear ??
-    raw.fiscalYear ??
-    raw.appraisalCycleName ??
-    '-';
-
-  const publishedDate =
-    raw.publishedDate ??
-    raw.publishedAt ??
-    raw.finalizedDate ??
-    raw.completedAt ??
-    null;
-
-  const finalRating = raw.finalRating ?? raw.finalScore ?? raw.overallRating ?? raw.overallScore;
-
-  const managerName =
-    raw.managerName ??
-    raw.reviewerName ??
-    raw.reportingManagerName ??
-    '-';
-
-  return {
-    assignmentId: String(assignmentId),
-    formName: String(formName),
-    period: String(period),
-    publishedDate,
-    finalRating: finalRating != null && finalRating !== '' ? Number(finalRating) : null,
-    ratingScale: ratingScaleFromPayloadEntity(raw),
-    managerName: String(managerName),
-  };
-}
-
-export function normalizeMyResultsListPayload(raw) {
-  const arr = toArrayFromPayload(raw);
-  let rows = arr.map(mapMyResultListItem).filter(Boolean);
-  if (!rows.length && raw && typeof raw === 'object') {
-    const maybe = mapMyResultListItem(toEntityFromPayload(raw));
-    if (maybe) rows = [maybe];
-  }
-  return rows;
 }
 
 function mapFocusAreaRow(fa) {

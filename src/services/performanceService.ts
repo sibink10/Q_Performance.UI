@@ -112,10 +112,6 @@ const performanceService = {
     api.post(`/performance/my-reviews/${reviewId}/submit`, body),
 
   // ── Employee: My Results ───────────────────────────────────────────────────
-  getMyResults: (financialYearId) =>
-    api.get('/performance/my-results', {
-      params: { ...(financialYearId ? { financialYearId } : {}) },
-    }),
   /** GET /performance/my-results/:assignmentId - published result detail for current user */
   getMyResultByAssignmentId: (assignmentId) =>
     api.get(`/performance/my-results/${assignmentId}`),
