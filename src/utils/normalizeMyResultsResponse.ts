@@ -138,12 +138,17 @@ function mergeSectionsIntoFocusAreas(focusAreas, sections) {
 function focusAreasFromSectionsOnly(sections) {
   return sections.map((s, idx) => {
     const name = s.focusAreaName ?? s.name ?? `Focus area ${idx + 1}`;
-    const rowId = String(s.focusAreaId ?? s.id ?? `section-${idx}`);
+    const sectionIdRaw = s.id ?? s.sectionId ?? null;
+    const focusAreaIdRaw = s.focusAreaId ?? null;
+    const rowId = String(sectionIdRaw ?? focusAreaIdRaw ?? `section-${idx}`);
     const qs = (s.questions ?? [])
       .map((q, i) => mapFocusAreaQuestion(q, i))
       .filter(Boolean);
     return {
       rowId,
+      sectionId: sectionIdRaw != null && sectionIdRaw !== '' ? String(sectionIdRaw) : null,
+      focusAreaId:
+        focusAreaIdRaw != null && focusAreaIdRaw !== '' ? String(focusAreaIdRaw) : null,
       name: String(name),
       selfScore: 0,
       managerScore: 0,
@@ -188,8 +193,10 @@ function mapFocusAreaRow(fa) {
   const hrComment =
     fa.hrComment ?? fa.HrComment ?? fa.hrComments ?? '';
 
+  const sectionIdRaw = fa.sectionId ?? fa.SectionId ?? null;
+  const focusAreaIdRaw = fa.focusAreaId ?? fa.FocusAreaId ?? fa.id ?? null;
   const rowId =
-    fa.sectionId ?? fa.focusAreaId ?? fa.id ?? `${name}-${selfScore}-${managerScore}`;
+    sectionIdRaw ?? focusAreaIdRaw ?? `${name}-${selfScore}-${managerScore}`;
 
   const numOrNaN = (v) =>
     v == null || v === '' ? NaN : Number(v);
@@ -210,6 +217,10 @@ function mapFocusAreaRow(fa) {
 
   return {
     rowId: String(rowId),
+    /** Review-form section GUID — required for lazy question-texts fetch. */
+    sectionId: sectionIdRaw != null && sectionIdRaw !== '' ? String(sectionIdRaw) : null,
+    focusAreaId:
+      focusAreaIdRaw != null && focusAreaIdRaw !== '' ? String(focusAreaIdRaw) : null,
     name: String(name),
     selfScore: safe(nSelf) ? nSelf : 0,
     managerScore: safe(nMgr) ? nMgr : 0,

@@ -1,7 +1,7 @@
 // Employee: Published performance results - list by financial year,
 // detailed view via GET /performance/my-results/:assignmentId
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box, Typography, Grid, Divider, Chip, Stack,
@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow, TableContainer,
   Avatar, IconButton, Tooltip, Rating,
   Accordion, AccordionSummary, AccordionDetails,
+  CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -18,11 +19,19 @@ import {
   ResponsiveContainer, Tooltip as RechartsTooltip, Legend,
 } from 'recharts';
 import usePerformance from '../../hooks/usePerformance';
+import usePerformanceApi from '../../hooks/usePerformanceApi';
 import { AppCard, AppLoader, EmptyState, PageHeader } from '../../components/common/index.jsx';
 import TableDotStatus from '../../components/common/TableDotStatus';
 import { modernTableSx } from '../../utils/floatingPanelSx';
 import { REVIEW_STATUSES } from '../../utils/constants';
-import { formatDate, resolveRatingBand } from '../../utils/helpers';
+import {
+  formatDate,
+  getApiErrorMessage,
+  hasPlainTextComment,
+  mergePhaseSnapshot,
+  normalizePhaseSnapshot,
+  resolveRatingBand,
+} from '../../utils/helpers';
 import { RatingBandIcon, RatingBandShortLabelChip } from '../../utils/ratingBandIcons';
 import {
   isProbablyHtml,
@@ -109,13 +118,15 @@ function PublishedPhaseReadout({
   accentColor,
 }: {
   label: string;
-  snapshot: { rating: number; comment: string } | null;
+  snapshot: { rating: number; comment: string; commentStatus?: boolean } | null;
   scale: number;
   accentColor: string;
 }) {
   const has =
     snapshot &&
-    ((Number(snapshot.rating) || 0) > 0 || String(snapshot.comment || '').trim() !== '');
+    ((Number(snapshot.rating) || 0) > 0
+      || String(snapshot.comment || '').trim() !== ''
+      || snapshot.commentStatus === true);
   return (
     <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
       {label ? (
@@ -154,12 +165,101 @@ function PublishedPhaseReadout({
   );
 }
 
-function PublishedResultPanels({ result }) {
+function snapshotFromQuestionTextItem(item, phase: 'self' | 'manager') {
+  if (!item) return null;
+  if (phase === 'manager') return normalizePhaseSnapshot(item.managerReview);
+  const direct = normalizePhaseSnapshot(item.selfReview);
+  if (direct) return direct;
+  const ratingRaw = item.answerRating ?? item.AnswerRating;
+  const commentRaw = item.answerComment ?? item.AnswerComment;
+  const hasRating =
+    ratingRaw != null && ratingRaw !== '' && Number.isFinite(Number(ratingRaw));
+  const hasComment = hasPlainTextComment(commentRaw);
+  if (!hasRating && !hasComment) return null;
+  return {
+    rating: hasRating ? Number(ratingRaw) : 0,
+    comment: hasComment ? String(commentRaw) : '',
+    commentStatus: hasComment,
+  };
+}
+
+function PublishedResultPanels({ result, assignmentId }: { result: any; assignmentId?: string }) {
+  const { getAssignmentSectionQuestionTexts } = usePerformanceApi();
   const scale = Number(result.ratingScale) || 5;
   const ratingBand = resolveRatingBand(result.finalRating, result.ratingBands, scale);
   const ratingColor = ratingBand.color;
 
-  const areas = result.focusAreas || [];
+  const [focusAreas, setFocusAreas] = useState(() => result.focusAreas || []);
+  const [expandedFocusAreaKey, setExpandedFocusAreaKey] = useState(false);
+  const [sectionFetchBusyKey, setSectionFetchBusyKey] = useState(null);
+  const [sectionFetchError, setSectionFetchError] = useState(null);
+  const sectionTextsLoadedRef = useRef(new Set());
+  const sectionFetchSeqRef = useRef(0);
+
+  useEffect(() => {
+    setFocusAreas(result.focusAreas || []);
+    setExpandedFocusAreaKey(false);
+    setSectionFetchBusyKey(null);
+    setSectionFetchError(null);
+    sectionTextsLoadedRef.current = new Set();
+    sectionFetchSeqRef.current += 1;
+  }, [result]);
+
+  const areas = focusAreas;
+
+  const fetchSectionQuestionTexts = useCallback(
+    async (fa) => {
+      const sectionId = fa?.sectionId;
+      if (!assignmentId || !sectionId) return;
+      const sectionKey = String(sectionId);
+      if (sectionTextsLoadedRef.current.has(sectionKey)) return;
+
+      const accordionKey = String(fa.rowId || fa.sectionId || fa.focusAreaId || fa.name);
+      const seq = ++sectionFetchSeqRef.current;
+      setSectionFetchBusyKey(accordionKey);
+      setSectionFetchError(null);
+      try {
+        const items = await getAssignmentSectionQuestionTexts(assignmentId, sectionId);
+        if (sectionFetchSeqRef.current !== seq) return;
+
+        sectionTextsLoadedRef.current.add(sectionKey);
+
+        setFocusAreas((prev) => {
+          if (!prev?.length || !items?.length) return prev;
+          const byQid = new Map(items.map((x) => [String(x?.questionId ?? ''), x]));
+          return prev.map((area) => {
+            if (String(area.sectionId || '') !== sectionKey) return area;
+            const nextQuestions = Array.isArray(area.questions)
+              ? area.questions.map((q) => {
+                  const item = byQid.get(String(q?.id ?? ''));
+                  if (!item) return q;
+                  return {
+                    ...q,
+                    text: item.text ?? q.text,
+                    selfReview: mergePhaseSnapshot(
+                      q.selfReview,
+                      snapshotFromQuestionTextItem(item, 'self'),
+                    ),
+                    managerReview: mergePhaseSnapshot(
+                      q.managerReview,
+                      snapshotFromQuestionTextItem(item, 'manager'),
+                    ),
+                  };
+                })
+              : area.questions;
+            return { ...area, questions: nextQuestions };
+          });
+        });
+      } catch (e) {
+        if (sectionFetchSeqRef.current === seq) {
+          setSectionFetchError(getApiErrorMessage(e));
+        }
+      } finally {
+        if (sectionFetchSeqRef.current === seq) setSectionFetchBusyKey(null);
+      }
+    },
+    [assignmentId, getAssignmentSectionQuestionTexts],
+  );
 
   const radarRatingTicks =
     Number.isFinite(scale) &&
@@ -400,8 +500,15 @@ function PublishedResultPanels({ result }) {
           </Box>
         ) : (
           <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 2 }}>
-            {result.focusAreas.map((fa) => {
+            {sectionFetchError ? (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSectionFetchError(null)}>
+                {sectionFetchError}
+              </Alert>
+            ) : null}
+            {areas.map((fa) => {
+              const accordionKey = String(fa.rowId || fa.sectionId || fa.focusAreaId || fa.name);
               const qs = Array.isArray(fa.questions) ? fa.questions : [];
+              const isSectionLoading = sectionFetchBusyKey === accordionKey;
               const w =
                 fa.weightage != null && fa.weightage !== ''
                   ? (() => {
@@ -411,8 +518,12 @@ function PublishedResultPanels({ result }) {
                   : null;
               return (
                 <Accordion
-                  key={fa.rowId || fa.name}
-                  defaultExpanded={false}
+                  key={accordionKey}
+                  expanded={expandedFocusAreaKey === accordionKey}
+                  onChange={(_, isExpanded) => {
+                    setExpandedFocusAreaKey(isExpanded ? accordionKey : false);
+                    if (isExpanded) fetchSectionQuestionTexts(fa);
+                  }}
                   disableGutters
                   sx={{
                     mb: 1.5,
@@ -492,6 +603,24 @@ function PublishedResultPanels({ result }) {
                     </Box>
                   </AccordionSummary>
                   <AccordionDetails sx={{ p: { xs: 1.5, sm: 2, md: 2.5 }, pt: 0, overflow: 'hidden' }}>
+                    <Box sx={{ position: 'relative', minWidth: 0, maxWidth: '100%' }}>
+                      {isSectionLoading && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            pointerEvents: 'none',
+                            zIndex: 1,
+                            minHeight: 80,
+                          }}
+                        >
+                          <CircularProgress size={24} />
+                        </Box>
+                      )}
+                      <Box sx={{ opacity: isSectionLoading ? 0.55 : 1 }}>
                     {qs.length > 0 ? (
                       <Stack spacing={2} sx={{ minWidth: 0, maxWidth: '100%' }}>
                         {qs.map((q, qIdx) => {
@@ -612,6 +741,8 @@ function PublishedResultPanels({ result }) {
                         </Grid>
                       </Box>
                     )}
+                      </Box>
+                    </Box>
                   </AccordionDetails>
                 </Accordion>
               );
@@ -699,7 +830,9 @@ const MyResults = () => {
         {!error && !myResultDetail && (
           <Alert severity="info">Unable to load this result.</Alert>
         )}
-        {myResultDetail && <PublishedResultPanels result={myResultDetail} />}
+        {myResultDetail && (
+          <PublishedResultPanels result={myResultDetail} assignmentId={assignmentId} />
+        )}
       </Box>
     );
   }
